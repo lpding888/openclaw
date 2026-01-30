@@ -41,7 +41,7 @@ export function renderOverview(props: OverviewProps) {
     if (!hasToken && !hasPassword) {
       return html`
         <div class="muted" style="margin-top: 8px;">
-          This gateway requires auth. Add a token or password, then click Connect.
+          此网关需要认证。添加令牌或密码，然后点击连接。
           <div style="margin-top: 6px;">
             <span class="mono">openclaw dashboard --no-open</span> → tokenized URL<br />
             <span class="mono">openclaw doctor --generate-gateway-token</span> → set token
@@ -61,9 +61,9 @@ export function renderOverview(props: OverviewProps) {
     }
     return html`
       <div class="muted" style="margin-top: 8px;">
-        Auth failed. Re-copy a tokenized URL with
-        <span class="mono">openclaw dashboard --no-open</span>, or update the token,
-        then click Connect.
+        认证失败。重新复制带令牌的 URL
+        <span class="mono">openclaw dashboard --no-open</span>，或更新令牌，
+        然后点击连接。
         <div style="margin-top: 6px;">
           <a
             class="session-link"
@@ -87,8 +87,8 @@ export function renderOverview(props: OverviewProps) {
     }
     return html`
       <div class="muted" style="margin-top: 8px;">
-        This page is HTTP, so the browser blocks device identity. Use HTTPS (Tailscale Serve) or
-        open <span class="mono">http://127.0.0.1:18789</span> on the gateway host.
+        此页面是 HTTP，因此浏览器阻止设备标识。使用 HTTPS（Tailscale Serve）或在
+        网关主机上打开 <span class="mono">http://127.0.0.1:18789</span>。
         <div style="margin-top: 6px;">
           If you must stay on HTTP, set
           <span class="mono">gateway.controlUi.allowInsecureAuth: true</span> (token-only).
@@ -99,8 +99,8 @@ export function renderOverview(props: OverviewProps) {
             href="https://docs.openclaw.ai/gateway/tailscale"
             target="_blank"
             rel="noreferrer"
-            title="Tailscale Serve docs (opens in new tab)"
-            >Docs: Tailscale Serve</a
+            title="Tailscale Serve 文档（在新标签页打开）"
+            >文档：Tailscale Serve</a
           >
           <span class="muted"> · </span>
           <a
@@ -119,8 +119,8 @@ export function renderOverview(props: OverviewProps) {
   return html`
     <section class="grid grid-cols-2">
       <div class="card">
-        <div class="card-title">Gateway Access</div>
-        <div class="card-sub">Where the dashboard connects and how it authenticates.</div>
+        <div class="card-title">网关访问</div>
+        <div class="card-sub">仪表板连接的位置及其认证方式。</div>
         <div class="form-grid" style="margin-top: 16px;">
           <label class="field">
             <span>WebSocket URL</span>
@@ -134,7 +134,7 @@ export function renderOverview(props: OverviewProps) {
             />
           </label>
           <label class="field">
-            <span>Gateway Token</span>
+            <span>网关令牌</span>
             <input
               .value=${props.settings.token}
               @input=${(e: Event) => {
@@ -145,7 +145,7 @@ export function renderOverview(props: OverviewProps) {
             />
           </label>
           <label class="field">
-            <span>Password (not stored)</span>
+            <span>密码（不存储）</span>
             <input
               type="password"
               .value=${props.password}
@@ -168,32 +168,32 @@ export function renderOverview(props: OverviewProps) {
           </label>
         </div>
         <div class="row" style="margin-top: 14px;">
-          <button class="btn" @click=${() => props.onConnect()}>Connect</button>
-          <button class="btn" @click=${() => props.onRefresh()}>Refresh</button>
-          <span class="muted">Click Connect to apply connection changes.</span>
+          <button class="btn" @click=${() => props.onConnect()}>连接</button>
+          <button class="btn" @click=${() => props.onRefresh()}>刷新</button>
+          <span class="muted">点击连接以应用连接更改。</span>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Snapshot</div>
-        <div class="card-sub">Latest gateway handshake information.</div>
+        <div class="card-title">快照</div>
+        <div class="card-sub">最新网关握手信息。</div>
         <div class="stat-grid" style="margin-top: 16px;">
           <div class="stat">
-            <div class="stat-label">Status</div>
+            <div class="stat-label">状态</div>
             <div class="stat-value ${props.connected ? "ok" : "warn"}">
-              ${props.connected ? "Connected" : "Disconnected"}
+              ${props.connected ? "已连接" : "已断开"}
             </div>
           </div>
           <div class="stat">
-            <div class="stat-label">Uptime</div>
+            <div class="stat-label">运行时间</div>
             <div class="stat-value">${uptime}</div>
           </div>
           <div class="stat">
-            <div class="stat-label">Tick Interval</div>
+            <div class="stat-label">心跳间隔</div>
             <div class="stat-value">${tick}</div>
           </div>
           <div class="stat">
-            <div class="stat-label">Last Channels Refresh</div>
+            <div class="stat-label">上次频道刷新</div>
             <div class="stat-value">
               ${props.lastChannelsRefresh
                 ? formatAgo(props.lastChannelsRefresh)

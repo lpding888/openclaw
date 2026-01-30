@@ -1,13 +1,13 @@
 import type { IconName } from "./icons.js";
 
 export const TAB_GROUPS = [
-  { label: "Chat", tabs: ["chat"] },
+  { label: "聊天", tabs: ["chat"] },
   {
-    label: "Control",
+    label: "控制",
     tabs: ["overview", "channels", "instances", "sessions", "cron"],
   },
-  { label: "Agent", tabs: ["skills", "nodes"] },
-  { label: "Settings", tabs: ["config", "debug", "logs"] },
+  { label: "代理", tabs: ["skills", "nodes"] },
+  { label: "设置", tabs: ["config", "debug", "logs"] },
 ] as const;
 
 export type Tab =

@@ -98,14 +98,14 @@ export async function doctorCommand(
   const configPath = configResult.path ?? CONFIG_PATH;
   if (!cfg.gateway?.mode) {
     const lines = [
-      "gateway.mode is unset; gateway start will be blocked.",
-      `Fix: run ${formatCliCommand("openclaw configure")} and set Gateway mode (local/remote).`,
-      `Or set directly: ${formatCliCommand("openclaw config set gateway.mode local")}`,
+      "gateway.mode 未设置；网关启动将被阻止。",
+      `修复：运行 ${formatCliCommand("openclaw configure")} 并设置网关模式（local/remote）。`,
+      `或直接设置：${formatCliCommand("openclaw config set gateway.mode local")}`,
     ];
     if (!fs.existsSync(configPath)) {
-      lines.push(`Missing config: run ${formatCliCommand("openclaw setup")} first.`);
+      lines.push(`缺少配置：先运行 ${formatCliCommand("openclaw setup")}。`);
     }
-    note(lines.join("\n"), "Gateway");
+    note(lines.join("\n"), "网关");
   }
 
   cfg = await maybeRepairAnthropicOAuthProfileId(cfg, prompter);
@@ -126,17 +126,14 @@ export async function doctorCommand(
     });
     const needsToken = auth.mode !== "password" && (auth.mode !== "token" || !auth.token);
     if (needsToken) {
-      note(
-        "Gateway auth is off or missing a token. Token auth is now the recommended default (including loopback).",
-        "Gateway auth",
-      );
+      note("网关认证已关闭或缺少令牌。令牌认证现在是推荐的默认设置（包括本地回环）。", "网关认证");
       const shouldSetToken =
         options.generateGatewayToken === true
           ? true
           : options.nonInteractive === true
             ? false
             : await prompter.confirmRepair({
-                message: "Generate and configure a gateway token now?",
+                message: "立即生成并配置网关令牌？",
                 initialValue: true,
               });
       if (shouldSetToken) {
@@ -152,19 +149,19 @@ export async function doctorCommand(
             },
           },
         };
-        note("Gateway token configured.", "Gateway auth");
+        note("网关令牌已配置。", "网关认证");
       }
     }
   }
 
   const legacyState = await detectLegacyStateMigrations({ cfg });
   if (legacyState.preview.length > 0) {
-    note(legacyState.preview.join("\n"), "Legacy state detected");
+    note(legacyState.preview.join("\n"), "检测到旧版状态");
     const migrate =
       options.nonInteractive === true
         ? true
         : await prompter.confirm({
-            message: "Migrate legacy state (sessions/agent/WhatsApp auth) now?",
+            message: "立即迁移旧版状态（会话/代理/WhatsApp 认证）？",
             initialValue: true,
           });
     if (migrate) {
@@ -172,10 +169,10 @@ export async function doctorCommand(
         detected: legacyState,
       });
       if (migrated.changes.length > 0) {
-        note(migrated.changes.join("\n"), "Doctor changes");
+        note(migrated.changes.join("\n"), "Doctor 更改");
       }
       if (migrated.warnings.length > 0) {
-        note(migrated.warnings.join("\n"), "Doctor warnings");
+        note(migrated.warnings.join("\n"), "Doctor 警告");
       }
     }
   }
@@ -250,7 +247,7 @@ export async function doctorCommand(
           note,
         },
         reason:
-          "Gateway runs as a systemd user service. Without lingering, systemd stops the user session on logout/idle and kills the Gateway.",
+          "网关作为 systemd 用户服务运行。如果没有 linger，systemd 会在注销/空闲时停止用户会话并终止网关。",
         requireConfirm: true,
       });
     }
@@ -282,7 +279,7 @@ export async function doctorCommand(
       runtime.log(`Backup: ${shortenHomePath(backupPath)}`);
     }
   } else {
-    runtime.log(`Run "${formatCliCommand("openclaw doctor --fix")}" to apply changes.`);
+    runtime.log(`运行 "${formatCliCommand("openclaw doctor --fix")}" 应用更改。`);
   }
 
   if (options.workspaceSuggestions !== false) {
@@ -302,5 +299,5 @@ export async function doctorCommand(
     }
   }
 
-  outro("Doctor complete.");
+  outro("Doctor 完成。");
 }
