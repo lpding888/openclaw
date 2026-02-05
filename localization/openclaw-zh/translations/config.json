@@ -1,0 +1,77 @@
+{
+  "$schema": "./schema.json",
+  "name": "openclaw-zh",
+  "version": "1.1.0",
+  "description": "OpenClaw 简体中文汉化配置",
+  "upstream": {
+    "repo": "openclaw/openclaw",
+    "url": "https://github.com/openclaw/openclaw"
+  },
+  "modules": {
+    "cli": [
+      "cli/banner.json",
+      "cli/tagline.json",
+      "cli/help.json"
+    ],
+    "wizard": [
+      "wizard/onboarding.json",
+      "wizard/security.json",
+      "wizard/finalize.json"
+    ],
+    "tui": [
+      "tui/waiting.json",
+      "tui/commands.json"
+    ],
+    "commands": [
+      "commands/auth-choice.json",
+      "commands/helpers.json",
+      "commands/doctor.json",
+      "commands/doctor-security.json",
+      "commands/doctor-workspace-status.json",
+      "commands/doctor-gateway-health.json",
+      "commands/doctor-state-integrity.json",
+      "commands/doctor-gateway-daemon-flow.json",
+      "commands/status.json",
+      "commands/update.json",
+      "commands/skills.json",
+      "commands/onboard-skills.json",
+      "commands/plugin-install.json",
+      "commands/channels.json",
+      "commands/uninstall.json"
+    ],
+    "daemon": [
+      "daemon/systemd-hints.json"
+    ],
+    "dashboard": [
+      "dashboard/navigation.json",
+      "dashboard/app-render.json",
+      "dashboard/app-helpers.json",
+      "dashboard/chat.json",
+      "dashboard/overview.json",
+      "dashboard/sessions.json",
+      "dashboard/skills.json",
+      "dashboard/nodes.json",
+      "dashboard/config.json",
+      "dashboard/channels.json",
+      "dashboard/channels-whatsapp.json",
+      "dashboard/channels-common.json",
+      "dashboard/channels-telegram.json",
+      "dashboard/channels-discord.json",
+      "dashboard/channels-slack.json",
+      "dashboard/channels-signal.json",
+      "dashboard/channels-googlechat.json",
+      "dashboard/channels-imessage.json",
+      "dashboard/channels-nostr.json",
+      "dashboard/instances.json",
+      "dashboard/cron.json",
+      "dashboard/debug.json",
+      "dashboard/logs.json",
+      "dashboard/schema.json",
+      "dashboard/config-form-render.json",
+      "dashboard/config-form-node.json",
+      "dashboard/config-form-shared.json",
+      "dashboard/agents.json",
+      "dashboard/channels-feishu.json"
+    ]
+  }
+}
