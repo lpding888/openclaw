@@ -25,4 +25,3 @@ export async function restartGateway(
     state.lastError = String(err);
   }
 }
-

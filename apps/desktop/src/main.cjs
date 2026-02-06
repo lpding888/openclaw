@@ -30,8 +30,12 @@ function augmentPathEnv(env) {
   const current = typeof env.PATH === "string" ? env.PATH : "";
   const parts = current.split(path.delimiter).filter(Boolean);
   for (const candidate of candidates) {
-    if (!fs.existsSync(candidate)) continue;
-    if (parts.includes(candidate)) continue;
+    if (!fs.existsSync(candidate)) {
+      continue;
+    }
+    if (parts.includes(candidate)) {
+      continue;
+    }
     parts.unshift(candidate);
   }
 
@@ -55,7 +59,9 @@ function runCommand(command, args, { timeoutMs = 5 * 60_000, env, cwd } = {}) {
     const pushLimited = (arr, chunk) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
       const size = arr.reduce((sum, b) => sum + b.length, 0);
-      if (size >= MAX_BYTES) return;
+      if (size >= MAX_BYTES) {
+        return;
+      }
       arr.push(buf.slice(0, Math.max(0, MAX_BYTES - size)));
     };
 
@@ -73,7 +79,9 @@ function runCommand(command, args, { timeoutMs = 5 * 60_000, env, cwd } = {}) {
     }, timeoutMs);
 
     child.on("error", (error) => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       clearTimeout(timer);
       resolve({
@@ -87,7 +95,9 @@ function runCommand(command, args, { timeoutMs = 5 * 60_000, env, cwd } = {}) {
     });
 
     child.on("close", (code) => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       clearTimeout(timer);
       resolve({
@@ -219,7 +229,9 @@ async function startManagedGateway({ preferredPort = DEFAULT_GATEWAY_PORT } = {}
     const pushLimited = (arr, chunk) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
       const size = arr.reduce((sum, b) => sum + b.length, 0);
-      if (size >= MAX_BYTES) return;
+      if (size >= MAX_BYTES) {
+        return;
+      }
       arr.push(buf.slice(0, Math.max(0, MAX_BYTES - size)));
     };
     child.stdout.on("data", (chunk) => pushLimited(out, chunk));
@@ -274,7 +286,9 @@ async function stopManagedGateway({ force = false } = {}) {
   return await new Promise((resolve) => {
     let settled = false;
     const settle = (ok) => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       managedGateway.child = null;
       resolve({ ok });
@@ -321,7 +335,6 @@ async function runEmbeddedCli(args, { timeoutMs = 3 * 60_000 } = {}) {
 }
 
 async function runGatewayUninstall(win, opts = {}) {
-  const includeWorkspace = Boolean(opts.includeWorkspace); // unused (desktop state is isolated)
   const dryRun = Boolean(opts.dryRun);
 
   const stateDir = managedGateway.stateDir ?? resolveManagedStateDir();
@@ -537,7 +550,9 @@ function buildAppMenu(win) {
           label: "Command Center",
           accelerator: "CommandOrControl+K",
           click: () => {
-            if (!win) return;
+            if (!win) {
+              return;
+            }
             win.focus();
             // UI has its own Ctrl/Cmd+K listener; this is just a safe fallback.
             void win.webContents.executeJavaScript(
@@ -556,7 +571,9 @@ function buildAppMenu(win) {
         {
           label: "Command Center",
           click: () => {
-            if (!win) return;
+            if (!win) {
+              return;
+            }
             win.show();
             win.focus();
             void win.webContents.executeJavaScript(
@@ -567,7 +584,9 @@ function buildAppMenu(win) {
         {
           label: "Remove gateway data…",
           click: () => {
-            if (!win) return;
+            if (!win) {
+              return;
+            }
             void runGatewayUninstall(win, {});
           },
         },
@@ -575,14 +594,18 @@ function buildAppMenu(win) {
         {
           label: "Stop legacy gateway service…",
           click: () => {
-            if (!win) return;
+            if (!win) {
+              return;
+            }
             void runLegacyGatewayStop(win);
           },
         },
         {
           label: "Uninstall legacy gateway service…",
           click: () => {
-            if (!win) return;
+            if (!win) {
+              return;
+            }
             void runLegacyGatewayUninstall(win);
           },
         },
@@ -710,7 +733,9 @@ async function main() {
   }));
 
   ipcMain.handle("openclawDesktop.openCommandCenter", async () => {
-    if (!win || win.isDestroyed()) return { ok: false };
+    if (!win || win.isDestroyed()) {
+      return { ok: false };
+    }
     win.show();
     win.focus();
     await win.webContents.executeJavaScript(
@@ -735,9 +760,15 @@ async function main() {
   await win.loadURL(`${startUrl}/`);
 }
 
-app.whenReady().then(() => {
-  void main();
-});
+void app
+  .whenReady()
+  .then(() => {
+    void main();
+  })
+  .catch((err) => {
+    console.error("[desktop] whenReady failed", err);
+    app.quit();
+  });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

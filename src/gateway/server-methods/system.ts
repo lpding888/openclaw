@@ -1,6 +1,6 @@
 import type { GatewayRequestHandlers } from "./types.js";
-import { resolveMainSessionKeyFromConfig } from "../../config/sessions.js";
 import { loadConfig } from "../../config/config.js";
+import { resolveMainSessionKeyFromConfig } from "../../config/sessions.js";
 import { getLastHeartbeatEvent } from "../../infra/heartbeat-events.js";
 import { setHeartbeatsEnabled } from "../../infra/heartbeat-runner.js";
 import {

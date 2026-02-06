@@ -8,20 +8,9 @@
     "url": "https://github.com/openclaw/openclaw"
   },
   "modules": {
-    "cli": [
-      "cli/banner.json",
-      "cli/tagline.json",
-      "cli/help.json"
-    ],
-    "wizard": [
-      "wizard/onboarding.json",
-      "wizard/security.json",
-      "wizard/finalize.json"
-    ],
-    "tui": [
-      "tui/waiting.json",
-      "tui/commands.json"
-    ],
+    "cli": ["cli/banner.json", "cli/tagline.json", "cli/help.json"],
+    "wizard": ["wizard/onboarding.json", "wizard/security.json", "wizard/finalize.json"],
+    "tui": ["tui/waiting.json", "tui/commands.json"],
     "commands": [
       "commands/auth-choice.json",
       "commands/helpers.json",
@@ -39,9 +28,7 @@
       "commands/channels.json",
       "commands/uninstall.json"
     ],
-    "daemon": [
-      "daemon/systemd-hints.json"
-    ],
+    "daemon": ["daemon/systemd-hints.json"],
     "dashboard": [
       "dashboard/navigation.json",
       "dashboard/app-render.json",

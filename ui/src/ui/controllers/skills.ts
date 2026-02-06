@@ -72,7 +72,12 @@ export function updateSkillEdit(state: SkillsState, skillKey: string, value: str
   state.skillEdits = { ...state.skillEdits, [skillKey]: value };
 }
 
-export function updateSkillEnvEdit(state: SkillsState, skillKey: string, envKey: string, value: string) {
+export function updateSkillEnvEdit(
+  state: SkillsState,
+  skillKey: string,
+  envKey: string,
+  value: string,
+) {
   const trimmedKey = envKey.trim();
   if (!trimmedKey) {
     return;

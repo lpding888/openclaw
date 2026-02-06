@@ -59,17 +59,20 @@ export function loadSettings(): UiSettings {
     }
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
     const parsedGatewayUrl =
-      typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim() ? parsed.gatewayUrl.trim() : null;
+      typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
+        ? parsed.gatewayUrl.trim()
+        : null;
     const parsedToken = typeof parsed.token === "string" ? parsed.token : null;
 
     // Desktop: if the user never customized the gateway URL (still pointing at the UI host),
     // auto-point to the local gateway so first-run is "just works".
     const shouldAutoOverrideGatewayUrl =
-      !!desktopDefaultGatewayUrl &&
-      (!parsedGatewayUrl || parsedGatewayUrl === defaultUrl);
+      !!desktopDefaultGatewayUrl && (!parsedGatewayUrl || parsedGatewayUrl === defaultUrl);
 
     return {
-      gatewayUrl: shouldAutoOverrideGatewayUrl ? desktopDefaultGatewayUrl : (parsedGatewayUrl ?? defaults.gatewayUrl),
+      gatewayUrl: shouldAutoOverrideGatewayUrl
+        ? desktopDefaultGatewayUrl
+        : (parsedGatewayUrl ?? defaults.gatewayUrl),
       token: parsedToken ?? defaults.token,
       sessionKey:
         typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()

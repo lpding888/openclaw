@@ -10,5 +10,6 @@ This folder vendors Chinese translation resources from the community project
   - `LICENSE`
 
 Notes:
+
 - This is **data only** (JSON translations). No patch/injection scripts are included here.
 - We will integrate these resources via a proper i18n layer (UI/CLI) so we can keep syncing upstream cleanly.

@@ -45,4 +45,3 @@ services:
     tty: true
     init: true
     entrypoint: ["node", "dist/index.js"]
-

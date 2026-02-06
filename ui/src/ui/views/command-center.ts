@@ -1,9 +1,9 @@
 import { html, nothing } from "lit";
 import type { AppViewState } from "../app-view-state.ts";
 import type { IconName } from "../icons.ts";
-import { icons } from "../icons.ts";
-import { restartGateway } from "../controllers/gateway.ts";
 import { runUpdate } from "../controllers/config.ts";
+import { restartGateway } from "../controllers/gateway.ts";
+import { icons } from "../icons.ts";
 
 type CommandAction = {
   id: string;
@@ -78,7 +78,6 @@ function renderActionIcon(name: IconName) {
 }
 
 function resolveActions(state: AppViewState): CommandAction[] {
-  const basePath = state.basePath;
   const connected = state.connected;
   const canRestart = connected; // Gateway may still reject if commands.restart=false; that's ok.
   const canUpdate = connected && !state.updateRunning;
@@ -343,7 +342,7 @@ function resolveFilteredActions(state: AppViewState): CommandAction[] {
   const actions = resolveActions(state)
     .map((action) => ({ action, score: scoreAction(action, query) }))
     .filter((row) => (query ? row.score >= 0 : true))
-    .sort((a, b) => b.score - a.score || a.action.title.localeCompare(b.action.title))
+    .toSorted((a, b) => b.score - a.score || a.action.title.localeCompare(b.action.title))
     .map((row) => row.action);
   return actions;
 }
@@ -456,7 +455,9 @@ export function renderCommandCenter(state: AppViewState) {
         <div class="command-center__list" role="listbox" aria-label="Actions">
           ${
             actions.length === 0
-              ? html`<div class="command-center__empty">No matches.</div>`
+              ? html`
+                  <div class="command-center__empty">No matches.</div>
+                `
               : actions.map((action, idx) => {
                   const active = idx === selectedIndex;
                   const disabled = isActionDisabled(action);
@@ -484,7 +485,13 @@ export function renderCommandCenter(state: AppViewState) {
                         <span class="command-center__item-desc">${action.description}</span>
                       </span>
                       <span class="command-center__item-meta">
-                        ${disabled ? html`<span class="command-center__pill">disabled</span>` : nothing}
+                        ${
+                          disabled
+                            ? html`
+                                <span class="command-center__pill">disabled</span>
+                              `
+                            : nothing
+                        }
                         ${renderShortcut(action.shortcut)}
                       </span>
                     </button>

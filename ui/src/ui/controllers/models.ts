@@ -10,13 +10,19 @@ export type ModelsState = {
 };
 
 function asModelListPayload(value: unknown): { models?: unknown } | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object") {
+    return null;
+  }
   return value as { models?: unknown };
 }
 
 export async function loadModels(state: ModelsState) {
-  if (!state.client || !state.connected) return;
-  if (state.modelsLoading) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
+  if (state.modelsLoading) {
+    return;
+  }
   state.modelsLoading = true;
   state.modelsError = null;
   try {
@@ -30,4 +36,3 @@ export async function loadModels(state: ModelsState) {
     state.modelsLoading = false;
   }
 }
-

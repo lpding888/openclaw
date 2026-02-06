@@ -24,6 +24,7 @@
     "assets/",
     "dist/",
     "docs/_layouts/",
+    "localization/",
     "node_modules/",
     "patches/",
     "pnpm-lock.yaml/",

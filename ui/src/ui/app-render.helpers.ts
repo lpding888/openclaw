@@ -232,12 +232,12 @@ function groupModelsForSelect(models: AppViewState["modelsList"]) {
     list.push({ ref, name: name || ref });
     groups.set(provider, list);
   }
-  const out = Array.from(groups.entries()).map(([provider, list]) => ({
-    provider,
-    models: list.slice().sort((a, b) => a.name.localeCompare(b.name)),
-  }));
-  out.sort((a, b) => a.provider.localeCompare(b.provider));
-  return out;
+  return Array.from(groups.entries())
+    .map(([provider, list]) => ({
+      provider,
+      models: list.toSorted((a, b) => a.name.localeCompare(b.name)),
+    }))
+    .toSorted((a, b) => a.provider.localeCompare(b.provider));
 }
 
 type SessionDefaultsSnapshot = {
