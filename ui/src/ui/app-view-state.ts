@@ -22,6 +22,7 @@ import type {
   HealthSnapshot,
   LogEntry,
   LogLevel,
+  ModelChoice,
   NostrProfile,
   PresenceEntry,
   SessionsUsageResult,
@@ -51,6 +52,13 @@ export type AppViewState = {
   assistantName: string;
   assistantAvatar: string | null;
   assistantAgentId: string | null;
+  commandCenterOpen: boolean;
+  commandCenterQuery: string;
+  commandCenterSelectedIndex: number;
+  commandCenterNotice: string | null;
+  modelsLoading: boolean;
+  modelsError: string | null;
+  modelsList: ModelChoice[];
   sessionKey: string;
   chatLoading: boolean;
   chatSending: boolean;

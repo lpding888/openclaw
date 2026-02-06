@@ -112,6 +112,21 @@ export const icons = {
       <path d="m19 12-7 7-7-7" />
     </svg>
   `,
+  refreshCw: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.36-2.64" />
+      <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64" />
+      <path d="M21 3v6h-6" />
+      <path d="M3 21v-6h6" />
+    </svg>
+  `,
+  download: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M12 15V3" />
+    </svg>
+  `,
   copy: html`
     <svg viewBox="0 0 24 24">
       <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />

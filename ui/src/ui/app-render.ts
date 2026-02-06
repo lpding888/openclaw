@@ -57,6 +57,7 @@ import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./na
 import { renderAgents } from "./views/agents.ts";
 import { renderChannels } from "./views/channels.ts";
 import { renderChat } from "./views/chat.ts";
+import { renderCommandCenter } from "./views/command-center.ts";
 import { renderConfig } from "./views/config.ts";
 import { renderCron } from "./views/cron.ts";
 import { renderDebug } from "./views/debug.ts";
@@ -961,6 +962,7 @@ export function renderApp(state: AppViewState) {
             : nothing
         }
       </main>
+      ${renderCommandCenter(state)}
       ${renderExecApprovalPrompt(state)}
       ${renderGatewayUrlConfirmation(state)}
     </div>
