@@ -102,6 +102,14 @@ jobs:
         shell: bash
         run: node scripts/ui.js build
 
+      - name: Install Linux packaging deps
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64
+
       - name: Build Desktop
         shell: bash
         run: pnpm --filter openclaw-cn-desktop dist
