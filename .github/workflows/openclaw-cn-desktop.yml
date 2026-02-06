@@ -96,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf apps/desktop/runtime
-          pnpm --filter openclaw deploy apps/desktop/runtime/openclaw --prod
+          pnpm --filter openclaw deploy apps/desktop/runtime/openclaw --prod --legacy
 
       - name: Build Control UI (dist/control-ui)
         shell: bash
