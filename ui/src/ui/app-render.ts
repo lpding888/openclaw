@@ -49,7 +49,9 @@ import {
   installSkill,
   loadSkills,
   saveSkillApiKey,
+  saveSkillEnvVar,
   updateSkillEdit,
+  updateSkillEnvEdit,
   updateSkillEnabled,
 } from "./controllers/skills.ts";
 import { icons } from "./icons.ts";
@@ -706,13 +708,17 @@ export function renderApp(state: AppViewState) {
                 error: state.skillsError,
                 filter: state.skillsFilter,
                 edits: state.skillEdits,
+                envEdits: state.skillEnvEdits,
                 messages: state.skillMessages,
                 busyKey: state.skillsBusyKey,
                 onFilterChange: (next) => (state.skillsFilter = next),
                 onRefresh: () => loadSkills(state, { clearMessages: true }),
                 onToggle: (key, enabled) => updateSkillEnabled(state, key, enabled),
                 onEdit: (key, value) => updateSkillEdit(state, key, value),
+                onEditEnv: (skillKey, envKey, value) =>
+                  updateSkillEnvEdit(state, skillKey, envKey, value),
                 onSaveKey: (key) => saveSkillApiKey(state, key),
+                onSaveEnv: (skillKey, envKey) => saveSkillEnvVar(state, skillKey, envKey),
                 onInstall: (skillKey, name, installId) =>
                   installSkill(state, skillKey, name, installId),
               })
