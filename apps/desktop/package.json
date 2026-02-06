@@ -1,5 +1,7 @@
 {
   "name": "openclaw-cn-desktop",
+  "description": "OpenClaw CN cross-platform desktop shell (Windows + Ubuntu) for the OpenClaw Control UI.",
+  "author": "OpenClaw CN contributors",
   "private": true,
   "version": "0.1.0",
   "type": "commonjs",
