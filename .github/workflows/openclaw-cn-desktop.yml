@@ -108,10 +108,15 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
+          # AppImage tooling often runs as an AppImage itself; ensure it can execute on ubuntu-latest.
+          sudo apt-get install -y squashfs-tools libarchive-tools
           sudo apt-get install -y libfuse2 || sudo apt-get install -y libfuse2t64
 
       - name: Build Desktop
         shell: bash
+        env:
+          # Avoid hard dependency on FUSE by extracting AppImages at runtime when needed.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
         run: pnpm --filter openclaw-cn-desktop dist
 
       - name: Upload artifacts
