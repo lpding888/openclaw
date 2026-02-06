@@ -51,8 +51,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "pnpm"
-          cache-dependency-path: "pnpm-lock.yaml"
 
       - name: Setup pnpm (corepack)
         shell: bash
@@ -68,6 +66,20 @@ jobs:
             sleep $((attempt * 10))
           done
           exit 1
+
+      - name: Resolve pnpm store path
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PNPM_STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PNPM_STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies (frozen)
         shell: bash
