@@ -67,6 +67,7 @@ apps/ios/*.mobileprovision
 .tmp-bin/
 .vscode/
 apps/desktop/runtime/
+apps/desktop/runtime_test/
 IDENTITY.md
 USER.md
 .tgz
