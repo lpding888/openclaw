@@ -122,6 +122,11 @@ export class OpenClawApp extends LitElement {
   @state() assistantAvatar = injectedAssistantIdentity.avatar;
   @state() assistantAgentId = injectedAssistantIdentity.agentId ?? null;
 
+  @state() commandCenterOpen = false;
+  @state() commandCenterQuery = "";
+  @state() commandCenterSelectedIndex = 0;
+  @state() commandCenterNotice: string | null = null;
+
   @state() modelsLoading = false;
   @state() modelsError: string | null = null;
   @state() modelsList: ModelChoice[] = [];
@@ -293,6 +298,7 @@ export class OpenClawApp extends LitElement {
   private themeMedia: MediaQueryList | null = null;
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
+  private commandCenterKeyHandler = (e: KeyboardEvent) => this.handleCommandCenterKey(e);
 
   createRenderRoot() {
     return this;
@@ -301,6 +307,7 @@ export class OpenClawApp extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
+    window.addEventListener("keydown", this.commandCenterKeyHandler, { capture: true });
   }
 
   protected firstUpdated() {
@@ -308,12 +315,59 @@ export class OpenClawApp extends LitElement {
   }
 
   disconnectedCallback() {
+    window.removeEventListener("keydown", this.commandCenterKeyHandler, { capture: true });
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }
 
   protected updated(changed: Map<PropertyKey, unknown>) {
     handleUpdated(this as unknown as Parameters<typeof handleUpdated>[0], changed);
+    if (changed.has("commandCenterOpen") && this.commandCenterOpen) {
+      // Ensure the search input gets focus even when opened from deep inside other inputs.
+      void this.updateComplete.then(() => {
+        const el = document.getElementById("command-center-search") as HTMLInputElement | null;
+        if (!el) {
+          return;
+        }
+        el.focus();
+        el.select();
+      });
+    }
+  }
+
+  private handleCommandCenterKey(e: KeyboardEvent) {
+    const key = (e.key || "").toLowerCase();
+    const isK = key === "k";
+    const isEsc = key === "escape";
+    const wantsPalette = isK && (e.metaKey || e.ctrlKey) && !e.altKey;
+
+    if (!wantsPalette && !(this.commandCenterOpen && isEsc)) {
+      return;
+    }
+
+    // Avoid double-handling keys when the overlay itself is doing list navigation.
+    // This handler is only for open/close toggles.
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (wantsPalette) {
+      this.commandCenterOpen = !this.commandCenterOpen;
+      if (this.commandCenterOpen) {
+        this.commandCenterSelectedIndex = 0;
+      } else {
+        this.commandCenterQuery = "";
+        this.commandCenterSelectedIndex = 0;
+        this.commandCenterNotice = null;
+      }
+      return;
+    }
+
+    if (this.commandCenterOpen && isEsc) {
+      this.commandCenterOpen = false;
+      this.commandCenterQuery = "";
+      this.commandCenterSelectedIndex = 0;
+      this.commandCenterNotice = null;
+    }
   }
 
   connect() {
