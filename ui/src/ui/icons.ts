@@ -127,6 +127,15 @@ export const icons = {
       <path d="M12 15V3" />
     </svg>
   `,
+  trash2: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  `,
   copy: html`
     <svg viewBox="0 0 24 24">
       <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />

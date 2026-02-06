@@ -12,6 +12,8 @@ type CommandAction = {
   icon: IconName;
   // Display only. Keyboard handling is centralized in this modal.
   shortcut?: string;
+  // Default true. Some actions (copy-to-clipboard, etc.) keep the palette open.
+  closeOnRun?: boolean;
   enabled?: boolean;
   keywords?: string[];
   run: () => void | Promise<void>;
@@ -80,6 +82,7 @@ function resolveActions(state: AppViewState): CommandAction[] {
   const connected = state.connected;
   const canRestart = connected; // Gateway may still reject if commands.restart=false; that's ok.
   const canUpdate = connected && !state.updateRunning;
+  const canDesktopUninstall = Boolean(window.openclawDesktop?.gatewayUninstall);
 
   return [
     {
@@ -169,6 +172,22 @@ function resolveActions(state: AppViewState): CommandAction[] {
       },
     },
     {
+      id: "gateway.uninstall",
+      title: "Uninstall gateway…",
+      description: "Desktop only: uninstall gateway service + state (openclaw uninstall).",
+      icon: "trash2",
+      shortcut: "X X",
+      enabled: canDesktopUninstall,
+      keywords: ["remove", "cleanup", "卸载"],
+      run: async () => {
+        const api = window.openclawDesktop;
+        if (!api?.gatewayUninstall) {
+          return;
+        }
+        await api.gatewayUninstall({});
+      },
+    },
+    {
       id: "help.docs.zh",
       title: "Docs (zh-CN)",
       description: "Open the Chinese documentation site in a new tab.",
@@ -192,6 +211,7 @@ function resolveActions(state: AppViewState): CommandAction[] {
       description: "Copy the diagnostic command to clipboard.",
       icon: "copy",
       shortcut: "C D",
+      closeOnRun: false,
       keywords: ["diagnose", "health", "proxy", "network"],
       run: async () => {
         const ok = await copyTextToClipboard("openclaw doctor");
@@ -206,9 +226,42 @@ function resolveActions(state: AppViewState): CommandAction[] {
       title: "Copy: openclaw dashboard --no-open",
       description: "Copy a tokenized dashboard URL helper command.",
       icon: "copy",
+      closeOnRun: false,
       keywords: ["token", "gatewayUrl", "web"],
       run: async () => {
         const ok = await copyTextToClipboard("openclaw dashboard --no-open");
+        state.commandCenterNotice = ok ? "Copied" : "Copy failed";
+        window.setTimeout(() => {
+          state.commandCenterNotice = null;
+        }, 1500);
+      },
+    },
+    {
+      id: "copy.uninstall",
+      title: "Copy: openclaw uninstall --service --state --yes --non-interactive",
+      description: "Copy the safe uninstall command (keeps external workspaces).",
+      icon: "copy",
+      closeOnRun: false,
+      keywords: ["uninstall", "remove", "cleanup", "卸载"],
+      run: async () => {
+        const ok = await copyTextToClipboard(
+          "openclaw uninstall --service --state --yes --non-interactive",
+        );
+        state.commandCenterNotice = ok ? "Copied" : "Copy failed";
+        window.setTimeout(() => {
+          state.commandCenterNotice = null;
+        }, 1500);
+      },
+    },
+    {
+      id: "copy.uninstall.all",
+      title: "Copy: openclaw uninstall --all --yes --non-interactive",
+      description: "Copy the full uninstall command (service + state + workspaces).",
+      icon: "copy",
+      closeOnRun: false,
+      keywords: ["uninstall", "remove", "cleanup", "卸载"],
+      run: async () => {
+        const ok = await copyTextToClipboard("openclaw uninstall --all --yes --non-interactive");
         state.commandCenterNotice = ok ? "Copied" : "Copy failed";
         window.setTimeout(() => {
           state.commandCenterNotice = null;
@@ -257,7 +310,9 @@ export function renderCommandCenter(state: AppViewState) {
     try {
       await selected.run();
     } finally {
-      onClose();
+      if (selected.closeOnRun !== false) {
+        onClose();
+      }
     }
   };
 
@@ -351,7 +406,9 @@ export function renderCommandCenter(state: AppViewState) {
                           return;
                         }
                         await action.run();
-                        onClose();
+                        if (action.closeOnRun !== false) {
+                          onClose();
+                        }
                       }}
                     >
                       ${renderActionIcon(action.icon)}
@@ -372,4 +429,3 @@ export function renderCommandCenter(state: AppViewState) {
     </div>
   `;
 }
-

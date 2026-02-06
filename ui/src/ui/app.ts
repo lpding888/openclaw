@@ -84,6 +84,11 @@ import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./u
 declare global {
   interface Window {
     __OPENCLAW_CONTROL_UI_BASE_PATH__?: string;
+    openclawDesktop?: {
+      version?: () => Promise<unknown>;
+      openCommandCenter?: () => Promise<unknown>;
+      gatewayUninstall?: (opts?: { includeWorkspace?: boolean; dryRun?: boolean }) => Promise<unknown>;
+    };
   }
 }
 
