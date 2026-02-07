@@ -1,7 +1,8 @@
 {
   "name": "openclaw-cn-desktop",
   "description": "OpenClaw CN cross-platform desktop shell (Windows + Ubuntu) for the OpenClaw Control UI.",
-  "author": "OpenClaw CN contributors",
+  "homepage": "https://github.com/lpding888/openclaw",
+  "author": "OpenClaw CN contributors <openclaw-cn@users.noreply.github.com>",
   "private": true,
   "version": "0.1.0",
   "type": "commonjs",
@@ -57,6 +58,7 @@
         "AppImage",
         "deb"
       ],
+      "maintainer": "OpenClaw CN contributors <openclaw-cn@users.noreply.github.com>",
       "category": "Utility",
       "icon": "build/icon.png"
     }
