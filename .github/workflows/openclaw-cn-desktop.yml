@@ -193,43 +193,23 @@ jobs:
           git tag -f "$tag" "$GITHUB_SHA"
           git push -f origin "refs/tags/$tag"
 
-      - name: Publish nightly prerelease (create/edit + upload assets)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="openclaw-cn-nightly"
-          today="$(date -u +%Y-%m-%d)"
-          title="OpenClaw CN Nightly (${today})"
-          notes=$(
-            cat <<EOF
-          Nightly build for commit \`${GITHUB_SHA}\`.
+      - name: Publish nightly prerelease (update + upload assets)
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: openclaw-cn-nightly
+          name: OpenClaw CN Nightly
+          prerelease: true
+          allowUpdates: true
+          replacesArtifacts: true
+          body: |
+            Nightly build for commit `${{ github.sha }}`.
 
-          - Built on: ${today} (UTC)
-          - Platforms: Windows (NSIS), Ubuntu (AppImage/deb)
-          EOF
-          )
-
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" --title "$title" --notes "$notes" --prerelease
-          else
-            gh release create "$tag" --title "$title" --notes "$notes" --prerelease
-          fi
-
-          # Upload artifacts from both OS builds; --clobber overwrites existing assets.
-          mapfile -t files < <(
-            find artifacts -type f \\( \\
-              -name \"*.exe\" -o \\
-              -name \"*.msi\" -o \\
-              -name \"*.AppImage\" -o \\
-              -name \"*.deb\" -o \\
-              -name \"latest*.yml\" -o \\
-              -name \"*.blockmap\" \\
-            \\) | sort
-          )
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No artifacts found to upload."
-            exit 1
-          fi
-          gh release upload "$tag" "${files[@]}" --clobber
+            - Platforms: Windows (NSIS), Ubuntu (AppImage/deb)
+          artifacts: |
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/latest*.yml
+            artifacts/**/*.blockmap
