@@ -4,6 +4,7 @@ packages:
   - apps/desktop
   - packages/*
   - extensions/*
+  - apps/*
 
 onlyBuiltDependencies:
   - "@lydell/node-pty"
