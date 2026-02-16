@@ -87,6 +87,12 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
+      - name: Resolve publish target
+        id: pkg-meta
+        run: |
+          echo "name=$(node -p \"require('./package.json').name\")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
       - name: Detect npm token availability
         id: npm-auth
         env:
@@ -102,8 +108,21 @@ jobs:
         if: steps.npm-auth.outputs.has_token != 'true'
         run: echo "::notice::Skipping npm publish because NPM_TOKEN is not configured."
 
-      - name: Publish to npm
+      - name: Detect existing npm version
+        id: npm-exists
         if: steps.npm-auth.outputs.has_token == 'true'
+        run: |
+          pkg="${{ steps.pkg-meta.outputs.name }}"
+          ver="${{ steps.pkg-meta.outputs.version }}"
+          if npm view "${pkg}@${ver}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping npm publish because ${pkg}@${ver} already exists."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.npm-auth.outputs.has_token == 'true' && steps.npm-exists.outputs.exists != 'true'
         run: pnpm publish --access public --no-git-checks --provenance --tag ${{ steps.npm-tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
