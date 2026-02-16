@@ -96,6 +96,7 @@ export function renderApp(state: AppViewState) {
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
   const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
+  const basePath = normalizeBasePath(state.basePath ?? "");
 
   const configRoot = (state.configForm ??
     state.configSnapshot?.config ??
@@ -148,7 +149,7 @@ export function renderApp(state: AppViewState) {
           </button>
           <div class="brand">
             <div class="brand-logo">
-              <img src="https://mintcdn.com/clawdhub/4rYvG-uuZrMK_URE/assets/pixel-lobster.svg?fit=max&auto=format&n=4rYvG-uuZrMK_URE&q=85&s=da2032e9eac3b5d9bfe7eb96ca6a8a26" alt="Clawdbot" />
+              <img src=${basePath ? `${basePath}/favicon.svg` : "/favicon.svg"} alt="Clawdbot" />
             </div>
             <div class="brand-text">
               <div class="brand-title">CLAWDBOT</div>
@@ -973,7 +974,7 @@ export function renderApp(state: AppViewState) {
         }
       </main>
       ${renderExecApprovalPrompt(state)}
-      ${renderGatewayUrlConfirmPrompt(state)}
+      ${renderGatewayUrlConfirmation(state)}
     </div>
   `;
 }
