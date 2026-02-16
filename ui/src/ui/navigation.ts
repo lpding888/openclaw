@@ -1,22 +1,20 @@
 import type { IconName } from "./icons.js";
 
 export const TAB_GROUPS = [
-  { label: "Chat", tabs: ["chat"] },
+  { label: "聊天", tabs: ["chat"] },
   {
-    label: "Control",
-    tabs: ["overview", "channels", "instances", "sessions", "usage", "cron"],
+    label: "控制",
+    tabs: ["overview", "channels", "instances", "sessions", "cron"],
   },
-  { label: "Agent", tabs: ["agents", "skills", "nodes"] },
-  { label: "Settings", tabs: ["config", "debug", "logs"] },
+  { label: "代理", tabs: ["skills", "nodes"] },
+  { label: "设置", tabs: ["config", "debug", "logs"] },
 ] as const;
 
 export type Tab =
-  | "agents"
   | "overview"
   | "channels"
   | "instances"
   | "sessions"
-  | "usage"
   | "cron"
   | "skills"
   | "nodes"
@@ -26,12 +24,10 @@ export type Tab =
   | "logs";
 
 const TAB_PATHS: Record<Tab, string> = {
-  agents: "/agents",
   overview: "/overview",
   channels: "/channels",
   instances: "/instances",
   sessions: "/sessions",
-  usage: "/usage",
   cron: "/cron",
   skills: "/skills",
   nodes: "/nodes",
@@ -41,33 +37,23 @@ const TAB_PATHS: Record<Tab, string> = {
   logs: "/logs",
 };
 
-const PATH_TO_TAB = new Map(Object.entries(TAB_PATHS).map(([tab, path]) => [path, tab as Tab]));
+const PATH_TO_TAB = new Map(
+  Object.entries(TAB_PATHS).map(([tab, path]) => [path, tab as Tab]),
+);
 
 export function normalizeBasePath(basePath: string): string {
-  if (!basePath) {
-    return "";
-  }
+  if (!basePath) return "";
   let base = basePath.trim();
-  if (!base.startsWith("/")) {
-    base = `/${base}`;
-  }
-  if (base === "/") {
-    return "";
-  }
-  if (base.endsWith("/")) {
-    base = base.slice(0, -1);
-  }
+  if (!base.startsWith("/")) base = `/${base}`;
+  if (base === "/") return "";
+  if (base.endsWith("/")) base = base.slice(0, -1);
   return base;
 }
 
 export function normalizePath(path: string): string {
-  if (!path) {
-    return "/";
-  }
+  if (!path) return "/";
   let normalized = path.trim();
-  if (!normalized.startsWith("/")) {
-    normalized = `/${normalized}`;
-  }
+  if (!normalized.startsWith("/")) normalized = `/${normalized}`;
   if (normalized.length > 1 && normalized.endsWith("/")) {
     normalized = normalized.slice(0, -1);
   }
@@ -91,12 +77,8 @@ export function tabFromPath(pathname: string, basePath = ""): Tab | null {
     }
   }
   let normalized = normalizePath(path).toLowerCase();
-  if (normalized.endsWith("/index.html")) {
-    normalized = "/";
-  }
-  if (normalized === "/") {
-    return "chat";
-  }
+  if (normalized.endsWith("/index.html")) normalized = "/";
+  if (normalized === "/") return "chat";
   return PATH_TO_TAB.get(normalized) ?? null;
 }
 
@@ -105,13 +87,9 @@ export function inferBasePathFromPathname(pathname: string): string {
   if (normalized.endsWith("/index.html")) {
     normalized = normalizePath(normalized.slice(0, -"/index.html".length));
   }
-  if (normalized === "/") {
-    return "";
-  }
+  if (normalized === "/") return "";
   const segments = normalized.split("/").filter(Boolean);
-  if (segments.length === 0) {
-    return "";
-  }
+  if (segments.length === 0) return "";
   for (let i = 0; i < segments.length; i++) {
     const candidate = `/${segments.slice(i).join("/")}`.toLowerCase();
     if (PATH_TO_TAB.has(candidate)) {
@@ -124,8 +102,6 @@ export function inferBasePathFromPathname(pathname: string): string {
 
 export function iconForTab(tab: Tab): IconName {
   switch (tab) {
-    case "agents":
-      return "folder";
     case "chat":
       return "messageSquare";
     case "overview":
@@ -136,8 +112,6 @@ export function iconForTab(tab: Tab): IconName {
       return "radio";
     case "sessions":
       return "fileText";
-    case "usage":
-      return "barChart";
     case "cron":
       return "loader";
     case "skills":
@@ -157,65 +131,57 @@ export function iconForTab(tab: Tab): IconName {
 
 export function titleForTab(tab: Tab) {
   switch (tab) {
-    case "agents":
-      return "Agents";
     case "overview":
-      return "Overview";
+      return "概览";
     case "channels":
-      return "Channels";
+      return "通道";
     case "instances":
-      return "Instances";
+      return "实例";
     case "sessions":
-      return "Sessions";
-    case "usage":
-      return "Usage";
+      return "会话";
     case "cron":
-      return "Cron Jobs";
+      return "定时任务";
     case "skills":
-      return "Skills";
+      return "技能";
     case "nodes":
-      return "Nodes";
+      return "节点";
     case "chat":
-      return "Chat";
+      return "聊天";
     case "config":
-      return "Config";
+      return "配置";
     case "debug":
-      return "Debug";
+      return "调试";
     case "logs":
-      return "Logs";
+      return "日志";
     default:
-      return "Control";
+      return "控制";
   }
 }
 
 export function subtitleForTab(tab: Tab) {
   switch (tab) {
-    case "agents":
-      return "Manage agent workspaces, tools, and identities.";
     case "overview":
-      return "Gateway status, entry points, and a fast health read.";
+      return "网关状态、入口点和快速健康读取。";
     case "channels":
-      return "Manage channels and settings.";
+      return "管理通道和设置。";
     case "instances":
-      return "Presence beacons from connected clients and nodes.";
+      return "来自已连接客户端和节点的存在信标。";
     case "sessions":
-      return "Inspect active sessions and adjust per-session defaults.";
-    case "usage":
-      return "";
+      return "检查活跃会话并调整每个会话的默认值。";
     case "cron":
-      return "Schedule wakeups and recurring agent runs.";
+      return "安排唤醒和定期代理运行。";
     case "skills":
-      return "Manage skill availability and API key injection.";
+      return "管理技能可用性和API密钥注入。";
     case "nodes":
-      return "Paired devices, capabilities, and command exposure.";
+      return "配对设备、功能和命令暴露。";
     case "chat":
-      return "Direct gateway chat session for quick interventions.";
+      return "直接网关聊天会话，用于快速干预。";
     case "config":
-      return "Edit ~/.openclaw/openclaw.json safely.";
+      return "安全编辑 ~/.clawdbot/clawdbot.json。";
     case "debug":
-      return "Gateway snapshots, events, and manual RPC calls.";
+      return "网关快照、事件和手动RPC调用。";
     case "logs":
-      return "Live tail of the gateway file logs.";
+      return "网关文件日志的实时跟踪。";
     default:
       return "";
   }

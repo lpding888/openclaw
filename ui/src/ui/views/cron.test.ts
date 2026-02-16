@@ -1,8 +1,9 @@
 import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
-import type { CronJob } from "../types.ts";
-import { DEFAULT_CRON_FORM } from "../app-defaults.ts";
-import { renderCron, type CronProps } from "./cron.ts";
+
+import { DEFAULT_CRON_FORM } from "../app-defaults";
+import type { CronJob } from "../types";
+import { renderCron, type CronProps } from "./cron";
 
 function createJob(id: string): CronJob {
   return {
@@ -46,7 +47,7 @@ describe("cron view", () => {
     const container = document.createElement("div");
     render(renderCron(createProps()), container);
 
-    expect(container.textContent).toContain("Select a job to inspect run history.");
+    expect(container.textContent).toContain("选择一个任务以查看运行历史。");
   });
 
   it("loads run history when clicking a job row", () => {
@@ -63,7 +64,7 @@ describe("cron view", () => {
       container,
     );
 
-    const row = container.querySelector(".list-item-clickable");
+    const row = container.querySelector(".list-item-clickable") as HTMLElement | null;
     expect(row).not.toBeNull();
     row?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
@@ -88,9 +89,10 @@ describe("cron view", () => {
     const selected = container.querySelector(".list-item-selected");
     expect(selected).not.toBeNull();
 
-    const runsButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Runs",
+    const runsButtons = Array.from(container.querySelectorAll("button")).filter(
+      (btn) => btn.textContent?.trim() === "运行",
     );
+    const runsButton = runsButtons.at(1);
     expect(runsButton).not.toBeUndefined();
     runsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 

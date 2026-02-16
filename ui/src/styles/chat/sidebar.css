@@ -19,11 +19,15 @@
 .chat-sidebar {
   flex: 1;
   min-width: 300px;
-  border-left: 1px solid var(--border);
+  border: 1px solid var(--neo-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   animation: slide-in 200ms ease-out;
+  background: var(--neo-grad-raised);
+  box-shadow: var(--neo-shadow-outset-soft);
+  border-radius: 14px;
+  margin-left: 10px;
 }
 
 @keyframes slide-in {
@@ -42,7 +46,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--panel);
+  background: transparent;
 }
 
 .sidebar-header {
@@ -75,6 +79,60 @@
   flex: 1;
   overflow: auto;
   padding: 16px;
+}
+
+.chat-sidebar-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--neo-border);
+  background: linear-gradient(145deg, var(--neo-surface-hi), var(--neo-surface-mid));
+  overflow-x: auto;
+}
+
+.chat-sidebar-tab {
+  border: 1px solid var(--neo-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--neo-grad-raised);
+  box-shadow: var(--neo-shadow-outset-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  transition: box-shadow 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
+}
+
+.chat-sidebar-tab.active {
+  box-shadow: var(--neo-shadow-press);
+  background: var(--neo-grad-inset);
+  border-color: var(--neo-border-strong);
+  color: var(--text-strong);
+}
+
+.chat-sidebar-pin {
+  margin-left: auto;
+}
+
+.chat-sidebar-pin.active {
+  border-color: var(--neo-state-success-edge);
+  color: var(--ok);
+}
+
+.chat-sidebar-close {
+  margin-left: 0;
+}
+
+.chat-sidebar-body {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.chat-sidebar-reopen {
+  position: absolute;
+  top: 14px;
+  right: 12px;
 }
 
 .sidebar-markdown {
@@ -113,5 +171,11 @@
     width: 100%;
     min-width: 0;
     border-left: none;
+  }
+
+  .chat-split-container--open .chat-sidebar-tab:nth-child(2),
+  .chat-split-container--open .chat-sidebar-tab:nth-child(3),
+  .chat-split-container--open .chat-sidebar-pin {
+    display: none;
   }
 }

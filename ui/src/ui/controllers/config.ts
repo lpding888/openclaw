@@ -1,11 +1,15 @@
-import type { GatewayBrowserClient } from "../gateway.ts";
-import type { ConfigSchemaResponse, ConfigSnapshot, ConfigUiHints } from "../types.ts";
+import type { GatewayBrowserClient } from "../gateway";
+import type {
+  ConfigSchemaResponse,
+  ConfigSnapshot,
+  ConfigUiHints,
+} from "../types";
 import {
   cloneConfigObject,
   removePathValue,
   serializeConfigForm,
   setPathValue,
-} from "./config/form-utils.ts";
+} from "./config/form-utils";
 
 export type ConfigState = {
   client: GatewayBrowserClient | null;
@@ -20,7 +24,7 @@ export type ConfigState = {
   configApplying: boolean;
   updateRunning: boolean;
   configSnapshot: ConfigSnapshot | null;
-  configSchema: unknown;
+  configSchema: unknown | null;
   configSchemaVersion: string | null;
   configSchemaLoading: boolean;
   configUiHints: ConfigUiHints;
@@ -34,14 +38,34 @@ export type ConfigState = {
   lastError: string | null;
 };
 
+type GatewayAuthMode = "token" | "password";
+
+type GatewayAuthProfile = {
+  mode: GatewayAuthMode;
+  token?: string;
+  password?: string;
+  allowInsecureControlUi?: boolean;
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function ensureObject(parent: Record<string, unknown>, key: string): Record<string, unknown> {
+  const existing = asObject(parent[key]);
+  if (existing) return existing;
+  const next: Record<string, unknown> = {};
+  parent[key] = next;
+  return next;
+}
+
 export async function loadConfig(state: ConfigState) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.configLoading = true;
   state.lastError = null;
   try {
-    const res = await state.client.request<ConfigSnapshot>("config.get", {});
+    const res = (await state.client.request("config.get", {})) as ConfigSnapshot;
     applyConfigSnapshot(state, res);
   } catch (err) {
     state.lastError = String(err);
@@ -51,15 +75,14 @@ export async function loadConfig(state: ConfigState) {
 }
 
 export async function loadConfigSchema(state: ConfigState) {
-  if (!state.client || !state.connected) {
-    return;
-  }
-  if (state.configSchemaLoading) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
+  if (state.configSchemaLoading) return;
   state.configSchemaLoading = true;
   try {
-    const res = await state.client.request<ConfigSchemaResponse>("config.schema", {});
+    const res = (await state.client.request(
+      "config.schema",
+      {},
+    )) as ConfigSchemaResponse;
     applyConfigSchema(state, res);
   } catch (err) {
     state.lastError = String(err);
@@ -68,7 +91,10 @@ export async function loadConfigSchema(state: ConfigState) {
   }
 }
 
-export function applyConfigSchema(state: ConfigState, res: ConfigSchemaResponse) {
+export function applyConfigSchema(
+  state: ConfigState,
+  res: ConfigSchemaResponse,
+) {
   state.configSchema = res.schema ?? null;
   state.configUiHints = res.uiHints ?? {};
   state.configSchemaVersion = res.version ?? null;
@@ -80,7 +106,7 @@ export function applyConfigSnapshot(state: ConfigState, snapshot: ConfigSnapshot
     typeof snapshot.raw === "string"
       ? snapshot.raw
       : snapshot.config && typeof snapshot.config === "object"
-        ? serializeConfigForm(snapshot.config)
+        ? serializeConfigForm(snapshot.config as Record<string, unknown>)
         : state.configRaw;
   if (!state.configFormDirty || state.configFormMode === "raw") {
     state.configRaw = rawFromSnapshot;
@@ -100,9 +126,7 @@ export function applyConfigSnapshot(state: ConfigState, snapshot: ConfigSnapshot
 }
 
 export async function saveConfig(state: ConfigState) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.configSaving = true;
   state.lastError = null;
   try {
@@ -126,9 +150,7 @@ export async function saveConfig(state: ConfigState) {
 }
 
 export async function applyConfig(state: ConfigState) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.configApplying = true;
   state.lastError = null;
   try {
@@ -156,9 +178,7 @@ export async function applyConfig(state: ConfigState) {
 }
 
 export async function runUpdate(state: ConfigState) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.updateRunning = true;
   state.lastError = null;
   try {
@@ -172,12 +192,72 @@ export async function runUpdate(state: ConfigState) {
   }
 }
 
+export async function applyGatewayAuthProfile(
+  state: ConfigState,
+  profile: GatewayAuthProfile,
+) {
+  if (!state.client || !state.connected) return;
+  state.configApplying = true;
+  state.lastError = null;
+  try {
+    const snapshot = (await state.client.request("config.get", {})) as ConfigSnapshot;
+    const baseHash = snapshot.hash;
+    if (!baseHash) {
+      state.lastError = "Config hash missing; reload and retry.";
+      return;
+    }
+
+    const root = cloneConfigObject(snapshot.config ?? {});
+    const gateway = ensureObject(root, "gateway");
+    const auth = ensureObject(gateway, "auth");
+    const controlUi = ensureObject(gateway, "controlUi");
+
+    auth.mode = profile.mode;
+    if (profile.mode === "password") {
+      const password = profile.password?.trim() ?? "";
+      if (!password) {
+        state.lastError = "Password is required for password auth mode.";
+        return;
+      }
+      auth.password = password;
+      delete auth.token;
+    } else {
+      const token = profile.token?.trim() ?? "";
+      if (!token) {
+        state.lastError = "Token is required for token auth mode.";
+        return;
+      }
+      auth.token = token;
+      delete auth.password;
+    }
+
+    if (typeof profile.allowInsecureControlUi === "boolean") {
+      controlUi.allowInsecureAuth = profile.allowInsecureControlUi;
+    }
+
+    const raw = serializeConfigForm(root);
+    await state.client.request("config.apply", {
+      raw,
+      baseHash,
+      sessionKey: state.applySessionKey,
+    });
+    state.configFormDirty = false;
+    await loadConfig(state);
+  } catch (err) {
+    state.lastError = String(err);
+  } finally {
+    state.configApplying = false;
+  }
+}
+
 export function updateConfigFormValue(
   state: ConfigState,
   path: Array<string | number>,
   value: unknown,
 ) {
-  const base = cloneConfigObject(state.configForm ?? state.configSnapshot?.config ?? {});
+  const base = cloneConfigObject(
+    state.configForm ?? state.configSnapshot?.config ?? {},
+  );
   setPathValue(base, path, value);
   state.configForm = base;
   state.configFormDirty = true;
@@ -186,8 +266,13 @@ export function updateConfigFormValue(
   }
 }
 
-export function removeConfigFormValue(state: ConfigState, path: Array<string | number>) {
-  const base = cloneConfigObject(state.configForm ?? state.configSnapshot?.config ?? {});
+export function removeConfigFormValue(
+  state: ConfigState,
+  path: Array<string | number>,
+) {
+  const base = cloneConfigObject(
+    state.configForm ?? state.configSnapshot?.config ?? {},
+  );
   removePathValue(base, path);
   state.configForm = base;
   state.configFormDirty = true;

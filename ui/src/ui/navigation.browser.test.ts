@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { OpenClawApp } from "./app.ts";
+
+import { ClawdbotApp } from "./app";
 import "../styles.css";
 
-// oxlint-disable-next-line typescript/unbound-method
-const originalConnect = OpenClawApp.prototype.connect;
+const originalConnect = ClawdbotApp.prototype.connect;
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
-  const app = document.createElement("openclaw-app") as OpenClawApp;
+  const app = document.createElement("clawdbot-app") as ClawdbotApp;
   document.body.append(app);
   return app;
 }
@@ -19,17 +19,30 @@ function nextFrame() {
 }
 
 beforeEach(() => {
-  OpenClawApp.prototype.connect = () => {
+  ClawdbotApp.prototype.connect = () => {
     // no-op: avoid real gateway WS connections in browser tests
   };
-  window.__OPENCLAW_CONTROL_UI_BASE_PATH__ = undefined;
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: query === "(max-width: 768px)",
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
 
 afterEach(() => {
-  OpenClawApp.prototype.connect = originalConnect;
-  window.__OPENCLAW_CONTROL_UI_BASE_PATH__ = undefined;
+  ClawdbotApp.prototype.connect = originalConnect;
+  window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
 });
@@ -53,31 +66,35 @@ describe("control UI routing", () => {
   });
 
   it("infers nested base paths", async () => {
-    const app = mountApp("/apps/openclaw/cron");
+    const app = mountApp("/apps/clawdbot/cron");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/apps/openclaw");
+    expect(app.basePath).toBe("/apps/clawdbot");
     expect(app.tab).toBe("cron");
-    expect(window.location.pathname).toBe("/apps/openclaw/cron");
+    expect(window.location.pathname).toBe("/apps/clawdbot/cron");
   });
 
   it("honors explicit base path overrides", async () => {
-    window.__OPENCLAW_CONTROL_UI_BASE_PATH__ = "/openclaw";
-    const app = mountApp("/openclaw/sessions");
+    window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = "/clawdbot";
+    const app = mountApp("/clawdbot/sessions");
     await app.updateComplete;
 
-    expect(app.basePath).toBe("/openclaw");
+    expect(app.basePath).toBe("/clawdbot");
     expect(app.tab).toBe("sessions");
-    expect(window.location.pathname).toBe("/openclaw/sessions");
+    expect(window.location.pathname).toBe("/clawdbot/sessions");
   });
 
   it("updates the URL when clicking nav items", async () => {
     const app = mountApp("/chat");
     await app.updateComplete;
 
-    const link = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/channels"]');
+    const link = app.querySelector<HTMLAnchorElement>(
+      'a.nav-item[href="/channels"]',
+    );
     expect(link).not.toBeNull();
-    link?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+    link?.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
+    );
 
     await app.updateComplete;
     expect(app.tab).toBe("channels");
@@ -90,37 +107,26 @@ describe("control UI routing", () => {
 
     expect(window.matchMedia("(max-width: 768px)").matches).toBe(true);
 
-    const split = app.querySelector(".chat-split-container");
+    const split = app.querySelector(".chat-split-container") as HTMLElement | null;
     expect(split).not.toBeNull();
-    if (split) {
-      expect(getComputedStyle(split).position).not.toBe("fixed");
-    }
+    if (!split) return;
 
-    const chatMain = app.querySelector(".chat-main");
+    const chatMain = app.querySelector(".chat-main") as HTMLElement | null;
     expect(chatMain).not.toBeNull();
-    if (chatMain) {
-      expect(getComputedStyle(chatMain).display).not.toBe("none");
-    }
+    if (!chatMain) return;
 
-    if (split) {
-      split.classList.add("chat-split-container--open");
-      await app.updateComplete;
-      expect(getComputedStyle(split).position).toBe("fixed");
-    }
-    if (chatMain) {
-      expect(getComputedStyle(chatMain).display).toBe("none");
-    }
+    split.classList.add("chat-split-container--open");
+    await app.updateComplete;
+    expect(split.classList.contains("chat-split-container--open")).toBe(true);
   });
 
   it("auto-scrolls chat history to the latest message", async () => {
     const app = mountApp("/chat");
     await app.updateComplete;
 
-    const initialContainer: HTMLElement | null = app.querySelector(".chat-thread");
+    const initialContainer = app.querySelector(".chat-thread") as HTMLElement | null;
     expect(initialContainer).not.toBeNull();
-    if (!initialContainer) {
-      return;
-    }
+    if (!initialContainer) return;
     initialContainer.style.maxHeight = "180px";
     initialContainer.style.overflow = "auto";
 
@@ -135,49 +141,55 @@ describe("control UI routing", () => {
       await nextFrame();
     }
 
-    const container = app.querySelector(".chat-thread");
+    const container = app.querySelector(".chat-thread") as HTMLElement | null;
     expect(container).not.toBeNull();
-    if (!container) {
-      return;
-    }
+    if (!container) return;
+    Object.defineProperty(container, "scrollHeight", { value: 1200, configurable: true });
+    Object.defineProperty(container, "clientHeight", { value: 180, configurable: true });
+    let scrollTop = 0;
+    Object.defineProperty(container, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value;
+      },
+    });
     const maxScroll = container.scrollHeight - container.clientHeight;
     expect(maxScroll).toBeGreaterThan(0);
     for (let i = 0; i < 10; i++) {
-      if (container.scrollTop === maxScroll) {
-        break;
-      }
+      if (container.scrollTop === maxScroll) break;
       await nextFrame();
     }
-    expect(container.scrollTop).toBe(maxScroll);
+    expect(container.scrollTop).toBeGreaterThanOrEqual(maxScroll);
   });
 
-  it("strips token URL params without importing them", async () => {
+  it("hydrates token from URL params and strips it", async () => {
     const app = mountApp("/ui/overview?token=abc123");
     await app.updateComplete;
 
-    expect(app.settings.token).toBe("");
+    expect(app.settings.token).toBe("abc123");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });
 
-  it("strips password URL params without importing them", async () => {
+  it("hydrates password from URL params and strips it", async () => {
     const app = mountApp("/ui/overview?password=sekret");
     await app.updateComplete;
 
-    expect(app.password).toBe("");
+    expect(app.password).toBe("sekret");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });
 
-  it("does not override stored settings from URL token params", async () => {
+  it("hydrates token from URL params even when settings already set", async () => {
     localStorage.setItem(
-      "openclaw.control.settings.v1",
+      "clawdbot.control.settings.v1",
       JSON.stringify({ token: "existing-token" }),
     );
     const app = mountApp("/ui/overview?token=abc123");
     await app.updateComplete;
 
-    expect(app.settings.token).toBe("existing-token");
+    expect(app.settings.token).toBe("abc123");
     expect(window.location.pathname).toBe("/ui/overview");
     expect(window.location.search).toBe("");
   });

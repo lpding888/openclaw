@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   TAB_GROUPS,
   iconForTab,
@@ -10,7 +11,7 @@ import {
   tabFromPath,
   titleForTab,
   type Tab,
-} from "./navigation.ts";
+} from "./navigation";
 
 /** All valid tab identifiers derived from TAB_GROUPS */
 const ALL_TABS: Tab[] = TAB_GROUPS.flatMap((group) => group.tabs) as Tab[];
@@ -56,9 +57,9 @@ describe("titleForTab", () => {
   });
 
   it("returns expected titles", () => {
-    expect(titleForTab("chat")).toBe("Chat");
-    expect(titleForTab("overview")).toBe("Overview");
-    expect(titleForTab("cron")).toBe("Cron Jobs");
+    expect(titleForTab("chat")).toBe("聊天");
+    expect(titleForTab("overview")).toBe("概览");
+    expect(titleForTab("cron")).toBe("定时任务");
   });
 });
 
@@ -71,8 +72,8 @@ describe("subtitleForTab", () => {
   });
 
   it("returns descriptive subtitles", () => {
-    expect(subtitleForTab("chat")).toContain("chat session");
-    expect(subtitleForTab("config")).toContain("openclaw.json");
+    expect(subtitleForTab("chat")).toContain("聊天会话");
+    expect(subtitleForTab("config")).toContain("clawdbot.json");
   });
 });
 
@@ -94,7 +95,7 @@ describe("normalizeBasePath", () => {
   });
 
   it("handles nested paths", () => {
-    expect(normalizeBasePath("/apps/openclaw")).toBe("/apps/openclaw");
+    expect(normalizeBasePath("/apps/clawdbot")).toBe("/apps/clawdbot");
   });
 });
 
@@ -121,7 +122,7 @@ describe("pathForTab", () => {
 
   it("prepends base path", () => {
     expect(pathForTab("chat", "/ui")).toBe("/ui/chat");
-    expect(pathForTab("sessions", "/apps/openclaw")).toBe("/apps/openclaw/sessions");
+    expect(pathForTab("sessions", "/apps/clawdbot")).toBe("/apps/clawdbot/sessions");
   });
 });
 
@@ -138,7 +139,7 @@ describe("tabFromPath", () => {
 
   it("handles base paths", () => {
     expect(tabFromPath("/ui/chat", "/ui")).toBe("chat");
-    expect(tabFromPath("/apps/openclaw/sessions", "/apps/openclaw")).toBe("sessions");
+    expect(tabFromPath("/apps/clawdbot/sessions", "/apps/clawdbot")).toBe("sessions");
   });
 
   it("returns null for unknown path", () => {
@@ -163,7 +164,7 @@ describe("inferBasePathFromPathname", () => {
 
   it("infers base path from nested paths", () => {
     expect(inferBasePathFromPathname("/ui/chat")).toBe("/ui");
-    expect(inferBasePathFromPathname("/apps/openclaw/sessions")).toBe("/apps/openclaw");
+    expect(inferBasePathFromPathname("/apps/clawdbot/sessions")).toBe("/apps/clawdbot");
   });
 
   it("handles index.html suffix", () => {
@@ -175,10 +176,10 @@ describe("inferBasePathFromPathname", () => {
 describe("TAB_GROUPS", () => {
   it("contains all expected groups", () => {
     const labels = TAB_GROUPS.map((g) => g.label);
-    expect(labels).toContain("Chat");
-    expect(labels).toContain("Control");
-    expect(labels).toContain("Agent");
-    expect(labels).toContain("Settings");
+    expect(labels).toContain("聊天");
+    expect(labels).toContain("控制");
+    expect(labels).toContain("代理");
+    expect(labels).toContain("设置");
   });
 
   it("all tabs are unique", () => {

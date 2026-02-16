@@ -1,16 +1,17 @@
-import { html, nothing } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
-import type { AssistantIdentity } from "../assistant-identity.ts";
-import type { MessageGroup } from "../types/chat-types.ts";
-import { toSanitizedMarkdownHtml } from "../markdown.ts";
-import { renderCopyAsMarkdownButton } from "./copy-as-markdown.ts";
+
+import type { AssistantIdentity } from "../assistant-identity";
+import { toSanitizedMarkdownHtml } from "../markdown";
+import type { MessageGroup } from "../types/chat-types";
+import { renderCopyAsMarkdownButton } from "./copy-as-markdown";
+import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer";
 import {
   extractTextCached,
   extractThinkingCached,
   formatReasoningMarkdown,
-} from "./message-extract.ts";
-import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer.ts";
-import { extractToolCards, renderToolCardSidebar } from "./tool-cards.ts";
+} from "./message-extract";
+import { extractToolCards, renderToolCardSidebar } from "./tool-cards";
 
 type ImageBlock = {
   url: string;
@@ -24,19 +25,19 @@ function extractImages(message: unknown): ImageBlock[] {
 
   if (Array.isArray(content)) {
     for (const block of content) {
-      if (typeof block !== "object" || block === null) {
-        continue;
-      }
+      if (typeof block !== "object" || block === null) continue;
       const b = block as Record<string, unknown>;
 
       if (b.type === "image") {
         // Handle source object format (from sendChatMessage)
         const source = b.source as Record<string, unknown> | undefined;
         if (source?.type === "base64" && typeof source.data === "string") {
-          const data = source.data;
+          const data = source.data as string;
           const mediaType = (source.media_type as string) || "image/png";
           // If data is already a data URL, use it directly
-          const url = data.startsWith("data:") ? data : `data:${mediaType};base64,${data}`;
+          const url = data.startsWith("data:")
+            ? data
+            : `data:${mediaType};base64,${data}`;
           images.push({ url });
         } else if (typeof b.url === "string") {
           images.push({ url: b.url });
@@ -110,6 +111,7 @@ export function renderMessageGroup(
     showReasoning: boolean;
     assistantName?: string;
     assistantAvatar?: string | null;
+    renderAssistantFeedback?: (message: unknown, group: MessageGroup) => TemplateResult | typeof nothing;
   },
 ) {
   const normalizedRole = normalizeRoleForGrouping(group.role);
@@ -121,7 +123,11 @@ export function renderMessageGroup(
         ? assistantName
         : normalizedRole;
   const roleClass =
-    normalizedRole === "user" ? "user" : normalizedRole === "assistant" ? "assistant" : "other";
+    normalizedRole === "user"
+      ? "user"
+      : normalizedRole === "assistant"
+        ? "assistant"
+        : "other";
   const timestamp = new Date(group.timestamp).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -134,16 +140,22 @@ export function renderMessageGroup(
         avatar: opts.assistantAvatar ?? null,
       })}
       <div class="chat-group-messages">
-        ${group.messages.map((item, index) =>
-          renderGroupedMessage(
-            item.message,
-            {
-              isStreaming: group.isStreaming && index === group.messages.length - 1,
-              showReasoning: opts.showReasoning,
-            },
-            opts.onOpenSidebar,
-          ),
-        )}
+        ${group.messages.map((item, index) => {
+          const isLast = index === group.messages.length - 1;
+          return html`
+            ${renderGroupedMessage(
+              item.message,
+              {
+                isStreaming: group.isStreaming && isLast,
+                showReasoning: opts.showReasoning,
+              },
+              opts.onOpenSidebar,
+            )}
+            ${normalizedRole === "assistant" && isLast && !group.isStreaming && opts.renderAssistantFeedback
+              ? opts.renderAssistantFeedback(item.message, group)
+              : nothing}
+          `;
+        })}
         <div class="chat-group-footer">
           <span class="chat-sender-name">${who}</span>
           <span class="chat-group-timestamp">${timestamp}</span>
@@ -153,7 +165,10 @@ export function renderMessageGroup(
   `;
 }
 
-function renderAvatar(role: string, assistant?: Pick<AssistantIdentity, "name" | "avatar">) {
+function renderAvatar(
+  role: string,
+  assistant?: Pick<AssistantIdentity, "name" | "avatar">,
+) {
   const normalized = normalizeRoleForGrouping(role);
   const assistantName = assistant?.name?.trim() || "Assistant";
   const assistantAvatar = assistant?.avatar?.trim() || "";
@@ -170,7 +185,7 @@ function renderAvatar(role: string, assistant?: Pick<AssistantIdentity, "name" |
       ? "user"
       : normalized === "assistant"
         ? "assistant"
-        : normalized === "tool"
+      : normalized === "tool"
           ? "tool"
           : "other";
 
@@ -190,14 +205,14 @@ function renderAvatar(role: string, assistant?: Pick<AssistantIdentity, "name" |
 
 function isAvatarUrl(value: string): boolean {
   return (
-    /^https?:\/\//i.test(value) || /^data:image\//i.test(value) || value.startsWith("/") // Relative paths from avatar endpoint
+    /^https?:\/\//i.test(value) ||
+    /^data:image\//i.test(value) ||
+    /^\//.test(value) // Relative paths from avatar endpoint
   );
 }
 
 function renderMessageImages(images: ImageBlock[]) {
-  if (images.length === 0) {
-    return nothing;
-  }
+  if (images.length === 0) return nothing;
 
   return html`
     <div class="chat-message-images">
@@ -236,9 +251,13 @@ function renderGroupedMessage(
 
   const extractedText = extractTextCached(message);
   const extractedThinking =
-    opts.showReasoning && role === "assistant" ? extractThinkingCached(message) : null;
+    opts.showReasoning && role === "assistant"
+      ? extractThinkingCached(message)
+      : null;
   const markdownBase = extractedText?.trim() ? extractedText : null;
-  const reasoningMarkdown = extractedThinking ? formatReasoningMarkdown(extractedThinking) : null;
+  const reasoningMarkdown = extractedThinking
+    ? formatReasoningMarkdown(extractedThinking)
+    : null;
   const markdown = markdownBase;
   const canCopyMarkdown = role === "assistant" && Boolean(markdown?.trim());
 
@@ -252,29 +271,25 @@ function renderGroupedMessage(
     .join(" ");
 
   if (!markdown && hasToolCards && isToolResult) {
-    return html`${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}`;
+    return html`${toolCards.map((card) =>
+      renderToolCardSidebar(card, onOpenSidebar),
+    )}`;
   }
 
-  if (!markdown && !hasToolCards && !hasImages) {
-    return nothing;
-  }
+  if (!markdown && !hasToolCards && !hasImages) return nothing;
 
   return html`
     <div class="${bubbleClasses}">
       ${canCopyMarkdown ? renderCopyAsMarkdownButton(markdown!) : nothing}
       ${renderMessageImages(images)}
-      ${
-        reasoningMarkdown
-          ? html`<div class="chat-thinking">${unsafeHTML(
-              toSanitizedMarkdownHtml(reasoningMarkdown),
-            )}</div>`
-          : nothing
-      }
-      ${
-        markdown
-          ? html`<div class="chat-text">${unsafeHTML(toSanitizedMarkdownHtml(markdown))}</div>`
-          : nothing
-      }
+      ${reasoningMarkdown
+        ? html`<div class="chat-thinking">${unsafeHTML(
+            toSanitizedMarkdownHtml(reasoningMarkdown),
+          )}</div>`
+        : nothing}
+      ${markdown
+        ? html`<div class="chat-text">${unsafeHTML(toSanitizedMarkdownHtml(markdown))}</div>`
+        : nothing}
       ${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}
     </div>
   `;

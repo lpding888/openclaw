@@ -1,6 +1,7 @@
 import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
-import { renderConfig } from "./config.ts";
+
+import { renderConfig } from "./config";
 
 describe("config view", () => {
   const baseProps = () => ({
@@ -58,9 +59,11 @@ describe("config view", () => {
       container,
     );
 
-    const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Save",
-    );
+    const saveButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((btn) => btn.textContent?.trim() === "保存") as
+      | HTMLButtonElement
+      | undefined;
     expect(saveButton).not.toBeUndefined();
     expect(saveButton?.disabled).toBe(false);
   });
@@ -78,9 +81,11 @@ describe("config view", () => {
       container,
     );
 
-    const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Save",
-    );
+    const saveButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((btn) => btn.textContent?.trim() === "保存") as
+      | HTMLButtonElement
+      | undefined;
     expect(saveButton).not.toBeUndefined();
     expect(saveButton?.disabled).toBe(true);
   });
@@ -97,12 +102,16 @@ describe("config view", () => {
       container,
     );
 
-    const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Save",
-    );
-    const applyButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Apply",
-    );
+    const saveButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((btn) => btn.textContent?.trim() === "保存") as
+      | HTMLButtonElement
+      | undefined;
+    const applyButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((btn) => btn.textContent?.trim() === "应用") as
+      | HTMLButtonElement
+      | undefined;
     expect(saveButton).not.toBeUndefined();
     expect(applyButton).not.toBeUndefined();
     expect(saveButton?.disabled).toBe(true);
@@ -115,18 +124,22 @@ describe("config view", () => {
       renderConfig({
         ...baseProps(),
         formMode: "raw",
-        raw: '{\n  gateway: { mode: "local" }\n}\n',
+        raw: "{\n  gateway: { mode: \"local\" }\n}\n",
         originalRaw: "{\n}\n",
       }),
       container,
     );
 
-    const saveButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Save",
-    );
-    const applyButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Apply",
-    );
+    const saveButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((btn) => btn.textContent?.trim() === "保存") as
+      | HTMLButtonElement
+      | undefined;
+    const applyButton = Array.from(
+      container.querySelectorAll("button"),
+    ).find((btn) => btn.textContent?.trim() === "应用") as
+      | HTMLButtonElement
+      | undefined;
     expect(saveButton).not.toBeUndefined();
     expect(applyButton).not.toBeUndefined();
     expect(saveButton?.disabled).toBe(false);
@@ -144,9 +157,9 @@ describe("config view", () => {
       container,
     );
 
-    const btn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "Raw",
-    );
+    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim() === "原始",
+    ) as HTMLButtonElement | undefined;
     expect(btn).toBeTruthy();
     btn?.click();
     expect(onFormModeChange).toHaveBeenCalledWith("raw");
@@ -170,9 +183,9 @@ describe("config view", () => {
       container,
     );
 
-    const btn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === "Gateway",
-    );
+    const btn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.trim() === "网关",
+    ) as HTMLButtonElement | undefined;
     expect(btn).toBeTruthy();
     btn?.click();
     expect(onSectionChange).toHaveBeenCalledWith("gateway");
@@ -189,12 +202,12 @@ describe("config view", () => {
       container,
     );
 
-    const input = container.querySelector(".config-search__input");
+    const input = container.querySelector(
+      ".config-search__input",
+    ) as HTMLInputElement | null;
     expect(input).not.toBeNull();
-    if (!input) {
-      return;
-    }
-    (input as HTMLInputElement).value = "gateway";
+    if (!input) return;
+    input.value = "gateway";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     expect(onSearchChange).toHaveBeenCalledWith("gateway");
   });

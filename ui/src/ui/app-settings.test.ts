@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Tab } from "./navigation.ts";
-import { setTabFromRoute } from "./app-settings.ts";
+
+import type { Tab } from "./navigation";
+import { setTabFromRoute } from "./app-settings";
 
 type SettingsHost = Parameters<typeof setTabFromRoute>[0] & {
   logsPollInterval: number | null;
@@ -16,9 +17,14 @@ const createHost = (tab: Tab): SettingsHost => ({
     theme: "system",
     chatFocusMode: false,
     chatShowThinking: true,
+    sendOnEnter: true,
     splitRatio: 0.6,
     navCollapsed: false,
     navGroupsCollapsed: {},
+    uiVisualPreset: "neo-v2",
+    uiMotionLevel: "full",
+    chatTimelineDensity: "summary",
+    chatObservabilityPin: "timeline",
   },
   theme: "system",
   themeResolved: "dark",

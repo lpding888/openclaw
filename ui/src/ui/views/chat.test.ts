@@ -1,7 +1,8 @@
 import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
-import type { SessionsListResult } from "../types.ts";
-import { renderChat, type ChatProps } from "./chat.ts";
+
+import type { SessionsListResult } from "../types";
+import { renderChat, type ChatProps } from "./chat";
 
 function createSessions(): SessionsListResult {
   return {
@@ -33,10 +34,36 @@ function createProps(overrides: Partial<ChatProps> = {}): ChatProps {
     connected: true,
     canSend: true,
     disabledReason: null,
+    sendOnEnter: true,
     error: null,
     sessions: createSessions(),
     focusMode: false,
-    assistantName: "OpenClaw",
+    sidebarOpen: true,
+    sidebarTab: "timeline",
+    sidebarContent: null,
+    sidebarError: null,
+    splitRatio: 0.6,
+    timelineEvents: [],
+    timelineRuns: [],
+    timelineLoading: false,
+    timelineRunsLoading: false,
+    timelineError: null,
+    timelineRunsError: null,
+    timelineServerSupported: true,
+    timelineRunsServerSupported: true,
+    timelineDensity: "summary",
+    observabilityPin: "timeline",
+    timelineFollow: true,
+    timelineFilters: { runId: "", streams: {} },
+    feedbackItems: [],
+    feedbackLoading: false,
+    feedbackError: null,
+    feedbackServerSupported: true,
+    feedbackDrafts: {},
+    feedbackSubmitting: {},
+    feedbackSubmitErrors: {},
+    currentRunId: null,
+    assistantName: "Clawdbot",
     assistantAvatar: null,
     onRefresh: () => undefined,
     onToggleFocusMode: () => undefined,
@@ -44,6 +71,16 @@ function createProps(overrides: Partial<ChatProps> = {}): ChatProps {
     onSend: () => undefined,
     onQueueRemove: () => undefined,
     onNewSession: () => undefined,
+    onOpenSidebar: () => undefined,
+    onCloseSidebar: () => undefined,
+    onSidebarTabChange: () => undefined,
+    onSplitRatioChange: () => undefined,
+    onTimelineFollowChange: () => undefined,
+    onTimelineFiltersChange: () => undefined,
+    onTimelineDensityChange: () => undefined,
+    onObservabilityPinChange: () => undefined,
+    onFeedbackDraftChange: () => undefined,
+    onFeedbackSubmit: async () => undefined,
     ...overrides,
   };
 }
@@ -63,12 +100,12 @@ describe("chat view", () => {
     );
 
     const stopButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Stop",
+      (btn) => btn.textContent?.trim() === "停止",
     );
     expect(stopButton).not.toBeUndefined();
     stopButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onAbort).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain("New session");
+    expect(container.textContent).not.toContain("新会话");
   });
 
   it("shows a new session button when aborting is unavailable", () => {
@@ -85,11 +122,116 @@ describe("chat view", () => {
     );
 
     const newSessionButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "New session",
+      (btn) => btn.textContent?.trim() === "新会话",
     );
     expect(newSessionButton).not.toBeUndefined();
     newSessionButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onNewSession).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain("Stop");
+    expect(container.textContent).not.toContain("停止");
+  });
+
+  it("renders insights tab and assistant feedback controls", () => {
+    const container = document.createElement("div");
+    const onFeedbackSubmit = vi.fn();
+    render(
+      renderChat(
+        createProps({
+          messages: [
+            {
+              role: "assistant",
+              id: "msg-1",
+              timestamp: 1_000,
+              content: [{ type: "text", text: "你好" }],
+            },
+          ],
+          timelineRuns: [
+            {
+              sessionKey: "main",
+              runId: "run-1",
+              startedAt: 900,
+              status: "success",
+              toolCalls: 0,
+              toolErrors: 0,
+              assistantChars: 2,
+              compactionCount: 0,
+              truncatedEvents: 0,
+              updatedAt: 1_100,
+            },
+          ],
+          onFeedbackSubmit,
+        }),
+      ),
+      container,
+    );
+    expect(container.textContent).toContain("洞察");
+    expect(container.textContent).toContain("作用范围: 当前 Agent 全局");
+  });
+
+  it("shows timeline density controls", () => {
+    const container = document.createElement("div");
+    render(renderChat(createProps()), container);
+    expect(container.textContent).toContain("摘要");
+    expect(container.textContent).toContain("全展开");
+  });
+
+  it("shows a single degraded observability hint in insights", () => {
+    const container = document.createElement("div");
+    render(
+      renderChat(
+        createProps({
+          sidebarTab: "insights",
+          timelineRunsServerSupported: false,
+          feedbackServerSupported: true,
+        }),
+      ),
+      container,
+    );
+    expect(container.textContent).toContain("洞察能力受限");
+  });
+
+  it("shows retry action when feedback submission fails", () => {
+    const container = document.createElement("div");
+    render(
+      renderChat(
+        createProps({
+          messages: [
+            {
+              role: "assistant",
+              id: "msg-1",
+              timestamp: 2_000,
+              content: [{ type: "text", text: "结果" }],
+            },
+          ],
+          timelineRuns: [
+            {
+              sessionKey: "main",
+              runId: "run-1",
+              startedAt: 1_500,
+              status: "success",
+              toolCalls: 0,
+              toolErrors: 0,
+              assistantChars: 2,
+              compactionCount: 0,
+              truncatedEvents: 0,
+              updatedAt: 2_100,
+            },
+          ],
+          feedbackDrafts: {
+            "msg-1": {
+              rating: "down",
+              tags: ["accuracy"],
+              comment: "",
+              applyScope: "agent",
+              open: true,
+            },
+          },
+          feedbackSubmitErrors: {
+            "run-1:msg-1": "network error",
+          },
+        }),
+      ),
+      container,
+    );
+    expect(container.textContent).toContain("重试提交");
   });
 });

@@ -1,4 +1,4 @@
-import type { ThemeMode } from "./theme.ts";
+import type { ThemeMode } from "./theme";
 
 export type ThemeTransitionContext = {
   element?: HTMLElement | null;
@@ -18,15 +18,9 @@ type DocumentWithViewTransition = Document & {
 };
 
 const clamp01 = (value: number) => {
-  if (Number.isNaN(value)) {
-    return 0.5;
-  }
-  if (value <= 0) {
-    return 0;
-  }
-  if (value >= 1) {
-    return 1;
-  }
+  if (Number.isNaN(value)) return 0.5;
+  if (value <= 0) return 0;
+  if (value >= 1) return 1;
   return value;
 };
 
@@ -49,9 +43,7 @@ export const startThemeTransition = ({
   context,
   currentTheme,
 }: ThemeTransitionOptions) => {
-  if (currentTheme === nextTheme) {
-    return;
-  }
+  if (currentTheme === nextTheme) return;
 
   const documentReference = globalThis.document ?? null;
   if (!documentReference) {
@@ -63,7 +55,8 @@ export const startThemeTransition = ({
   const document_ = documentReference as DocumentWithViewTransition;
   const prefersReducedMotion = hasReducedMotionPreference();
 
-  const canUseViewTransition = Boolean(document_.startViewTransition) && !prefersReducedMotion;
+  const canUseViewTransition =
+    Boolean(document_.startViewTransition) && !prefersReducedMotion;
 
   if (canUseViewTransition) {
     let xPercent = 0.5;
@@ -78,7 +71,11 @@ export const startThemeTransition = ({
       yPercent = clamp01(context.pointerClientY / window.innerHeight);
     } else if (context?.element) {
       const rect = context.element.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0 && typeof window !== "undefined") {
+      if (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        typeof window !== "undefined"
+      ) {
         xPercent = clamp01((rect.left + rect.width / 2) / window.innerWidth);
         yPercent = clamp01((rect.top + rect.height / 2) / window.innerHeight);
       }

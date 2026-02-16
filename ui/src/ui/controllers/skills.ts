@@ -1,5 +1,5 @@
-import type { GatewayBrowserClient } from "../gateway.ts";
-import type { SkillStatusReport } from "../types.ts";
+import type { GatewayBrowserClient } from "../gateway";
+import type { SkillStatusReport } from "../types";
 
 export type SkillsState = {
   client: GatewayBrowserClient | null;
@@ -9,7 +9,6 @@ export type SkillsState = {
   skillsError: string | null;
   skillsBusyKey: string | null;
   skillEdits: Record<string, string>;
-  skillEnvEdits: Record<string, Record<string, string>>;
   skillMessages: SkillMessageMap;
 };
 
@@ -25,22 +24,15 @@ type LoadSkillsOptions = {
 };
 
 function setSkillMessage(state: SkillsState, key: string, message?: SkillMessage) {
-  if (!key.trim()) {
-    return;
-  }
+  if (!key.trim()) return;
   const next = { ...state.skillMessages };
-  if (message) {
-    next[key] = message;
-  } else {
-    delete next[key];
-  }
+  if (message) next[key] = message;
+  else delete next[key];
   state.skillMessages = next;
 }
 
 function getErrorMessage(err: unknown) {
-  if (err instanceof Error) {
-    return err.message;
-  }
+  if (err instanceof Error) return err.message;
   return String(err);
 }
 
@@ -48,19 +40,15 @@ export async function loadSkills(state: SkillsState, options?: LoadSkillsOptions
   if (options?.clearMessages && Object.keys(state.skillMessages).length > 0) {
     state.skillMessages = {};
   }
-  if (!state.client || !state.connected) {
-    return;
-  }
-  if (state.skillsLoading) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
+  if (state.skillsLoading) return;
   state.skillsLoading = true;
   state.skillsError = null;
   try {
-    const res = await state.client.request<SkillStatusReport | undefined>("skills.status", {});
-    if (res) {
-      state.skillsReport = res;
-    }
+    const res = (await state.client.request("skills.status", {})) as
+      | SkillStatusReport
+      | undefined;
+    if (res) state.skillsReport = res;
   } catch (err) {
     state.skillsError = getErrorMessage(err);
   } finally {
@@ -68,31 +56,20 @@ export async function loadSkills(state: SkillsState, options?: LoadSkillsOptions
   }
 }
 
-export function updateSkillEdit(state: SkillsState, skillKey: string, value: string) {
+export function updateSkillEdit(
+  state: SkillsState,
+  skillKey: string,
+  value: string,
+) {
   state.skillEdits = { ...state.skillEdits, [skillKey]: value };
 }
 
-export function updateSkillEnvEdit(
+export async function updateSkillEnabled(
   state: SkillsState,
   skillKey: string,
-  envKey: string,
-  value: string,
+  enabled: boolean,
 ) {
-  const trimmedKey = envKey.trim();
-  if (!trimmedKey) {
-    return;
-  }
-  const existing = state.skillEnvEdits[skillKey] ?? {};
-  state.skillEnvEdits = {
-    ...state.skillEnvEdits,
-    [skillKey]: { ...existing, [trimmedKey]: value },
-  };
-}
-
-export async function updateSkillEnabled(state: SkillsState, skillKey: string, enabled: boolean) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.skillsBusyKey = skillKey;
   state.skillsError = null;
   try {
@@ -115,9 +92,7 @@ export async function updateSkillEnabled(state: SkillsState, skillKey: string, e
 }
 
 export async function saveSkillApiKey(state: SkillsState, skillKey: string) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.skillsBusyKey = skillKey;
   state.skillsError = null;
   try {
@@ -140,54 +115,21 @@ export async function saveSkillApiKey(state: SkillsState, skillKey: string) {
   }
 }
 
-export async function saveSkillEnvVar(state: SkillsState, skillKey: string, envKey: string) {
-  if (!state.client || !state.connected) {
-    return;
-  }
-  const key = envKey.trim();
-  if (!key) {
-    return;
-  }
-  state.skillsBusyKey = skillKey;
-  state.skillsError = null;
-  try {
-    const raw = state.skillEnvEdits[skillKey]?.[key] ?? "";
-    const value = raw.trim();
-    await state.client.request("skills.update", { skillKey, env: { [key]: value } });
-    await loadSkills(state);
-    setSkillMessage(state, skillKey, {
-      kind: "success",
-      message: value ? `${key} saved` : `${key} cleared`,
-    });
-  } catch (err) {
-    const message = getErrorMessage(err);
-    state.skillsError = message;
-    setSkillMessage(state, skillKey, {
-      kind: "error",
-      message,
-    });
-  } finally {
-    state.skillsBusyKey = null;
-  }
-}
-
 export async function installSkill(
   state: SkillsState,
   skillKey: string,
   name: string,
   installId: string,
 ) {
-  if (!state.client || !state.connected) {
-    return;
-  }
+  if (!state.client || !state.connected) return;
   state.skillsBusyKey = skillKey;
   state.skillsError = null;
   try {
-    const result = await state.client.request<{ message?: string }>("skills.install", {
+    const result = (await state.client.request("skills.install", {
       name,
       installId,
       timeoutMs: 120000,
-    });
+    })) as { ok?: boolean; message?: string };
     await loadSkills(state);
     setSkillMessage(state, skillKey, {
       kind: "success",

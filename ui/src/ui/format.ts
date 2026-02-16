@@ -1,76 +1,48 @@
 import { stripReasoningTagsFromText } from "../../../src/shared/text/reasoning-tags.js";
 
 export function formatMs(ms?: number | null): string {
-  if (!ms && ms !== 0) {
-    return "n/a";
-  }
-  return new Date(ms).toLocaleString();
+  if (!ms && ms !== 0) return "无";
+  return new Date(ms).toLocaleString("zh-CN");
 }
 
 export function formatAgo(ms?: number | null): string {
-  if (!ms && ms !== 0) {
-    return "n/a";
-  }
+  if (!ms && ms !== 0) return "无";
   const diff = Date.now() - ms;
-  const absDiff = Math.abs(diff);
-  const suffix = diff < 0 ? "from now" : "ago";
-  const sec = Math.round(absDiff / 1000);
-  if (sec < 60) {
-    return diff < 0 ? "just now" : `${sec}s ago`;
-  }
+  if (diff < 0) return "刚刚";
+  const sec = Math.round(diff / 1000);
+  if (sec < 60) return `${sec}秒前`;
   const min = Math.round(sec / 60);
-  if (min < 60) {
-    return `${min}m ${suffix}`;
-  }
+  if (min < 60) return `${min}分钟前`;
   const hr = Math.round(min / 60);
-  if (hr < 48) {
-    return `${hr}h ${suffix}`;
-  }
+  if (hr < 48) return `${hr}小时前`;
   const day = Math.round(hr / 24);
-  return `${day}d ${suffix}`;
+  return `${day}天前`;
 }
 
 export function formatDurationMs(ms?: number | null): string {
-  if (!ms && ms !== 0) {
-    return "n/a";
-  }
-  if (ms < 1000) {
-    return `${ms}ms`;
-  }
+  if (!ms && ms !== 0) return "无";
+  if (ms < 1000) return `${ms}毫秒`;
   const sec = Math.round(ms / 1000);
-  if (sec < 60) {
-    return `${sec}s`;
-  }
+  if (sec < 60) return `${sec}秒`;
   const min = Math.round(sec / 60);
-  if (min < 60) {
-    return `${min}m`;
-  }
+  if (min < 60) return `${min}分钟`;
   const hr = Math.round(min / 60);
-  if (hr < 48) {
-    return `${hr}h`;
-  }
+  if (hr < 48) return `${hr}小时`;
   const day = Math.round(hr / 24);
-  return `${day}d`;
+  return `${day}天`;
 }
 
 export function formatList(values?: Array<string | null | undefined>): string {
-  if (!values || values.length === 0) {
-    return "none";
-  }
+  if (!values || values.length === 0) return "无";
   return values.filter((v): v is string => Boolean(v && v.trim())).join(", ");
 }
 
 export function clampText(value: string, max = 120): string {
-  if (value.length <= max) {
-    return value;
-  }
+  if (value.length <= max) return value;
   return `${value.slice(0, Math.max(0, max - 1))}…`;
 }
 
-export function truncateText(
-  value: string,
-  max: number,
-): {
+export function truncateText(value: string, max: number): {
   text: string;
   truncated: boolean;
   total: number;

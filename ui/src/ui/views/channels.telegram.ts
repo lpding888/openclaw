@@ -1,8 +1,9 @@
 import { html, nothing } from "lit";
-import type { ChannelAccountSnapshot, TelegramStatus } from "../types.ts";
-import type { ChannelsProps } from "./channels.types.ts";
-import { formatAgo } from "../format.ts";
-import { renderChannelConfigSection } from "./channels.config.ts";
+
+import { formatAgo } from "../format";
+import type { ChannelAccountSnapshot, TelegramStatus } from "../types";
+import type { ChannelsProps } from "./channels.types";
+import { renderChannelConfigSection } from "./channels.config";
 
 export function renderTelegramCard(params: {
   props: ChannelsProps;
@@ -27,26 +28,24 @@ export function renderTelegramCard(params: {
         </div>
         <div class="status-list account-card-status">
           <div>
-            <span class="label">Running</span>
-            <span>${account.running ? "Yes" : "No"}</span>
+            <span class="label">运行中</span>
+            <span>${account.running ? "是" : "否"}</span>
           </div>
           <div>
-            <span class="label">Configured</span>
-            <span>${account.configured ? "Yes" : "No"}</span>
+            <span class="label">已配置</span>
+            <span>${account.configured ? "是" : "否"}</span>
           </div>
           <div>
-            <span class="label">Last inbound</span>
-            <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : "n/a"}</span>
+            <span class="label">最后入站</span>
+            <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : "无"}</span>
           </div>
-          ${
-            account.lastError
-              ? html`
+          ${account.lastError
+            ? html`
                 <div class="account-card-error">
                   ${account.lastError}
                 </div>
               `
-              : nothing
-          }
+            : nothing}
         </div>
       </div>
     `;
@@ -55,64 +54,58 @@ export function renderTelegramCard(params: {
   return html`
     <div class="card">
       <div class="card-title">Telegram</div>
-      <div class="card-sub">Bot status and channel configuration.</div>
+      <div class="card-sub">机器人状态和频道配置。</div>
       ${accountCountLabel}
 
-      ${
-        hasMultipleAccounts
-          ? html`
+      ${hasMultipleAccounts
+        ? html`
             <div class="account-card-list">
               ${telegramAccounts.map((account) => renderAccountCard(account))}
             </div>
           `
-          : html`
+        : html`
             <div class="status-list" style="margin-top: 16px;">
               <div>
-                <span class="label">Configured</span>
-                <span>${telegram?.configured ? "Yes" : "No"}</span>
+                <span class="label">已配置</span>
+                <span>${telegram?.configured ? "是" : "否"}</span>
               </div>
               <div>
-                <span class="label">Running</span>
-                <span>${telegram?.running ? "Yes" : "No"}</span>
+                <span class="label">运行中</span>
+                <span>${telegram?.running ? "是" : "否"}</span>
               </div>
               <div>
-                <span class="label">Mode</span>
-                <span>${telegram?.mode ?? "n/a"}</span>
+                <span class="label">模式</span>
+                <span>${telegram?.mode ?? "无"}</span>
               </div>
               <div>
-                <span class="label">Last start</span>
-                <span>${telegram?.lastStartAt ? formatAgo(telegram.lastStartAt) : "n/a"}</span>
+                <span class="label">最后启动</span>
+                <span>${telegram?.lastStartAt ? formatAgo(telegram.lastStartAt) : "无"}</span>
               </div>
               <div>
-                <span class="label">Last probe</span>
-                <span>${telegram?.lastProbeAt ? formatAgo(telegram.lastProbeAt) : "n/a"}</span>
+                <span class="label">最后探测</span>
+                <span>${telegram?.lastProbeAt ? formatAgo(telegram.lastProbeAt) : "无"}</span>
               </div>
             </div>
-          `
-      }
+          `}
 
-      ${
-        telegram?.lastError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+      ${telegram?.lastError
+        ? html`<div class="callout danger" style="margin-top: 12px;">
             ${telegram.lastError}
           </div>`
-          : nothing
-      }
+        : nothing}
 
-      ${
-        telegram?.probe
-          ? html`<div class="callout" style="margin-top: 12px;">
-            Probe ${telegram.probe.ok ? "ok" : "failed"} ·
+      ${telegram?.probe
+        ? html`<div class="callout" style="margin-top: 12px;">
+            探测 ${telegram.probe.ok ? "成功" : "失败"} ·
             ${telegram.probe.status ?? ""} ${telegram.probe.error ?? ""}
           </div>`
-          : nothing
-      }
+        : nothing}
 
       ${renderChannelConfigSection({ channelId: "telegram", props })}
 
       <div class="row" style="margin-top: 12px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
-          Probe
+          探测
         </button>
       </div>
     </div>

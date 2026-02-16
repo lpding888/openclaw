@@ -1,4 +1,4 @@
-/* Note: Avoid Google Fonts imports so the UI works well behind CN firewalls/offline. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
   /* Background - Warmer dark with depth */
@@ -81,15 +81,9 @@
   --theme-switch-y: 50%;
 
   /* Typography - Space Grotesk for personality */
-  --mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
-  --font-body:
-    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Segoe UI", sans-serif;
-  --font-display:
-    "Smiley Sans", "HarmonyOS Sans SC", "MiSans", ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
-    "Noto Sans SC", "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --font-body: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Shadows - Richer with subtle color */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -106,13 +100,58 @@
   --radius-full: 9999px;
   --radius: 8px;
 
-  /* Transitions - Snappy but smooth */
+  /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 120ms;
-  --duration-normal: 200ms;
-  --duration-slow: 350ms;
+  --motion-fast: 120ms;
+  --motion-base: 220ms;
+  --motion-slow: 360ms;
+  --motion-spring-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: var(--motion-fast);
+  --duration-normal: var(--motion-base);
+  --duration-slow: var(--motion-slow);
+
+  /* Neumorphism V2 depth system */
+  --neo-light-angle: 145deg;
+  --neo-light-x: 1;
+  --neo-light-y: 1;
+  --neo-depth-1: 4px;
+  --neo-depth-2: 7px;
+  --neo-depth-3: 10px;
+  --neo-depth-4: 14px;
+  --neo-press-depth: 3px;
+  --neo-shadow-dark: rgba(0, 0, 0, 0.32);
+  --neo-shadow-light: rgba(255, 255, 255, 0.05);
+  --neo-shadow-dark-soft: rgba(0, 0, 0, 0.24);
+  --neo-shadow-light-soft: rgba(255, 255, 255, 0.035);
+  --neo-surface-hi: #1e222c;
+  --neo-surface-lo: #161921;
+  --neo-surface-mid: #1a1d25;
+  --neo-state-success-edge: rgba(34, 197, 94, 0.5);
+  --neo-state-error-edge: rgba(239, 68, 68, 0.58);
+  --neo-state-warn-edge: rgba(245, 158, 11, 0.52);
+  --neo-state-info-edge: rgba(59, 130, 246, 0.5);
+
+  --neo-shadow-outset:
+    calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
+    calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+  --neo-shadow-outset-soft:
+    calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
+    calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+  --neo-shadow-inset:
+    inset calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
+    inset calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+  --neo-shadow-inset-soft:
+    inset calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+  --neo-shadow-press:
+    inset calc(var(--neo-press-depth) * var(--neo-light-x)) calc(var(--neo-press-depth) * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-press-depth) * -1 * var(--neo-light-x)) calc(var(--neo-press-depth) * -1 * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-light-soft);
+  --neo-grad-raised: linear-gradient(var(--neo-light-angle), var(--neo-surface-hi), var(--neo-surface-lo));
+  --neo-grad-inset: linear-gradient(var(--neo-light-angle), var(--neo-surface-lo), var(--neo-surface-hi));
+  --neo-border: rgba(255, 255, 255, 0.045);
+  --neo-border-strong: rgba(255, 255, 255, 0.09);
 
   color-scheme: dark;
 }
@@ -190,7 +229,72 @@
   --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --shadow-glow: 0 0 24px var(--accent-glow);
 
+  --neo-light-angle: 145deg;
+  --neo-light-x: 1;
+  --neo-light-y: 1;
+  --neo-depth-1: 3px;
+  --neo-depth-2: 6px;
+  --neo-depth-3: 9px;
+  --neo-depth-4: 12px;
+  --neo-press-depth: 3px;
+  --neo-shadow-dark: rgba(160, 170, 190, 0.45);
+  --neo-shadow-light: rgba(255, 255, 255, 0.96);
+  --neo-shadow-dark-soft: rgba(170, 178, 195, 0.34);
+  --neo-shadow-light-soft: rgba(255, 255, 255, 0.9);
+  --neo-surface-hi: #f9fafc;
+  --neo-surface-lo: #e6e9ef;
+  --neo-surface-mid: #edf0f5;
+  --neo-state-success-edge: rgba(22, 163, 74, 0.46);
+  --neo-state-error-edge: rgba(220, 38, 38, 0.5);
+  --neo-state-warn-edge: rgba(217, 119, 6, 0.5);
+  --neo-state-info-edge: rgba(37, 99, 235, 0.44);
+  --neo-shadow-outset:
+    calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
+    calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+  --neo-shadow-outset-soft:
+    calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
+    calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+  --neo-shadow-inset:
+    inset calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
+    inset calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+  --neo-shadow-inset-soft:
+    inset calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+  --neo-shadow-press:
+    inset calc(var(--neo-press-depth) * var(--neo-light-x)) calc(var(--neo-press-depth) * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-press-depth) * -1 * var(--neo-light-x)) calc(var(--neo-press-depth) * -1 * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-light-soft);
+  --neo-grad-raised: linear-gradient(var(--neo-light-angle), var(--neo-surface-hi), var(--neo-surface-lo));
+  --neo-grad-inset: linear-gradient(var(--neo-light-angle), var(--neo-surface-lo), var(--neo-surface-hi));
+  --neo-border: rgba(255, 255, 255, 0.75);
+  --neo-border-strong: rgba(255, 255, 255, 0.95);
+
   color-scheme: light;
+}
+
+:root[data-ui-visual-preset="neo-v1"] {
+  --neo-depth-1: 2px;
+  --neo-depth-2: 4px;
+  --neo-depth-3: 6px;
+  --neo-depth-4: 9px;
+  --neo-press-depth: 2px;
+  --neo-shadow-dark: rgba(0, 0, 0, 0.24);
+  --neo-shadow-light: rgba(255, 255, 255, 0.04);
+  --neo-shadow-dark-soft: rgba(0, 0, 0, 0.18);
+  --neo-shadow-light-soft: rgba(255, 255, 255, 0.028);
+}
+
+:root[data-theme="light"][data-ui-visual-preset="neo-v1"] {
+  --neo-shadow-dark: rgba(160, 170, 190, 0.32);
+  --neo-shadow-light: rgba(255, 255, 255, 0.9);
+  --neo-shadow-dark-soft: rgba(170, 178, 195, 0.24);
+  --neo-shadow-light-soft: rgba(255, 255, 255, 0.82);
+}
+
+:root[data-ui-motion="reduced"],
+:root.motion-reduced {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
 }
 
 * {
@@ -206,10 +310,20 @@ body {
   margin: 0;
   font: 400 14px/1.55 var(--font-body);
   letter-spacing: -0.02em;
-  background: var(--bg);
+  background:
+    radial-gradient(900px 520px at -12% -18%, rgba(255, 92, 92, 0.18), transparent 62%),
+    radial-gradient(780px 420px at 112% 8%, rgba(20, 184, 166, 0.14), transparent 66%),
+    linear-gradient(180deg, var(--bg-accent), var(--bg));
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(860px 500px at -12% -18%, rgba(220, 38, 38, 0.1), transparent 60%),
+    radial-gradient(720px 420px at 108% 6%, rgba(13, 148, 136, 0.08), transparent 64%),
+    linear-gradient(180deg, #fbfbfc, var(--bg-content));
 }
 
 /* Theme transition */
@@ -239,13 +353,27 @@ html.theme-transition::view-transition-new(theme) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+
   html.theme-transition::view-transition-old(theme),
   html.theme-transition::view-transition-new(theme) {
     animation: none !important;
   }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-openclaw-app {
+clawdbot-app {
   display: block;
   position: relative;
   z-index: 1;
@@ -346,8 +474,7 @@ select {
 }
 
 @keyframes pulse-subtle {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -356,8 +483,7 @@ select {
 }
 
 @keyframes glow-pulse {
-  0%,
-  100% {
+  0%, 100% {
     box-shadow: 0 0 0 rgba(255, 92, 92, 0);
   }
   50% {
@@ -366,27 +492,38 @@ select {
 }
 
 /* Stagger animation delays for grouped elements */
-.stagger-1 {
-  animation-delay: 0ms;
-}
-.stagger-2 {
-  animation-delay: 50ms;
-}
-.stagger-3 {
-  animation-delay: 100ms;
-}
-.stagger-4 {
-  animation-delay: 150ms;
-}
-.stagger-5 {
-  animation-delay: 200ms;
-}
-.stagger-6 {
-  animation-delay: 250ms;
-}
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 50ms; }
+.stagger-3 { animation-delay: 100ms; }
+.stagger-4 { animation-delay: 150ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 250ms; }
 
 /* Focus visible styles */
-:focus-visible {
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring);
+  box-shadow: var(--focus-glow);
+}
+
+.neo-surface {
+  background: var(--neo-grad-raised);
+  box-shadow: var(--neo-shadow-outset-soft);
+  border: 1px solid var(--neo-border);
+}
+
+.neo-surface--inset {
+  background: var(--neo-grad-inset);
+  box-shadow: var(--neo-shadow-inset-soft);
+  border: 1px solid var(--neo-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

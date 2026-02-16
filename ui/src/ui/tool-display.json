@@ -90,13 +90,7 @@
         },
         "act": {
           "label": "act",
-          "detailKeys": [
-            "request.kind",
-            "request.ref",
-            "request.selector",
-            "request.text",
-            "request.value"
-          ]
+          "detailKeys": ["request.kind", "request.ref", "request.selector", "request.text", "request.value"]
         }
       }
     },
@@ -123,15 +117,9 @@
         "approve": { "label": "approve", "detailKeys": ["requestId"] },
         "reject": { "label": "reject", "detailKeys": ["requestId"] },
         "notify": { "label": "notify", "detailKeys": ["node", "nodeId", "title", "body"] },
-        "camera_snap": {
-          "label": "camera snap",
-          "detailKeys": ["node", "nodeId", "facing", "deviceId"]
-        },
+        "camera_snap": { "label": "camera snap", "detailKeys": ["node", "nodeId", "facing", "deviceId"] },
         "camera_list": { "label": "camera list", "detailKeys": ["node", "nodeId"] },
-        "camera_clip": {
-          "label": "camera clip",
-          "detailKeys": ["node", "nodeId", "facing", "duration", "durationMs"]
-        },
+        "camera_clip": { "label": "camera clip", "detailKeys": ["node", "nodeId", "facing", "duration", "durationMs"] },
         "screen_record": {
           "label": "screen record",
           "detailKeys": ["node", "nodeId", "duration", "durationMs", "fps", "screenIndex"]
@@ -184,52 +172,52 @@
       "icon": "messageSquare",
       "title": "Discord",
       "actions": {
-        "react": { "label": "react", "detailKeys": ["channelId", "messageId", "emoji"] },
-        "reactions": { "label": "reactions", "detailKeys": ["channelId", "messageId"] },
-        "sticker": { "label": "sticker", "detailKeys": ["to", "stickerIds"] },
-        "poll": { "label": "poll", "detailKeys": ["question", "to"] },
-        "permissions": { "label": "permissions", "detailKeys": ["channelId"] },
-        "readMessages": { "label": "read messages", "detailKeys": ["channelId", "limit"] },
-        "sendMessage": { "label": "send", "detailKeys": ["to", "content"] },
-        "editMessage": { "label": "edit", "detailKeys": ["channelId", "messageId"] },
-        "deleteMessage": { "label": "delete", "detailKeys": ["channelId", "messageId"] },
-        "threadCreate": { "label": "thread create", "detailKeys": ["channelId", "name"] },
-        "threadList": { "label": "thread list", "detailKeys": ["guildId", "channelId"] },
-        "threadReply": { "label": "thread reply", "detailKeys": ["channelId", "content"] },
-        "pinMessage": { "label": "pin", "detailKeys": ["channelId", "messageId"] },
-        "unpinMessage": { "label": "unpin", "detailKeys": ["channelId", "messageId"] },
-        "listPins": { "label": "list pins", "detailKeys": ["channelId"] },
-        "searchMessages": { "label": "search", "detailKeys": ["guildId", "content"] },
-        "memberInfo": { "label": "member", "detailKeys": ["guildId", "userId"] },
-        "roleInfo": { "label": "roles", "detailKeys": ["guildId"] },
-        "emojiList": { "label": "emoji list", "detailKeys": ["guildId"] },
-        "roleAdd": { "label": "role add", "detailKeys": ["guildId", "userId", "roleId"] },
-        "roleRemove": { "label": "role remove", "detailKeys": ["guildId", "userId", "roleId"] },
-        "channelInfo": { "label": "channel", "detailKeys": ["channelId"] },
-        "channelList": { "label": "channels", "detailKeys": ["guildId"] },
-        "voiceStatus": { "label": "voice", "detailKeys": ["guildId", "userId"] },
-        "eventList": { "label": "events", "detailKeys": ["guildId"] },
-        "eventCreate": { "label": "event create", "detailKeys": ["guildId", "name"] },
-        "timeout": { "label": "timeout", "detailKeys": ["guildId", "userId"] },
-        "kick": { "label": "kick", "detailKeys": ["guildId", "userId"] },
-        "ban": { "label": "ban", "detailKeys": ["guildId", "userId"] }
+        "react": { "label": "反应", "detailKeys": ["channelId", "messageId", "emoji"] },
+        "reactions": { "label": "反应列表", "detailKeys": ["channelId", "messageId"] },
+        "sticker": { "label": "贴纸", "detailKeys": ["to", "stickerIds"] },
+        "poll": { "label": "投票", "detailKeys": ["question", "to"] },
+        "permissions": { "label": "权限", "detailKeys": ["channelId"] },
+        "readMessages": { "label": "读取消息", "detailKeys": ["channelId", "limit"] },
+        "sendMessage": { "label": "发送", "detailKeys": ["to", "content"] },
+        "editMessage": { "label": "编辑", "detailKeys": ["channelId", "messageId"] },
+        "deleteMessage": { "label": "删除", "detailKeys": ["channelId", "messageId"] },
+        "threadCreate": { "label": "创建话题", "detailKeys": ["channelId", "name"] },
+        "threadList": { "label": "话题列表", "detailKeys": ["guildId", "channelId"] },
+        "threadReply": { "label": "话题回复", "detailKeys": ["channelId", "content"] },
+        "pinMessage": { "label": "置顶", "detailKeys": ["channelId", "messageId"] },
+        "unpinMessage": { "label": "取消置顶", "detailKeys": ["channelId", "messageId"] },
+        "listPins": { "label": "置顶列表", "detailKeys": ["channelId"] },
+        "searchMessages": { "label": "搜索", "detailKeys": ["guildId", "content"] },
+        "memberInfo": { "label": "成员", "detailKeys": ["guildId", "userId"] },
+        "roleInfo": { "label": "角色", "detailKeys": ["guildId"] },
+        "emojiList": { "label": "表情列表", "detailKeys": ["guildId"] },
+        "roleAdd": { "label": "添加角色", "detailKeys": ["guildId", "userId", "roleId"] },
+        "roleRemove": { "label": "移除角色", "detailKeys": ["guildId", "userId", "roleId"] },
+        "channelInfo": { "label": "频道", "detailKeys": ["channelId"] },
+        "channelList": { "label": "频道列表", "detailKeys": ["guildId"] },
+        "voiceStatus": { "label": "语音", "detailKeys": ["guildId", "userId"] },
+        "eventList": { "label": "事件", "detailKeys": ["guildId"] },
+        "eventCreate": { "label": "创建事件", "detailKeys": ["guildId", "name"] },
+        "timeout": { "label": "超时", "detailKeys": ["guildId", "userId"] },
+        "kick": { "label": "踢出", "detailKeys": ["guildId", "userId"] },
+        "ban": { "label": "封禁", "detailKeys": ["guildId", "userId"] }
       }
     },
     "slack": {
       "icon": "messageSquare",
       "title": "Slack",
       "actions": {
-        "react": { "label": "react", "detailKeys": ["channelId", "messageId", "emoji"] },
-        "reactions": { "label": "reactions", "detailKeys": ["channelId", "messageId"] },
-        "sendMessage": { "label": "send", "detailKeys": ["to", "content"] },
-        "editMessage": { "label": "edit", "detailKeys": ["channelId", "messageId"] },
-        "deleteMessage": { "label": "delete", "detailKeys": ["channelId", "messageId"] },
-        "readMessages": { "label": "read messages", "detailKeys": ["channelId", "limit"] },
-        "pinMessage": { "label": "pin", "detailKeys": ["channelId", "messageId"] },
-        "unpinMessage": { "label": "unpin", "detailKeys": ["channelId", "messageId"] },
-        "listPins": { "label": "list pins", "detailKeys": ["channelId"] },
-        "memberInfo": { "label": "member", "detailKeys": ["userId"] },
-        "emojiList": { "label": "emoji list" }
+        "react": { "label": "反应", "detailKeys": ["channelId", "messageId", "emoji"] },
+        "reactions": { "label": "反应列表", "detailKeys": ["channelId", "messageId"] },
+        "sendMessage": { "label": "发送", "detailKeys": ["to", "content"] },
+        "editMessage": { "label": "编辑", "detailKeys": ["channelId", "messageId"] },
+        "deleteMessage": { "label": "删除", "detailKeys": ["channelId", "messageId"] },
+        "readMessages": { "label": "读取消息", "detailKeys": ["channelId", "limit"] },
+        "pinMessage": { "label": "置顶", "detailKeys": ["channelId", "messageId"] },
+        "unpinMessage": { "label": "取消置顶", "detailKeys": ["channelId", "messageId"] },
+        "listPins": { "label": "置顶列表", "detailKeys": ["channelId"] },
+        "memberInfo": { "label": "成员", "detailKeys": ["userId"] },
+        "emojiList": { "label": "表情列表" }
       }
     }
   }

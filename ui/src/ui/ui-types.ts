@@ -9,7 +9,6 @@ export type ChatQueueItem = {
   text: string;
   createdAt: number;
   attachments?: ChatAttachment[];
-  refreshSessions?: boolean;
 };
 
 export const CRON_CHANNEL_LAST = "last";
@@ -29,8 +28,9 @@ export type CronFormState = {
   wakeMode: "next-heartbeat" | "now";
   payloadKind: "systemEvent" | "agentTurn";
   payloadText: string;
-  deliveryMode: "none" | "announce";
-  deliveryChannel: string;
-  deliveryTo: string;
+  deliver: boolean;
+  channel: string;
+  to: string;
   timeoutSeconds: string;
+  postToMainPrefix: string;
 };
