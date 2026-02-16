@@ -28,7 +28,6 @@ jobs:
         env:
           NPM_PACKAGE_NAME: ${{ vars.NPM_PACKAGE_NAME || '' }}
           REPO_URL: https://github.com/${{ github.repository }}
-          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           node --input-type=module <<'EOF'
           import fs from "node:fs";
@@ -36,17 +35,9 @@ jobs:
           const pkgPath = "package.json";
           const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
           const override = (process.env.NPM_PACKAGE_NAME || "").trim();
-          const owner = (process.env.REPO_OWNER || "").trim();
-          const unscopedName = String(pkg.name || "").trim();
-          const isScoped = unscopedName.startsWith("@");
-          const publishUnscopedOwners = new Set(["clawdbot", "jiulingyun"]);
-          const shouldAutoScope = owner && !publishUnscopedOwners.has(owner) && !isScoped;
 
           if (override) {
             pkg.name = override;
-          } else if (shouldAutoScope) {
-            // Forks should publish to a unique scope by default.
-            pkg.name = `@${owner}/${unscopedName}`;
           }
 
           const repoUrl = (process.env.REPO_URL || "").trim();
@@ -87,18 +78,6 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
-      - name: Resolve publish target
-        id: pkg-meta
-        run: |
-          {
-            echo "name<<EOF"
-            node -p "require('./package.json').name"
-            echo "EOF"
-            echo "version<<EOF"
-            node -p "require('./package.json').version"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
       - name: Detect npm token availability
         id: npm-auth
         env:
@@ -113,6 +92,55 @@ jobs:
       - name: Skip npm publish when token is missing
         if: steps.npm-auth.outputs.has_token != 'true'
         run: echo "::notice::Skipping npm publish because NPM_TOKEN is not configured."
+
+      - name: Align package scope with npm account
+        if: steps.npm-auth.outputs.has_token == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_PACKAGE_NAME: ${{ vars.NPM_PACKAGE_NAME || '' }}
+        run: |
+          if [[ -n "${NPM_PACKAGE_NAME}" ]]; then
+            echo "::notice::Using NPM_PACKAGE_NAME override: ${NPM_PACKAGE_NAME}"
+            exit 0
+          fi
+
+          pkg_name="$(node -p "require('./package.json').name")"
+          if [[ "${pkg_name}" == @*/* ]]; then
+            echo "::notice::Package already scoped: ${pkg_name}"
+            exit 0
+          fi
+
+          npm config set //registry.npmjs.org/:_authToken "${NPM_TOKEN}" >/dev/null 2>&1
+          npm_user="$(npm whoami)"
+          export NPM_USER="${npm_user}"
+          export PKG_NAME="${pkg_name}"
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+
+          const pkgPath = "package.json";
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+          const npmUser = (process.env.NPM_USER || "").trim();
+          const pkgName = (process.env.PKG_NAME || "").trim();
+          if (!npmUser || !pkgName) {
+            throw new Error("npm scope alignment missing npmUser/pkgName");
+          }
+          pkg.name = `@${npmUser}/${pkgName}`;
+          fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+          EOF
+
+          echo "::notice::Publish package aligned to @${npm_user}/${pkg_name}"
+
+      - name: Resolve publish target
+        id: pkg-meta
+        run: |
+          {
+            echo "name<<EOF"
+            node -p "require('./package.json').name"
+            echo "EOF"
+            echo "version<<EOF"
+            node -p "require('./package.json').version"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Detect existing npm version
         id: npm-exists
