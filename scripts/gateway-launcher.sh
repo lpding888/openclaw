@@ -51,6 +51,15 @@ run_pnpm() {
   "${PNPM_CMD[@]}" "$@"
 }
 
+ensure_control_ui_assets() {
+  if [[ -f "${ROOT_DIR}/dist/control-ui/index.html" ]]; then
+    return 0
+  fi
+  echo "==> 控制台资源缺失，正在构建前端（pnpm ui:build）"
+  ensure_pnpm
+  run_pnpm ui:build
+}
+
 ensure_dependencies() {
   if [[ -d "${ROOT_DIR}/node_modules" ]]; then
     return 0
@@ -111,6 +120,19 @@ read_gateway_token() {
   node dist/entry.js config get gateway.auth.token 2>/dev/null || true
 }
 
+bootstrap_local_gateway_config() {
+  echo "==> Missing config detected; bootstrapping local gateway defaults"
+  node dist/entry.js config set gateway.mode local >/dev/null 2>&1 || true
+  node dist/entry.js config set gateway.bind loopback >/dev/null 2>&1 || true
+  node dist/entry.js config set gateway.port "${PORT}" >/dev/null 2>&1 || true
+}
+
+launch_gateway_process() {
+  nohup node dist/entry.js gateway run --force >"${LOG_FILE}" 2>&1 &
+  LAUNCHED_GATEWAY_PID=$!
+  echo "==> Gateway PID: ${LAUNCHED_GATEWAY_PID}"
+}
+
 start_gateway() {
   if is_gateway_running; then
     local status
@@ -124,43 +146,54 @@ start_gateway() {
   else
     echo "==> Starting gateway on :${PORT}"
   fi
-  nohup node dist/entry.js gateway run \
-    --bind loopback \
-    --port "${PORT}" \
-    --force \
-    --allow-unconfigured >"${LOG_FILE}" 2>&1 &
-  local pid=$!
-  echo "==> Gateway PID: ${pid}"
+
+  # If config is missing, initialize a minimal local profile before first launch.
+  if ! node dist/entry.js config get gateway.mode >/dev/null 2>&1; then
+    bootstrap_local_gateway_config
+  fi
+
+  local pid
+  launch_gateway_process
+  pid="${LAUNCHED_GATEWAY_PID}"
   if ! wait_gateway_ready; then
-    local existing_port
-    existing_port="$(sed -nE 's/.*Port ([0-9]+) is already in use\..*/\1/p' "${LOG_FILE}" | tail -n 1)"
-    if [[ "${existing_port}" =~ ^[0-9]+$ ]] && lsof -nP -iTCP:"${existing_port}" -sTCP:LISTEN >/dev/null 2>&1; then
-      PORT="${existing_port}"
-      local status
-      status="$(probe_control_ui_status)"
-      if [[ "${status}" == "404" || "${status}" == "000" ]]; then
-        stop_listeners_on_port
-        echo "==> Retrying with local gateway after stale listener cleanup"
-        nohup node dist/entry.js gateway run \
-          --bind loopback \
-          --port "${PORT}" \
-          --force \
-          --allow-unconfigured >"${LOG_FILE}" 2>&1 &
-        pid=$!
-        echo "==> Gateway PID: ${pid}"
-        if ! wait_gateway_ready; then
-          echo "Gateway did not become ready. Log tail:" >&2
-          tail -n 80 "${LOG_FILE}" >&2 || true
-          exit 1
+    if grep -q "Missing config" "${LOG_FILE}" 2>/dev/null; then
+      kill "${pid}" >/dev/null 2>&1 || true
+      bootstrap_local_gateway_config
+      launch_gateway_process
+      pid="${LAUNCHED_GATEWAY_PID}"
+      if ! wait_gateway_ready; then
+        echo "Gateway did not become ready after config bootstrap. Log tail:" >&2
+        tail -n 80 "${LOG_FILE}" >&2 || true
+        exit 1
+      fi
+    fi
+
+    if ! is_gateway_running; then
+      local existing_port
+      existing_port="$(sed -nE 's/.*Port ([0-9]+) is already in use\..*/\1/p' "${LOG_FILE}" | tail -n 1)"
+      if [[ "${existing_port}" =~ ^[0-9]+$ ]] && lsof -nP -iTCP:"${existing_port}" -sTCP:LISTEN >/dev/null 2>&1; then
+        PORT="${existing_port}"
+        local status
+        status="$(probe_control_ui_status)"
+        if [[ "${status}" == "404" || "${status}" == "000" ]]; then
+          stop_listeners_on_port
+          echo "==> Retrying with local gateway after stale listener cleanup"
+          launch_gateway_process
+          pid="${LAUNCHED_GATEWAY_PID}"
+          if ! wait_gateway_ready; then
+            echo "Gateway did not become ready. Log tail:" >&2
+            tail -n 80 "${LOG_FILE}" >&2 || true
+            exit 1
+          fi
+        else
+          echo "==> Reusing existing gateway on :${PORT}"
+          return 0
         fi
       else
-        echo "==> Reusing existing gateway on :${PORT}"
-        return 0
+        echo "Gateway did not become ready. Log tail:" >&2
+        tail -n 80 "${LOG_FILE}" >&2 || true
+        exit 1
       fi
-    else
-      echo "Gateway did not become ready. Log tail:" >&2
-      tail -n 80 "${LOG_FILE}" >&2 || true
-      exit 1
     fi
   fi
   local final_status
@@ -229,6 +262,7 @@ main() {
 
   case "${ACTION}" in
     1|start|console)
+      ensure_control_ui_assets
       start_gateway
       open_console
       ;;
@@ -236,6 +270,7 @@ main() {
       run_onboard
       ;;
     3|all)
+      ensure_control_ui_assets
       start_gateway
       open_console
       run_onboard
