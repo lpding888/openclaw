@@ -12,7 +12,7 @@
     "\"- Sandbox + least-privilege tools.\"": "\"- 沙箱 + 最小权限工具。\"",
     "\"- Use the strongest available model for any bot with tools or untrusted inboxes.\"": "\"- 对于任何带有工具或不受信任收件箱的机器人，使用最强大的可用模型。\"",
     "\"Run regularly:\"": "\"定期运行：\"",
-    "\"Must read: https://docs.openclaw.ai/gateway/security\"": "\"必读文档：https://docs.openclaw.ai/gateway/security\"",
+    "\"Must read: https://docs.openclaw.ai/gateway/security\"": "\"必读文档：\"",
     "\"Security\"": "\"安全\"",
     "message: \"I understand this is powerful and inherently risky. Continue?\"": "message: \"我理解这很强大但也有固有风险。是否继续？\"",
     "throw new WizardCancelledError(\"risk not accepted\")": "throw new WizardCancelledError(\"风险未被接受\")"

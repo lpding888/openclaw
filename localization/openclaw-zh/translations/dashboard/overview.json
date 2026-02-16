@@ -11,7 +11,6 @@
     "<span>Password (not stored)</span>": "<span>密码（不保存）</span>",
     "placeholder=\"system or shared password\"": "placeholder=\"系统或共享密码\"",
     "<span>Default Session Key</span>": "<span>默认会话密钥</span>",
-    "<span class=\"muted\">Click Connect to apply connection changes.</span>": "<span class=\"muted\">点击连接按钮以应用连接更改。</span>",
     "<div class=\"card-title\">Snapshot</div>": "<div class=\"card-title\">快照</div>",
     "<div class=\"card-sub\">Latest gateway handshake information.</div>": "<div class=\"card-sub\">最新的网关握手信息。</div>",
     "<div class=\"stat-label\">Status</div>": "<div class=\"stat-label\">状态</div>",

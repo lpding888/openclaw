@@ -9,7 +9,7 @@
     "<span>Filter</span>": "<span>筛选</span>",
     "placeholder=\"Search logs\"": "placeholder=\"搜索日志\"",
     "<span>Auto-follow</span>": "<span>自动跟踪</span>",
-    "<div class=\"muted\" style=\"padding: 12px;\">No log entries.</div>": "<div class=\"muted\" style=\"padding: 12px;\">暂无日志条目。</div>",
+    "<div class=\"muted\" style=\"padding: 12px\">No log entries.</div>": "<div class=\"muted\" style=\"padding: 12px\">暂无日志条目。</div>",
     "Log output truncated; showing latest chunk.": "日志输出已截断；显示最新部分。"
   }
 }

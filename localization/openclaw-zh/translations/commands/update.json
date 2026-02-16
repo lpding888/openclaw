@@ -1,13 +1,7 @@
 {
   "file": "src/cli/update-cli.ts",
-  "description": "更新命令输出",
+  "description": "更新命令帮助文本",
   "replacements": {
-    "theme.heading(\"OpenClaw update status\")": "theme.heading(\"OpenClaw 更新状态\")",
-    "theme.heading(\"Updating OpenClaw...\")": "theme.heading(\"正在更新 OpenClaw...\")",
-    "theme.heading(\"Updating plugins...\")": "theme.heading(\"正在更新插件...\")",
-    "theme.heading(\"Restarting service...\")": "theme.heading(\"正在重启服务...\")",
-    "theme.heading(\"Update Result:\")": "theme.heading(\"更新结果：\")",
-    "theme.heading(\"Steps:\")": "theme.heading(\"步骤：\")",
     "theme.heading(\"What this does:\")": "theme.heading(\"此命令功能：\")",
     "theme.heading(\"Switch channels:\")": "theme.heading(\"切换更新通道：\")",
     "theme.heading(\"Non-interactive:\")": "theme.heading(\"非交互模式：\")",

@@ -7,7 +7,6 @@
     "<span class=\"label\">Running</span>": "<span class=\"label\">运行中</span>",
     "<span class=\"label\">Last start</span>": "<span class=\"label\">上次启动</span>",
     "<span class=\"label\">Last probe</span>": "<span class=\"label\">上次探测</span>",
-    "Probe ${imessage.probe.ok ? \"ok\" : \"failed\"}": "探测 ${imessage.probe.ok ? \"成功\" : \"失败\"}",
-    ">\n          Probe\n        </button>": ">\n          探测\n        </button>"
+    "Probe ${imessage.probe.ok ? \"ok\" : \"failed\"}": "探测 ${imessage.probe.ok ? \"成功\" : \"失败\"}"
   }
 }

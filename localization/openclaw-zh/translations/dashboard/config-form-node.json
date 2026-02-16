@@ -2,17 +2,9 @@
   "file": "ui/src/ui/views/config-form.node.ts",
   "description": "Dashboard 配置表单通用 UI 元素",
   "replacements": {
-    ">\\n          Add\\n        </button>": ">\\n          添加\\n        </button>",
     "No items yet. Click \"Add\" to create one.": "暂无项目。点击\"添加\"创建一个。",
     "<span class=\"cfg-map__label\">Custom entries</span>": "<span class=\"cfg-map__label\">自定义条目</span>",
-    ">\\n          Add Entry\\n        </button>": ">\\n          添加条目\\n        </button>",
     "<div class=\"cfg-map__empty\">No custom entries.</div>": "<div class=\"cfg-map__empty\">暂无自定义条目。</div>",
-    "class=\"cfg-array__count\">${count} item${count === 1": "class=\"cfg-array__count\">${count} 项${count === 1",
-    "\" : \"s\"}</span>": "\" : \"\"}</span>",
-    ">Remove</button>": ">删除</button>",
-    ">Save</button>": ">保存</button>",
-    ">Cancel</button>": ">取消</button>",
-    "\"Edit\"": "\"编辑\"",
-    "\"Delete\"": "\"删除\""
+    "item${arr.length !== 1 ? \"s\" : \"\"}": "项"
   }
 }

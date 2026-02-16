@@ -9,7 +9,6 @@
     "<span class=\"label\">Last inbound</span>": "<span class=\"label\">最后入站</span>",
     "<span class=\"label\">Last start</span>": "<span class=\"label\">上次启动</span>",
     "<div style=\"font-weight: 500;\">Profile</div>": "<div style=\"font-weight: 500;\">个人资料</div>",
-    ">\n                  Edit Profile\n                </button>": ">\n                  编辑资料\n                </button>",
     "<span class=\"label\">Name</span>": "<span class=\"label\">名称</span>",
     "<span class=\"label\">Display Name</span>": "<span class=\"label\">显示名称</span>",
     "<span class=\"label\">About</span>": "<span class=\"label\">简介</span>",

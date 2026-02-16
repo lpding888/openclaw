@@ -1,0 +1,4 @@
+{
+  "file": "src/cli/models-cli.ts",
+  "description": "CLI 模型管理命令"
+}

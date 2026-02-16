@@ -1,0 +1,22 @@
+{
+  "file": "src/cli/program/command-registry.ts",
+  "description": "CLI 命令注册表 - 顶层命令描述",
+  "replacements": {
+    "description: \"Setup helpers\"": "description: \"设置工具\"",
+    "description: \"Onboarding helpers\"": "description: \"引导工具\"",
+    "description: \"Configure wizard\"": "description: \"配置向导\"",
+    "description: \"Config helpers\"": "description: \"配置助手\"",
+    "description: \"Health checks + quick fixes for the gateway and channels\"": "description: \"网关和渠道健康检查 + 快速修复\"",
+    "description: \"Open the Control UI with your current token\"": "description: \"使用当前令牌打开控制面板\"",
+    "description: \"Reset local config/state (keeps the CLI installed)\"": "description: \"重置本地配置/状态（保留 CLI）\"",
+    "description: \"Uninstall the gateway service + local data (CLI remains)\"": "description: \"卸载网关服务和本地数据（保留 CLI）\"",
+    "description: \"Send, read, and manage messages\"": "description: \"发送、读取和管理消息\"",
+    "description: \"Memory commands\"": "description: \"记忆命令\"",
+    "description: \"Agent commands\"": "description: \"Agent 命令\"",
+    "description: \"Manage isolated agents\"": "description: \"管理隔离的 Agent\"",
+    "description: \"Gateway status\"": "description: \"网关状态\"",
+    "description: \"Gateway health\"": "description: \"网关健康\"",
+    "description: \"Session management\"": "description: \"会话管理\"",
+    "description: \"Browser tools\"": "description: \"浏览器工具\""
+  }
+}

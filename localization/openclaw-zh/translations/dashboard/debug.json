@@ -17,6 +17,6 @@
     "<div class=\"card-sub\">Catalog from models.list.</div>": "<div class=\"card-sub\">来自 models.list 的模型目录。</div>",
     "<div class=\"card-title\">Event Log</div>": "<div class=\"card-title\">事件日志</div>",
     "<div class=\"card-sub\">Latest gateway events.</div>": "<div class=\"card-sub\">最新网关事件。</div>",
-    "<div class=\"muted\" style=\"margin-top: 12px;\">No events yet.</div>": "<div class=\"muted\" style=\"margin-top: 12px;\">暂无事件。</div>"
+    "<div class=\"muted\" style=\"margin-top: 12px\">No events yet.</div>": "<div class=\"muted\" style=\"margin-top: 12px\">暂无事件。</div>"
   }
 }
