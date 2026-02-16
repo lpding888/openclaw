@@ -68,12 +68,17 @@ export function setLastActiveSessionKey(host: SettingsHost, next: string) {
 }
 
 export function applySettingsFromUrl(host: SettingsHost) {
-  if (!window.location.search) return;
-  const params = new URLSearchParams(window.location.search);
-  const tokenRaw = params.get("token");
-  const passwordRaw = params.get("password");
-  const sessionRaw = params.get("session");
-  const gatewayUrlRaw = params.get("gatewayUrl");
+  if (!window.location.search && !window.location.hash) {
+    return;
+  }
+  const url = new URL(window.location.href);
+  const params = new URLSearchParams(url.search);
+  const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+
+  const tokenRaw = params.get("token") ?? hashParams.get("token");
+  const passwordRaw = params.get("password") ?? hashParams.get("password");
+  const sessionRaw = params.get("session") ?? hashParams.get("session");
+  const gatewayUrlRaw = params.get("gatewayUrl") ?? hashParams.get("gatewayUrl");
   let shouldCleanUrl = false;
 
   if (tokenRaw != null) {
@@ -82,13 +87,14 @@ export function applySettingsFromUrl(host: SettingsHost) {
       applySettings(host, { ...host.settings, token });
     }
     params.delete("token");
+    hashParams.delete("token");
     shouldCleanUrl = true;
   }
 
   if (passwordRaw != null) {
-    const password = passwordRaw.trim();
-    if (password) host.password = password;
+    // Never hydrate password from URL params; strip only.
     params.delete("password");
+    hashParams.delete("password");
     shouldCleanUrl = true;
   }
 
@@ -114,12 +120,16 @@ export function applySettingsFromUrl(host: SettingsHost) {
       host.pendingGatewayUrl = gatewayUrl;
     }
     params.delete("gatewayUrl");
+    hashParams.delete("gatewayUrl");
     shouldCleanUrl = true;
   }
 
-  if (!shouldCleanUrl) return;
-  const url = new URL(window.location.href);
+  if (!shouldCleanUrl) {
+    return;
+  }
   url.search = params.toString();
+  const nextHash = hashParams.toString();
+  url.hash = nextHash ? `#${nextHash}` : "";
   window.history.replaceState({}, "", url.toString());
 }
 

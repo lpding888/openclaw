@@ -166,7 +166,7 @@ export async function handleSendChat(
   });
 }
 
-export async function refreshChat(host: ChatHost) {
+export async function refreshChat(host: ChatHost, opts?: { scheduleScroll?: boolean }) {
   await Promise.all([
     loadChatHistory(host as unknown as ClawdbotApp),
     loadChatTimeline(host as unknown as Parameters<typeof loadChatTimeline>[0]),
@@ -175,7 +175,9 @@ export async function refreshChat(host: ChatHost) {
     loadSessions(host as unknown as ClawdbotApp),
     refreshChatAvatar(host),
   ]);
-  scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0], true);
+  if (opts?.scheduleScroll !== false) {
+    scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0]);
+  }
 }
 
 export const flushChatQueueForEvent = flushChatQueue;

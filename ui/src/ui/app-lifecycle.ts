@@ -7,21 +7,17 @@ import {
   inferBasePath,
   syncTabWithLocation,
   syncThemeWithSettings,
-} from "./app-settings";
-import { observeTopbar, scheduleChatScroll, scheduleLogsScroll } from "./app-scroll";
-import {
-  startLogsPolling,
-  startNodesPolling,
-  stopLogsPolling,
-  stopNodesPolling,
-  startDebugPolling,
-  stopDebugPolling,
-} from "./app-polling";
+} from "./app-settings.ts";
+import { loadControlUiBootstrapConfig } from "./controllers/control-ui-bootstrap.ts";
 
 type LifecycleHost = {
   basePath: string;
   tab: Tab;
+  assistantName: string;
+  assistantAvatar: string | null;
+  assistantAgentId: string | null;
   chatHasAutoScrolled: boolean;
+  chatManualRefreshInFlight: boolean;
   chatLoading: boolean;
   chatMessages: unknown[];
   chatToolMessages: unknown[];
@@ -35,16 +31,11 @@ type LifecycleHost = {
 
 export function handleConnected(host: LifecycleHost) {
   host.basePath = inferBasePath();
-  syncTabWithLocation(
-    host as unknown as Parameters<typeof syncTabWithLocation>[0],
-    true,
-  );
-  syncThemeWithSettings(
-    host as unknown as Parameters<typeof syncThemeWithSettings>[0],
-  );
-  attachThemeListener(
-    host as unknown as Parameters<typeof attachThemeListener>[0],
-  );
+  void loadControlUiBootstrapConfig(host);
+  applySettingsFromUrl(host as unknown as Parameters<typeof applySettingsFromUrl>[0]);
+  syncTabWithLocation(host as unknown as Parameters<typeof syncTabWithLocation>[0], true);
+  syncThemeWithSettings(host as unknown as Parameters<typeof syncThemeWithSettings>[0]);
+  attachThemeListener(host as unknown as Parameters<typeof attachThemeListener>[0]);
   window.addEventListener("popstate", host.popStateHandler);
   applySettingsFromUrl(
     host as unknown as Parameters<typeof applySettingsFromUrl>[0],
@@ -75,10 +66,10 @@ export function handleDisconnected(host: LifecycleHost) {
   host.topbarObserver = null;
 }
 
-export function handleUpdated(
-  host: LifecycleHost,
-  changed: Map<PropertyKey, unknown>,
-) {
+export function handleUpdated(host: LifecycleHost, changed: Map<PropertyKey, unknown>) {
+  if (host.tab === "chat" && host.chatManualRefreshInFlight) {
+    return;
+  }
   if (
     host.tab === "chat" &&
     (changed.has("chatMessages") ||

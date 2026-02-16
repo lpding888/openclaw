@@ -1,9 +1,8 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import type { DiscordStatus } from "../types";
-import type { ChannelsProps } from "./channels.types";
-import { renderChannelConfigSection } from "./channels.config";
+import type { DiscordStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 
 export function renderDiscordCard(params: {
   props: ChannelsProps;
@@ -28,12 +27,12 @@ export function renderDiscordCard(params: {
           <span>${discord?.running ? "是" : "否"}</span>
         </div>
         <div>
-          <span class="label">最后启动</span>
-          <span>${discord?.lastStartAt ? formatAgo(discord.lastStartAt) : "无"}</span>
+          <span class="label">Last start</span>
+          <span>${discord?.lastStartAt ? formatRelativeTimestamp(discord.lastStartAt) : "n/a"}</span>
         </div>
         <div>
-          <span class="label">最后探测</span>
-          <span>${discord?.lastProbeAt ? formatAgo(discord.lastProbeAt) : "无"}</span>
+          <span class="label">Last probe</span>
+          <span>${discord?.lastProbeAt ? formatRelativeTimestamp(discord.lastProbeAt) : "n/a"}</span>
         </div>
       </div>
 

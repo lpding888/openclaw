@@ -11,8 +11,10 @@ type ScrollHost = {
   topbarObserver: ResizeObserver | null;
 };
 
-export function scheduleChatScroll(host: ScrollHost, force = false) {
-  if (host.chatScrollFrame) cancelAnimationFrame(host.chatScrollFrame);
+export function scheduleChatScroll(host: ScrollHost, force = false, smooth = false) {
+  if (host.chatScrollFrame) {
+    cancelAnimationFrame(host.chatScrollFrame);
+  }
   if (host.chatScrollTimeout != null) {
     clearTimeout(host.chatScrollTimeout);
     host.chatScrollTimeout = null;
@@ -34,13 +36,36 @@ export function scheduleChatScroll(host: ScrollHost, force = false) {
     host.chatScrollFrame = requestAnimationFrame(() => {
       host.chatScrollFrame = null;
       const target = pickScrollTarget();
-      if (!target) return;
-      const distanceFromBottom =
-        target.scrollHeight - target.scrollTop - target.clientHeight;
-      const shouldStick = force || host.chatUserNearBottom || distanceFromBottom < 200;
-      if (!shouldStick) return;
-      if (force) host.chatHasAutoScrolled = true;
-      target.scrollTop = target.scrollHeight;
+      if (!target) {
+        return;
+      }
+      const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+
+      // force=true only overrides when we haven't auto-scrolled yet (initial load).
+      // After initial load, respect the user's scroll position.
+      const effectiveForce = force && !host.chatHasAutoScrolled;
+      const shouldStick =
+        effectiveForce || host.chatUserNearBottom || distanceFromBottom < NEAR_BOTTOM_THRESHOLD;
+
+      if (!shouldStick) {
+        // User is scrolled up — flag that new content arrived below.
+        host.chatNewMessagesBelow = true;
+        return;
+      }
+      if (effectiveForce) {
+        host.chatHasAutoScrolled = true;
+      }
+      const smoothEnabled =
+        smooth &&
+        (typeof window === "undefined" ||
+          typeof window.matchMedia !== "function" ||
+          !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      const scrollTop = target.scrollHeight;
+      if (typeof target.scrollTo === "function") {
+        target.scrollTo({ top: scrollTop, behavior: smoothEnabled ? "smooth" : "auto" });
+      } else {
+        target.scrollTop = scrollTop;
+      }
       host.chatUserNearBottom = true;
       const retryDelay = force ? 150 : 120;
       host.chatScrollTimeout = window.setTimeout(() => {

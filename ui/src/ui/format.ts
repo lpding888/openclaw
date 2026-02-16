@@ -1,35 +1,12 @@
+import { formatDurationHuman } from "../../../src/infra/format-time/format-duration.ts";
+import { formatRelativeTimestamp } from "../../../src/infra/format-time/format-relative.ts";
 import { stripReasoningTagsFromText } from "../../../src/shared/text/reasoning-tags.js";
+
+export { formatRelativeTimestamp, formatDurationHuman };
 
 export function formatMs(ms?: number | null): string {
   if (!ms && ms !== 0) return "无";
   return new Date(ms).toLocaleString("zh-CN");
-}
-
-export function formatAgo(ms?: number | null): string {
-  if (!ms && ms !== 0) return "无";
-  const diff = Date.now() - ms;
-  if (diff < 0) return "刚刚";
-  const sec = Math.round(diff / 1000);
-  if (sec < 60) return `${sec}秒前`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}分钟前`;
-  const hr = Math.round(min / 60);
-  if (hr < 48) return `${hr}小时前`;
-  const day = Math.round(hr / 24);
-  return `${day}天前`;
-}
-
-export function formatDurationMs(ms?: number | null): string {
-  if (!ms && ms !== 0) return "无";
-  if (ms < 1000) return `${ms}毫秒`;
-  const sec = Math.round(ms / 1000);
-  if (sec < 60) return `${sec}秒`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}分钟`;
-  const hr = Math.round(min / 60);
-  if (hr < 48) return `${hr}小时`;
-  const day = Math.round(hr / 24);
-  return `${day}天`;
 }
 
 export function formatList(values?: Array<string | null | undefined>): string {

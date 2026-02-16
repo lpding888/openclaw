@@ -23,20 +23,12 @@ import {
   renderMessageGroup,
   renderReadingIndicatorGroup,
   renderStreamingGroup,
-} from "../chat/grouped-render";
-import {
-  CHAT_FEEDBACK_DEFAULT_DRAFT,
-  CHAT_FEEDBACK_TAGS,
-  buildCorrectionPrompt,
-  copyRunTrace,
-  detectRunAlerts,
-  selectActiveRunSummary,
-  type SubmitChatFeedbackParams,
-} from "../controllers/chat-observability";
-import { renderMarkdownSidebar } from "./markdown-sidebar";
-import { renderChatTimeline } from "./chat-timeline";
-import { renderChatInsights } from "./chat-insights";
-import "../components/resizable-divider";
+} from "../chat/grouped-render.ts";
+import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
+import { icons } from "../icons.ts";
+import { detectTextDirection } from "../text-direction.ts";
+import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
+import "../components/resizable-divider.ts";
 
 export type CompactionIndicatorStatus = {
   active: boolean;
@@ -129,8 +121,8 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
   // Show "compacting..." while active
   if (status.active) {
     return html`
-      <div class="callout info compaction-indicator compaction-indicator--active">
-        ${icons.loader} 正在压缩上下文...
+      <div class="compaction-indicator compaction-indicator--active" role="status" aria-live="polite">
+        ${icons.loader} Compacting context...
       </div>
     `;
   }
@@ -140,8 +132,8 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
     const elapsed = Date.now() - status.completedAt;
     if (elapsed < COMPACTION_TOAST_DURATION_MS) {
       return html`
-        <div class="callout success compaction-indicator compaction-indicator--complete">
-          ${icons.check} 上下文已压缩
+        <div class="compaction-indicator compaction-indicator--complete" role="status" aria-live="polite">
+          ${icons.check} Context compacted
         </div>
       `;
     }
@@ -506,11 +498,30 @@ export function renderChat(props: ChatProps) {
       aria-live="polite"
       @scroll=${props.onChatScroll}
     >
-      ${props.loading ? html`<div class="muted">正在加载聊天…</div>` : nothing}
-      ${repeat(buildChatItems(props), (item) => item.key, (item) => {
-        if (item.kind === "reading-indicator") {
-          return renderReadingIndicatorGroup(assistantIdentity);
-        }
+      ${
+        props.loading
+          ? html`
+              <div class="muted">Loading chat…</div>
+            `
+          : nothing
+      }
+      ${repeat(
+        buildChatItems(props),
+        (item) => item.key,
+        (item) => {
+          if (item.kind === "divider") {
+            return html`
+              <div class="chat-divider" role="separator" data-ts=${String(item.timestamp)}>
+                <span class="chat-divider__line"></span>
+                <span class="chat-divider__label">${item.label}</span>
+                <span class="chat-divider__line"></span>
+              </div>
+            `;
+          }
+
+          if (item.kind === "reading-indicator") {
+            return renderReadingIndicatorGroup(assistantIdentity);
+          }
 
         if (item.kind === "stream") {
           return renderStreamingGroup(
@@ -546,24 +557,9 @@ export function renderChat(props: ChatProps) {
         ? html`<div class="callout danger">${props.error}</div>`
         : nothing}
 
-      ${renderCompactionIndicator(props.compactionStatus)}
-      <div class="chat-run-status">
-        <span class="chat-run-status__item">
-          状态
-          <strong class="status-${activeRun?.status ?? "idle"}">${activeRun?.status ?? "idle"}</strong>
-        </span>
-        <span class="chat-run-status__item">首字节 ${formatDuration(activeRun?.firstTokenMs)}</span>
-        <span class="chat-run-status__item">总耗时 ${formatDuration(activeRun?.totalMs)}</span>
-        <span class="chat-run-status__item">工具 ${activeRun?.toolCalls ?? 0}</span>
-        <span class="chat-run-status__item">错误 ${activeRun?.toolErrors ?? 0}</span>
-        <span class="chat-run-status__item">
-          tokens ${(activeRun?.inputTokens ?? 0) + (activeRun?.outputTokens ?? 0)}
-        </span>
-        ${activeAlerts.map((item) => html`<span class="chat-run-status__alert">${item}</span>`)}
-      </div>
-
-      ${props.focusMode
-        ? html`
+      ${
+        props.focusMode
+          ? html`
             <button
               class="chat-focus-exit"
               type="button"
@@ -727,7 +723,24 @@ export function renderChat(props: ChatProps) {
               </div>
             </div>
           `
-        : nothing}
+          : nothing
+      }
+
+      ${renderCompactionIndicator(props.compactionStatus)}
+
+      ${
+        props.showNewMessages
+          ? html`
+            <button
+              class="btn chat-new-messages"
+              type="button"
+              @click=${props.onScrollToBottom}
+            >
+              New messages ${icons.arrowDown}
+            </button>
+          `
+          : nothing
+      }
 
       <div class="chat-compose">
         ${renderAttachmentPreview(props)}
@@ -748,6 +761,7 @@ export function renderChat(props: ChatProps) {
                 ta.addEventListener("input", autosize);
               })}
               .value=${props.draft}
+              dir=${detectTextDirection(props.draft)}
               ?disabled=${!props.connected}
               @keydown=${(e: KeyboardEvent) => {
                 if (e.key !== "Enter") return;
@@ -853,6 +867,20 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
   for (let i = historyStart; i < history.length; i++) {
     const msg = history[i];
     const normalized = normalizeMessage(msg);
+    const raw = msg as Record<string, unknown>;
+    const marker = raw.__openclaw as Record<string, unknown> | undefined;
+    if (marker && marker.kind === "compaction") {
+      items.push({
+        kind: "divider",
+        key:
+          typeof marker.id === "string"
+            ? `divider:compaction:${marker.id}`
+            : `divider:compaction:${normalized.timestamp}:${i}`,
+        label: "Compaction",
+        timestamp: normalized.timestamp ?? Date.now(),
+      });
+      continue;
+    }
 
     if (!props.showThinking && normalized.role.toLowerCase() === "toolresult") {
       continue;

@@ -1,9 +1,8 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import type { SignalStatus } from "../types";
-import type { ChannelsProps } from "./channels.types";
-import { renderChannelConfigSection } from "./channels.config";
+import type { SignalStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 
 export function renderSignalCard(params: {
   props: ChannelsProps;
@@ -32,12 +31,12 @@ export function renderSignalCard(params: {
           <span>${signal?.baseUrl ?? "无"}</span>
         </div>
         <div>
-          <span class="label">最后启动</span>
-          <span>${signal?.lastStartAt ? formatAgo(signal.lastStartAt) : "无"}</span>
+          <span class="label">Last start</span>
+          <span>${signal?.lastStartAt ? formatRelativeTimestamp(signal.lastStartAt) : "n/a"}</span>
         </div>
         <div>
-          <span class="label">最后探测</span>
-          <span>${signal?.lastProbeAt ? formatAgo(signal.lastProbeAt) : "无"}</span>
+          <span class="label">Last probe</span>
+          <span>${signal?.lastProbeAt ? formatRelativeTimestamp(signal.lastProbeAt) : "n/a"}</span>
         </div>
       </div>
 

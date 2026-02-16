@@ -17,7 +17,11 @@ describe("generateUUID", () => {
   it("falls back to crypto.getRandomValues", () => {
     const id = generateUUID({
       getRandomValues: (bytes) => {
-        for (let i = 0; i < bytes.length; i++) bytes[i] = i;
+        // @ts-expect-error
+        for (let i = 0; i < bytes.length; i++) {
+          // @ts-expect-error
+          bytes[i] = i;
+        }
         return bytes;
       },
     });

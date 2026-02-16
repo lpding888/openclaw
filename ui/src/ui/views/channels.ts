@@ -14,22 +14,19 @@ import type {
   SlackStatus,
   TelegramStatus,
   WhatsAppStatus,
-} from "../types";
-import type {
-  ChannelKey,
-  ChannelsChannelData,
-  ChannelsProps,
-} from "./channels.types";
-import { channelEnabled, renderChannelAccountCount } from "./channels.shared";
-import { renderChannelConfigSection } from "./channels.config";
-import { renderDiscordCard } from "./channels.discord";
-import { renderGoogleChatCard } from "./channels.googlechat";
-import { renderIMessageCard } from "./channels.imessage";
-import { renderNostrCard } from "./channels.nostr";
-import { renderSignalCard } from "./channels.signal";
-import { renderSlackCard } from "./channels.slack";
-import { renderTelegramCard } from "./channels.telegram";
-import { renderWhatsAppCard } from "./channels.whatsapp";
+} from "../types.ts";
+import type { ChannelKey, ChannelsChannelData, ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
+import { renderDiscordCard } from "./channels.discord.ts";
+import { renderGoogleChatCard } from "./channels.googlechat.ts";
+import { renderIMessageCard } from "./channels.imessage.ts";
+import { renderNostrCard } from "./channels.nostr.ts";
+import { channelEnabled, renderChannelAccountCount } from "./channels.shared.ts";
+import { renderSignalCard } from "./channels.signal.ts";
+import { renderSlackCard } from "./channels.slack.ts";
+import { renderTelegramCard } from "./channels.telegram.ts";
+import { renderWhatsAppCard } from "./channels.whatsapp.ts";
 
 export function renderChannels(props: ChannelsProps) {
   const channels = props.snapshot?.channels as Record<string, unknown> | null;
@@ -80,7 +77,7 @@ export function renderChannels(props: ChannelsProps) {
           <div class="card-title">通道健康状况</div>
           <div class="card-sub">来自网关的通道状态快照。</div>
         </div>
-        <div class="muted">${props.lastSuccessAt ? formatAgo(props.lastSuccessAt) : "无"}</div>
+        <div class="muted">${props.lastSuccessAt ? formatRelativeTimestamp(props.lastSuccessAt) : "n/a"}</div>
       </div>
       ${props.lastError
         ? html`<div class="callout danger" style="margin-top: 12px;">
@@ -313,8 +310,8 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
           <span>${connectedStatus}</span>
         </div>
         <div>
-          <span class="label">最后入站</span>
-          <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : "无"}</span>
+          <span class="label">Last inbound</span>
+          <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
         </div>
         ${account.lastError
           ? html`

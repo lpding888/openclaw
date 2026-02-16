@@ -1,8 +1,13 @@
 import { html, nothing } from "lit";
-
-import { clampText } from "../format";
-import type { SkillStatusEntry, SkillStatusReport } from "../types";
-import type { SkillMessageMap } from "../controllers/skills";
+import type { SkillMessageMap } from "../controllers/skills.ts";
+import type { SkillStatusEntry, SkillStatusReport } from "../types.ts";
+import { clampText } from "../format.ts";
+import { groupSkills } from "./skills-grouping.ts";
+import {
+  computeSkillMissing,
+  computeSkillReasons,
+  renderSkillStatusChips,
+} from "./skills-shared.ts";
 
 export type SkillsProps = {
   loading: boolean;
@@ -103,18 +108,10 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
   const busy = props.busyKey === skill.skillKey;
   const apiKey = props.edits[skill.skillKey] ?? "";
   const message = props.messages[skill.skillKey] ?? null;
-  const canInstall =
-    skill.install.length > 0 && skill.missing.bins.length > 0;
-  const missing = [
-    ...skill.missing.bins.map((b) => `bin:${b}`),
-    ...skill.missing.env.map((e) => `env:${e}`),
-    ...skill.missing.config.map((c) => `config:${c}`),
-    ...skill.missing.os.map((o) => `os:${o}`),
-  ];
-  const missingText = missing.length > 0 ? missing.join(", ") : "";
-  const reasons: string[] = [];
-  if (skill.disabled) reasons.push("已禁用");
-  if (skill.blockedByAllowlist) reasons.push("被白名单阻止");
+  const canInstall = skill.install.length > 0 && skill.missing.bins.length > 0;
+  const showBundledBadge = Boolean(skill.bundled && skill.source !== "openclaw-bundled");
+  const missing = computeSkillMissing(skill);
+  const reasons = computeSkillReasons(skill);
   return html`
     <div class="list-item">
       <div class="list-main">
@@ -130,11 +127,13 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
             ${skill.disabled ? html`<span class="chip chip-warn">已禁用</span>` : nothing}
           </div>
         </div>
-        <div class="list-sub" style="margin-top: 4px;">${clampText(skill.description, 140)}</div>
-        ${missing.length > 0
-          ? html`
-              <div class="muted" style="margin-top: 6px; font-size: 11px;">
-                缺少: ${missingText}
+        <div class="list-sub">${clampText(skill.description, 140)}</div>
+        ${renderSkillStatusChips({ skill, showBundledBadge })}
+        ${
+          missing.length > 0
+            ? html`
+              <div class="muted" style="margin-top: 6px;">
+                Missing: ${missing.join(", ")}
               </div>
             `
           : nothing}

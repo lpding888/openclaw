@@ -1,9 +1,8 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import type { ChannelAccountSnapshot, NostrStatus } from "../types";
-import type { ChannelsProps } from "./channels.types";
-import { renderChannelConfigSection } from "./channels.config";
+import type { ChannelAccountSnapshot, NostrStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 import {
   renderNostrProfileForm,
   type NostrProfileFormState,
@@ -76,8 +75,8 @@ export function renderNostrCard(params: {
             <span class="monospace" title="${publicKey ?? ""}">${truncatePubkey(publicKey)}</span>
           </div>
           <div>
-            <span class="label">最后入站</span>
-            <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : "无"}</span>
+            <span class="label">Last inbound</span>
+            <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
           </div>
           ${account.lastError
             ? html`
@@ -195,8 +194,8 @@ export function renderNostrCard(params: {
                 >
               </div>
               <div>
-                <span class="label">最后启动</span>
-                <span>${summaryLastStartAt ? formatAgo(summaryLastStartAt) : "无"}</span>
+                <span class="label">Last start</span>
+                <span>${summaryLastStartAt ? formatRelativeTimestamp(summaryLastStartAt) : "n/a"}</span>
               </div>
             </div>
           `}

@@ -87,18 +87,43 @@ import {
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity";
 import {
-  acceptPendingGatewayUrl as acceptPendingGatewayUrlInternal,
-  handleCloseSidebar as handleCloseSidebarInternal,
-  handleExecApprovalDecision as handleExecApprovalDecisionInternal,
-  handleOpenSidebar as handleOpenSidebarInternal,
-  handleSetSidebarTab as handleSetSidebarTabInternal,
-  handleSplitRatioChange as handleSplitRatioChangeInternal,
-  rejectPendingGatewayUrl as rejectPendingGatewayUrlInternal,
-  type ExecApprovalDecision,
-} from "./app-interactions";
-
-type HostArgs<T extends (host: any, ...args: any[]) => any> =
-  Parameters<T> extends [any, ...infer Rest] ? Rest : never;
+  handleAbortChat as handleAbortChatInternal,
+  handleSendChat as handleSendChatInternal,
+  removeQueuedMessage as removeQueuedMessageInternal,
+} from "./app-chat.ts";
+import { DEFAULT_CRON_FORM, DEFAULT_LOG_LEVEL_FILTERS } from "./app-defaults.ts";
+import { connectGateway as connectGatewayInternal } from "./app-gateway.ts";
+import {
+  handleConnected,
+  handleDisconnected,
+  handleFirstUpdated,
+  handleUpdated,
+} from "./app-lifecycle.ts";
+import { renderApp } from "./app-render.ts";
+import {
+  exportLogs as exportLogsInternal,
+  handleChatScroll as handleChatScrollInternal,
+  handleLogsScroll as handleLogsScrollInternal,
+  resetChatScroll as resetChatScrollInternal,
+  scheduleChatScroll as scheduleChatScrollInternal,
+} from "./app-scroll.ts";
+import {
+  applySettings as applySettingsInternal,
+  loadCron as loadCronInternal,
+  loadOverview as loadOverviewInternal,
+  setTab as setTabInternal,
+  setTheme as setThemeInternal,
+  onPopState as onPopStateInternal,
+} from "./app-settings.ts";
+import {
+  resetToolStream as resetToolStreamInternal,
+  type ToolStreamEntry,
+  type CompactionStatus,
+} from "./app-tool-stream.ts";
+import { normalizeAssistantIdentity } from "./assistant-identity.ts";
+import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import { loadSettings, type UiSettings } from "./storage.ts";
+import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
 
 declare global {
   interface Window {
@@ -107,7 +132,7 @@ declare global {
   }
 }
 
-const injectedAssistantIdentity = resolveInjectedAssistantIdentity();
+const bootAssistantIdentity = normalizeAssistantIdentity({});
 
 function resolveOnboardingMode(): boolean {
   if (!window.location.search) return false;
@@ -134,9 +159,9 @@ export class ClawdbotApp extends LitElement {
   private toolStreamSyncTimer: number | null = null;
   private sidebarCloseTimer: number | null = null;
 
-  @state() assistantName = injectedAssistantIdentity.name;
-  @state() assistantAvatar = injectedAssistantIdentity.avatar;
-  @state() assistantAgentId = injectedAssistantIdentity.agentId ?? null;
+  @state() assistantName = bootAssistantIdentity.name;
+  @state() assistantAvatar = bootAssistantIdentity.avatar;
+  @state() assistantAgentId = bootAssistantIdentity.agentId ?? null;
 
   // Security: Pending gateway URL from URL params, requires user confirmation.
   // See CVE: GHSA-g8p2-7wf7-98mq
@@ -156,21 +181,7 @@ export class ClawdbotApp extends LitElement {
   @state() chatThinkingLevel: string | null = null;
   @state() chatQueue: ChatQueueItem[] = [];
   @state() chatAttachments: ChatAttachment[] = [];
-  @state() chatTimelineEvents: ChatTimelineEvent[] = [];
-  @state() chatTimelineLoading = false;
-  @state() chatTimelineError: string | null = null;
-  @state() chatTimelineServerSupported = true;
-  @state() chatTimelineRuns: ChatTimelineRunSummary[] = [];
-  @state() chatTimelineRunsLoading = false;
-  @state() chatTimelineRunsError: string | null = null;
-  @state() chatTimelineRunsServerSupported = true;
-  @state() chatFeedbackItems: ChatFeedbackItem[] = [];
-  @state() chatFeedbackLoading = false;
-  @state() chatFeedbackError: string | null = null;
-  @state() chatFeedbackServerSupported = true;
-  @state() chatFeedbackDrafts: Record<string, ChatFeedbackDraft> = {};
-  @state() chatFeedbackSubmitting: Record<string, boolean> = {};
-  @state() chatFeedbackSubmitErrors: Record<string, string | null> = {};
+  @state() chatManualRefreshInFlight = false;
   // Sidebar state for tool output viewing
   @state() sidebarOpen = true;
   @state() sidebarTab: "timeline" | "tool" | "insights" =
@@ -376,7 +387,16 @@ export class ClawdbotApp extends LitElement {
   }
 
   resetChatScroll() {
-    this.call(resetChatScrollInternal);
+    resetChatScrollInternal(this as unknown as Parameters<typeof resetChatScrollInternal>[0]);
+  }
+
+  scrollToBottom(opts?: { smooth?: boolean }) {
+    resetChatScrollInternal(this as unknown as Parameters<typeof resetChatScrollInternal>[0]);
+    scheduleChatScrollInternal(
+      this as unknown as Parameters<typeof scheduleChatScrollInternal>[0],
+      true,
+      Boolean(opts?.smooth),
+    );
   }
 
   async loadAssistantIdentity() {

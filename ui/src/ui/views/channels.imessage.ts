@@ -1,9 +1,8 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import type { IMessageStatus } from "../types";
-import type { ChannelsProps } from "./channels.types";
-import { renderChannelConfigSection } from "./channels.config";
+import type { IMessageStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 
 export function renderIMessageCard(params: {
   props: ChannelsProps;
@@ -28,12 +27,12 @@ export function renderIMessageCard(params: {
           <span>${imessage?.running ? "是" : "否"}</span>
         </div>
         <div>
-          <span class="label">最后启动</span>
-          <span>${imessage?.lastStartAt ? formatAgo(imessage.lastStartAt) : "无"}</span>
+          <span class="label">Last start</span>
+          <span>${imessage?.lastStartAt ? formatRelativeTimestamp(imessage.lastStartAt) : "n/a"}</span>
         </div>
         <div>
-          <span class="label">最后探测</span>
-          <span>${imessage?.lastProbeAt ? formatAgo(imessage.lastProbeAt) : "无"}</span>
+          <span class="label">Last probe</span>
+          <span>${imessage?.lastProbeAt ? formatRelativeTimestamp(imessage.lastProbeAt) : "n/a"}</span>
         </div>
       </div>
 

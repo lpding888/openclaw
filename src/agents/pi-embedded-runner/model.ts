@@ -3,7 +3,9 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { ModelDefinitionConfig } from "../../config/types.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
+import { buildModelAliasLines } from "../model-alias-lines.js";
 import { normalizeModelCompat } from "../model-compat.js";
+import { resolveForwardCompatModel } from "../model-forward-compat.js";
 import { normalizeProviderId } from "../model-selection.js";
 import {
   discoverAuthStorage,
@@ -19,49 +21,7 @@ type InlineProviderConfig = {
   models?: ModelDefinitionConfig[];
 };
 
-const OPENAI_CODEX_GPT_53_MODEL_ID = "gpt-5.3-codex";
-
-const OPENAI_CODEX_TEMPLATE_MODEL_IDS = ["gpt-5.2-codex"] as const;
-
-function resolveOpenAICodexGpt53FallbackModel(
-  provider: string,
-  modelId: string,
-  modelRegistry: ModelRegistry,
-): Model<Api> | undefined {
-  const normalizedProvider = normalizeProviderId(provider);
-  const trimmedModelId = modelId.trim();
-  if (normalizedProvider !== "openai-codex") {
-    return undefined;
-  }
-  if (trimmedModelId.toLowerCase() !== OPENAI_CODEX_GPT_53_MODEL_ID) {
-    return undefined;
-  }
-
-  for (const templateId of OPENAI_CODEX_TEMPLATE_MODEL_IDS) {
-    const template = modelRegistry.find(normalizedProvider, templateId) as Model<Api> | null;
-    if (!template) {
-      continue;
-    }
-    return normalizeModelCompat({
-      ...template,
-      id: trimmedModelId,
-      name: trimmedModelId,
-    } as Model<Api>);
-  }
-
-  return normalizeModelCompat({
-    id: trimmedModelId,
-    name: trimmedModelId,
-    api: "openai-codex-responses",
-    provider: normalizedProvider,
-    baseUrl: "https://chatgpt.com/backend-api",
-    reasoning: true,
-    input: ["text", "image"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: DEFAULT_CONTEXT_TOKENS,
-    maxTokens: DEFAULT_CONTEXT_TOKENS,
-  } as Model<Api>);
-}
+export { buildModelAliasLines };
 
 export function buildInlineProviderModels(
   providers: Record<string, InlineProviderConfig>,
@@ -78,25 +38,6 @@ export function buildInlineProviderModels(
       api: model.api ?? entry?.api,
     }));
   });
-}
-
-export function buildModelAliasLines(cfg?: OpenClawConfig) {
-  const models = cfg?.agents?.defaults?.models ?? {};
-  const entries: Array<{ alias: string; model: string }> = [];
-  for (const [keyRaw, entryRaw] of Object.entries(models)) {
-    const model = String(keyRaw ?? "").trim();
-    if (!model) {
-      continue;
-    }
-    const alias = String((entryRaw as { alias?: string } | undefined)?.alias ?? "").trim();
-    if (!alias) {
-      continue;
-    }
-    entries.push({ alias, model });
-  }
-  return entries
-    .toSorted((a, b) => a.alias.localeCompare(b.alias))
-    .map((entry) => `- ${entry.alias}: ${entry.model}`);
 }
 
 export function resolveModel(
@@ -129,16 +70,11 @@ export function resolveModel(
         modelRegistry,
       };
     }
-    // Codex gpt-5.3 forward-compat fallback must be checked BEFORE the generic providerCfg fallback.
-    // Otherwise, if cfg.models.providers["openai-codex"] is configured, the generic fallback fires
-    // with api: "openai-responses" instead of the correct "openai-codex-responses".
-    const codexForwardCompat = resolveOpenAICodexGpt53FallbackModel(
-      provider,
-      modelId,
-      modelRegistry,
-    );
-    if (codexForwardCompat) {
-      return { model: codexForwardCompat, authStorage, modelRegistry };
+    // Forward-compat fallbacks must be checked BEFORE the generic providerCfg fallback.
+    // Otherwise, configured providers can default to a generic API and break specific transports.
+    const forwardCompat = resolveForwardCompatModel(provider, modelId, modelRegistry);
+    if (forwardCompat) {
+      return { model: forwardCompat, authStorage, modelRegistry };
     }
     const providerCfg = providers[provider];
     if (providerCfg || modelId.startsWith("mock-")) {

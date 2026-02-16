@@ -1,9 +1,8 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import type { GoogleChatStatus } from "../types";
-import { renderChannelConfigSection } from "./channels.config";
-import type { ChannelsProps } from "./channels.types";
+import type { GoogleChatStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 
 export function renderGoogleChatCard(params: {
   props: ChannelsProps;
@@ -40,12 +39,12 @@ export function renderGoogleChatCard(params: {
           </span>
         </div>
         <div>
-          <span class="label">最后启动</span>
-          <span>${googleChat?.lastStartAt ? formatAgo(googleChat.lastStartAt) : "无"}</span>
+          <span class="label">Last start</span>
+          <span>${googleChat?.lastStartAt ? formatRelativeTimestamp(googleChat.lastStartAt) : "n/a"}</span>
         </div>
         <div>
-          <span class="label">最后探测</span>
-          <span>${googleChat?.lastProbeAt ? formatAgo(googleChat.lastProbeAt) : "无"}</span>
+          <span class="label">Last probe</span>
+          <span>${googleChat?.lastProbeAt ? formatRelativeTimestamp(googleChat.lastProbeAt) : "n/a"}</span>
         </div>
       </div>
 

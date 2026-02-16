@@ -1,9 +1,8 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
-import type { ChannelAccountSnapshot, TelegramStatus } from "../types";
-import type { ChannelsProps } from "./channels.types";
-import { renderChannelConfigSection } from "./channels.config";
+import type { ChannelAccountSnapshot, TelegramStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatRelativeTimestamp } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 
 export function renderTelegramCard(params: {
   props: ChannelsProps;
@@ -36,8 +35,8 @@ export function renderTelegramCard(params: {
             <span>${account.configured ? "是" : "否"}</span>
           </div>
           <div>
-            <span class="label">最后入站</span>
-            <span>${account.lastInboundAt ? formatAgo(account.lastInboundAt) : "无"}</span>
+            <span class="label">Last inbound</span>
+            <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
           </div>
           ${account.lastError
             ? html`
@@ -78,12 +77,12 @@ export function renderTelegramCard(params: {
                 <span>${telegram?.mode ?? "无"}</span>
               </div>
               <div>
-                <span class="label">最后启动</span>
-                <span>${telegram?.lastStartAt ? formatAgo(telegram.lastStartAt) : "无"}</span>
+                <span class="label">Last start</span>
+                <span>${telegram?.lastStartAt ? formatRelativeTimestamp(telegram.lastStartAt) : "n/a"}</span>
               </div>
               <div>
-                <span class="label">最后探测</span>
-                <span>${telegram?.lastProbeAt ? formatAgo(telegram.lastProbeAt) : "无"}</span>
+                <span class="label">Last probe</span>
+                <span>${telegram?.lastProbeAt ? formatRelativeTimestamp(telegram.lastProbeAt) : "n/a"}</span>
               </div>
             </div>
           `}

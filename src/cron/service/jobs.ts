@@ -11,6 +11,7 @@ import type {
 import type { CronServiceState } from "./state.js";
 import { parseAbsoluteTimeMs } from "../parse.js";
 import { computeNextRunAtMs } from "../schedule.js";
+import { normalizeHttpWebhookUrl } from "../webhook-url.js";
 import {
   normalizeOptionalAgentId,
   normalizeOptionalText,
@@ -19,6 +20,17 @@ import {
 } from "./normalize.js";
 
 const STUCK_RUN_MS = 2 * 60 * 60 * 1000;
+
+function resolveEveryAnchorMs(params: {
+  schedule: { everyMs: number; anchorMs?: number };
+  fallbackAnchorMs: number;
+}) {
+  const raw = params.schedule.anchorMs;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return Math.max(0, Math.floor(raw));
+  }
+  return Math.max(0, Math.floor(params.fallbackAnchorMs));
+}
 
 export function assertSupportedJobSpec(job: Pick<CronJob, "sessionTarget" | "payload">) {
   if (job.sessionTarget === "main" && job.payload.kind !== "systemEvent") {
@@ -30,8 +42,19 @@ export function assertSupportedJobSpec(job: Pick<CronJob, "sessionTarget" | "pay
 }
 
 function assertDeliverySupport(job: Pick<CronJob, "sessionTarget" | "delivery">) {
-  if (job.delivery && job.sessionTarget !== "isolated") {
-    throw new Error('cron delivery config is only supported for sessionTarget="isolated"');
+  if (!job.delivery) {
+    return;
+  }
+  if (job.delivery.mode === "webhook") {
+    const target = normalizeHttpWebhookUrl(job.delivery.to);
+    if (!target) {
+      throw new Error("cron webhook delivery requires delivery.to to be a valid http(s) URL");
+    }
+    job.delivery.to = target;
+    return;
+  }
+  if (job.sessionTarget !== "isolated") {
+    throw new Error('cron channel delivery config is only supported for sessionTarget="isolated"');
   }
 }
 
@@ -46,6 +69,13 @@ export function findJobOrThrow(state: CronServiceState, id: string) {
 export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | undefined {
   if (!job.enabled) {
     return undefined;
+  }
+  if (job.schedule.kind === "every") {
+    const anchorMs = resolveEveryAnchorMs({
+      schedule: job.schedule,
+      fallbackAnchorMs: job.createdAtMs,
+    });
+    return computeNextRunAtMs({ ...job.schedule, anchorMs }, nowMs);
   }
   if (job.schedule.kind === "at") {
     // One-shot jobs stay due until they successfully finish.
@@ -69,30 +99,137 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
   return computeNextRunAtMs(job.schedule, nowMs);
 }
 
-export function recomputeNextRuns(state: CronServiceState) {
-  if (!state.store) {
-    return;
+/** Maximum consecutive schedule errors before auto-disabling a job. */
+const MAX_SCHEDULE_ERRORS = 3;
+
+function normalizeJobTickState(params: { state: CronServiceState; job: CronJob; nowMs: number }): {
+  changed: boolean;
+  skip: boolean;
+} {
+  const { state, job, nowMs } = params;
+  let changed = false;
+
+  if (!job.state) {
+    job.state = {};
+    changed = true;
   }
+
+  if (!job.enabled) {
+    if (job.state.nextRunAtMs !== undefined) {
+      job.state.nextRunAtMs = undefined;
+      changed = true;
+    }
+    if (job.state.runningAtMs !== undefined) {
+      job.state.runningAtMs = undefined;
+      changed = true;
+    }
+    return { changed, skip: true };
+  }
+
+  const runningAt = job.state.runningAtMs;
+  if (typeof runningAt === "number" && nowMs - runningAt > STUCK_RUN_MS) {
+    state.deps.log.warn(
+      { jobId: job.id, runningAtMs: runningAt },
+      "cron: clearing stuck running marker",
+    );
+    job.state.runningAtMs = undefined;
+    changed = true;
+  }
+
+  return { changed, skip: false };
+}
+
+function walkSchedulableJobs(
+  state: CronServiceState,
+  fn: (params: { job: CronJob; nowMs: number }) => boolean,
+): boolean {
+  if (!state.store) {
+    return false;
+  }
+  let changed = false;
   const now = state.deps.nowMs();
   for (const job of state.store.jobs) {
-    if (!job.state) {
-      job.state = {};
+    const tick = normalizeJobTickState({ state, job, nowMs: now });
+    if (tick.changed) {
+      changed = true;
     }
-    if (!job.enabled) {
-      job.state.nextRunAtMs = undefined;
-      job.state.runningAtMs = undefined;
+    if (tick.skip) {
       continue;
     }
-    const runningAt = job.state.runningAtMs;
-    if (typeof runningAt === "number" && now - runningAt > STUCK_RUN_MS) {
-      state.deps.log.warn(
-        { jobId: job.id, runningAtMs: runningAt },
-        "cron: clearing stuck running marker",
-      );
-      job.state.runningAtMs = undefined;
+    if (fn({ job, nowMs: now })) {
+      changed = true;
     }
-    job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
   }
+  return changed;
+}
+
+export function recomputeNextRuns(state: CronServiceState): boolean {
+  return walkSchedulableJobs(state, ({ job, nowMs: now }) => {
+    let changed = false;
+    // Only recompute if nextRunAtMs is missing or already past-due.
+    // Preserving a still-future nextRunAtMs avoids accidentally advancing
+    // a job that hasn't fired yet (e.g. during restart recovery).
+    const nextRun = job.state.nextRunAtMs;
+    const isDueOrMissing = nextRun === undefined || now >= nextRun;
+    if (isDueOrMissing) {
+      try {
+        const newNext = computeJobNextRunAtMs(job, now);
+        if (job.state.nextRunAtMs !== newNext) {
+          job.state.nextRunAtMs = newNext;
+          changed = true;
+        }
+        // Clear schedule error count on successful computation.
+        if (job.state.scheduleErrorCount) {
+          job.state.scheduleErrorCount = undefined;
+          changed = true;
+        }
+      } catch (err) {
+        const errorCount = (job.state.scheduleErrorCount ?? 0) + 1;
+        job.state.scheduleErrorCount = errorCount;
+        job.state.nextRunAtMs = undefined;
+        job.state.lastError = `schedule error: ${String(err)}`;
+        changed = true;
+
+        if (errorCount >= MAX_SCHEDULE_ERRORS) {
+          job.enabled = false;
+          state.deps.log.error(
+            { jobId: job.id, name: job.name, errorCount, err: String(err) },
+            "cron: auto-disabled job after repeated schedule errors",
+          );
+        } else {
+          state.deps.log.warn(
+            { jobId: job.id, name: job.name, errorCount, err: String(err) },
+            "cron: failed to compute next run for job (skipping)",
+          );
+        }
+      }
+    }
+    return changed;
+  });
+}
+
+/**
+ * Maintenance-only version of recomputeNextRuns that handles disabled jobs
+ * and stuck markers, but does NOT recompute nextRunAtMs for enabled jobs
+ * with existing values. Used during timer ticks when no due jobs were found
+ * to prevent silently advancing past-due nextRunAtMs values without execution
+ * (see #13992).
+ */
+export function recomputeNextRunsForMaintenance(state: CronServiceState): boolean {
+  return walkSchedulableJobs(state, ({ job, nowMs: now }) => {
+    let changed = false;
+    // Only compute missing nextRunAtMs, do NOT recompute existing ones.
+    // If a job was past-due but not found by findDueJobs, recomputing would
+    // cause it to be silently skipped.
+    if (job.state.nextRunAtMs === undefined) {
+      const newNext = computeJobNextRunAtMs(job, now);
+      if (newNext !== undefined) {
+        job.state.nextRunAtMs = newNext;
+        changed = true;
+      }
+    }
+    return changed;
+  });
 }
 
 export function nextWakeAtMs(state: CronServiceState) {
@@ -110,10 +247,20 @@ export function nextWakeAtMs(state: CronServiceState) {
 export function createJob(state: CronServiceState, input: CronJobCreate): CronJob {
   const now = state.deps.nowMs();
   const id = crypto.randomUUID();
+  const schedule =
+    input.schedule.kind === "every"
+      ? {
+          ...input.schedule,
+          anchorMs: resolveEveryAnchorMs({
+            schedule: input.schedule,
+            fallbackAnchorMs: now,
+          }),
+        }
+      : input.schedule;
   const deleteAfterRun =
     typeof input.deleteAfterRun === "boolean"
       ? input.deleteAfterRun
-      : input.schedule.kind === "at"
+      : schedule.kind === "at"
         ? true
         : undefined;
   const enabled = typeof input.enabled === "boolean" ? input.enabled : true;
@@ -126,7 +273,7 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
     deleteAfterRun,
     createdAtMs: now,
     updatedAtMs: now,
-    schedule: input.schedule,
+    schedule,
     sessionTarget: input.sessionTarget,
     wakeMode: input.wakeMode,
     payload: input.payload,
@@ -180,7 +327,7 @@ export function applyJobPatch(job: CronJob, patch: CronJobPatch) {
   if (patch.delivery) {
     job.delivery = mergeCronDelivery(job.delivery, patch.delivery);
   }
-  if (job.sessionTarget === "main" && job.delivery) {
+  if (job.sessionTarget === "main" && job.delivery?.mode !== "webhook") {
     job.delivery = undefined;
   }
   if (patch.state) {
@@ -222,6 +369,9 @@ function mergeCronPayload(existing: CronPayload, patch: CronPayloadPatch): CronP
   }
   if (typeof patch.timeoutSeconds === "number") {
     next.timeoutSeconds = patch.timeoutSeconds;
+  }
+  if (typeof patch.allowUnsafeExternalContent === "boolean") {
+    next.allowUnsafeExternalContent = patch.allowUnsafeExternalContent;
   }
   if (typeof patch.deliver === "boolean") {
     next.deliver = patch.deliver;
@@ -297,6 +447,7 @@ function buildPayloadFromPatch(patch: CronPayloadPatch): CronPayload {
     model: patch.model,
     thinking: patch.thinking,
     timeoutSeconds: patch.timeoutSeconds,
+    allowUnsafeExternalContent: patch.allowUnsafeExternalContent,
     deliver: patch.deliver,
     channel: patch.channel,
     to: patch.to,
@@ -334,6 +485,12 @@ function mergeCronDelivery(
 }
 
 export function isJobDue(job: CronJob, nowMs: number, opts: { forced: boolean }) {
+  if (!job.state) {
+    job.state = {};
+  }
+  if (typeof job.state.runningAtMs === "number") {
+    return false;
+  }
   if (opts.forced) {
     return true;
   }

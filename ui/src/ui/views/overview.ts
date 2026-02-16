@@ -1,9 +1,8 @@
 import { html } from "lit";
-
-import type { GatewayHelloOk } from "../gateway";
-import { formatAgo, formatDurationMs } from "../format";
-import { formatNextRun } from "../presenter";
-import type { UiSettings } from "../storage";
+import type { GatewayHelloOk } from "../gateway.ts";
+import type { UiSettings } from "../storage.ts";
+import { formatRelativeTimestamp, formatDurationHuman } from "../format.ts";
+import { formatNextRun } from "../presenter.ts";
 
 export type OverviewProps = {
   connected: boolean;
@@ -30,12 +29,16 @@ export type OverviewProps = {
 
 export function renderOverview(props: OverviewProps) {
   const snapshot = props.hello?.snapshot as
-    | { uptimeMs?: number; policy?: { tickIntervalMs?: number } }
+    | {
+        uptimeMs?: number;
+        policy?: { tickIntervalMs?: number };
+        authMode?: "none" | "token" | "password" | "trusted-proxy";
+      }
     | undefined;
-  const uptime = snapshot?.uptimeMs ? formatDurationMs(snapshot.uptimeMs) : "n/a";
-  const tick = snapshot?.policy?.tickIntervalMs
-    ? `${snapshot.policy.tickIntervalMs}ms`
-    : "n/a";
+  const uptime = snapshot?.uptimeMs ? formatDurationHuman(snapshot.uptimeMs) : "n/a";
+  const tick = snapshot?.policy?.tickIntervalMs ? `${snapshot.policy.tickIntervalMs}ms` : "n/a";
+  const authMode = snapshot?.authMode;
+  const isTrustedProxy = authMode === "trusted-proxy";
   const authHint = (() => {
     if (props.connected || !props.lastError) return null;
     const lower = props.lastError.toLowerCase();
@@ -138,29 +141,35 @@ export function renderOverview(props: OverviewProps) {
               placeholder="ws://100.x.y.z:18789"
             />
           </label>
-          <label class="field">
-            <span>网关令牌</span>
-            <input
-              .value=${props.settings.token}
-              @input=${(e: Event) => {
-                const v = (e.target as HTMLInputElement).value;
-                props.onSettingsChange({ ...props.settings, token: v });
-              }}
-              placeholder="CLAWDBOT_GATEWAY_TOKEN"
-            />
-          </label>
-          <label class="field">
-            <span>密码（不存储）</span>
-            <input
-              type="password"
-              .value=${props.password}
-              @input=${(e: Event) => {
-                const v = (e.target as HTMLInputElement).value;
-                props.onPasswordChange(v);
-              }}
-              placeholder="系统或共享密码"
-            />
-          </label>
+          ${
+            isTrustedProxy
+              ? ""
+              : html`
+                <label class="field">
+                  <span>Gateway Token</span>
+                  <input
+                    .value=${props.settings.token}
+                    @input=${(e: Event) => {
+                      const v = (e.target as HTMLInputElement).value;
+                      props.onSettingsChange({ ...props.settings, token: v });
+                    }}
+                    placeholder="OPENCLAW_GATEWAY_TOKEN"
+                  />
+                </label>
+                <label class="field">
+                  <span>Password (not stored)</span>
+                  <input
+                    type="password"
+                    .value=${props.password}
+                    @input=${(e: Event) => {
+                      const v = (e.target as HTMLInputElement).value;
+                      props.onPasswordChange(v);
+                    }}
+                    placeholder="system or shared password"
+                  />
+                </label>
+              `
+          }
           <label class="field">
             <span>默认会话密钥</span>
             <input
@@ -173,41 +182,9 @@ export function renderOverview(props: OverviewProps) {
           </label>
         </div>
         <div class="row" style="margin-top: 14px;">
-          <button class="btn" @click=${() => props.onConnect()}>连接</button>
-          <button class="btn" @click=${() => props.onRefresh()}>刷新</button>
-          <span class="muted">点击连接以应用连接更改。</span>
-        </div>
-        <div class="callout" style="margin-top: 14px;">
-          <div style="font-weight: 600;">服务端认证（持久）</div>
-          <div class="muted" style="margin-top: 6px;">
-            当前模式：${props.serverAuthMode ?? "未知"} · HTTP登录：
-            ${props.serverAllowInsecureAuth == null
-              ? "未知"
-              : props.serverAllowInsecureAuth
-                ? "允许"
-                : "未允许"}
-          </div>
-          <div class="row" style="margin-top: 10px;">
-            <button
-              class="btn primary"
-              ?disabled=${props.authApplying || !props.password.trim()}
-              @click=${() => props.onApplyServerPasswordAuth()}
-            >
-              ${props.authApplying ? "应用中…" : "一键切到密码认证"}
-            </button>
-            <button
-              class="btn"
-              ?disabled=${props.authApplying || !props.settings.token.trim()}
-              @click=${() => props.onApplyServerTokenAuth()}
-            >
-              一键切到令牌认证
-            </button>
-          </div>
-          <div class="muted" style="margin-top: 6px;">
-            会写入 <span class="mono">gateway.auth.*</span>，并将
-            <span class="mono">gateway.controlUi.allowInsecureAuth</span> 设为
-            <span class="mono">true</span>。
-          </div>
+          <button class="btn" @click=${() => props.onConnect()}>Connect</button>
+          <button class="btn" @click=${() => props.onRefresh()}>Refresh</button>
+          <span class="muted">${isTrustedProxy ? "Authenticated via trusted proxy." : "Click Connect to apply connection changes."}</span>
         </div>
       </div>
 
@@ -232,9 +209,7 @@ export function renderOverview(props: OverviewProps) {
           <div class="stat">
             <div class="stat-label">上次通道刷新</div>
             <div class="stat-value">
-              ${props.lastChannelsRefresh
-                ? formatAgo(props.lastChannelsRefresh)
-                : "无"}
+              ${props.lastChannelsRefresh ? formatRelativeTimestamp(props.lastChannelsRefresh) : "n/a"}
             </div>
           </div>
         </div>
