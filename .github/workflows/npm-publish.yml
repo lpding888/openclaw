@@ -12,8 +12,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
     
     steps:
       - name: Checkout code
@@ -86,12 +84,23 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
+      - name: Detect npm token availability
+        id: npm-auth
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [[ -n "${NPM_TOKEN}" ]]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Skip npm publish when token is missing
-        if: env.HAS_NPM_TOKEN != 'true'
+        if: steps.npm-auth.outputs.has_token != 'true'
         run: echo "::notice::Skipping npm publish because NPM_TOKEN is not configured."
 
       - name: Publish to npm
-        if: env.HAS_NPM_TOKEN == 'true'
+        if: steps.npm-auth.outputs.has_token == 'true'
         run: pnpm publish --access public --no-git-checks --provenance --tag ${{ steps.npm-tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
