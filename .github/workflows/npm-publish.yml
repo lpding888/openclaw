@@ -90,10 +90,14 @@ jobs:
       - name: Resolve publish target
         id: pkg-meta
         run: |
-          name="$(node -e 'console.log(require(\"./package.json\").name)')"
-          version="$(node -e 'console.log(require(\"./package.json\").version)')"
-          echo "name=${name}" >> "$GITHUB_OUTPUT"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          {
+            echo "name<<EOF"
+            node -p "require('./package.json').name"
+            echo "EOF"
+            echo "version<<EOF"
+            node -p "require('./package.json').version"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Detect npm token availability
         id: npm-auth
