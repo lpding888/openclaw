@@ -8,6 +8,7 @@ on:
 
 env:
   REGISTRY: docker.io
+  IMAGE_NAME: ${{ vars.DOCKERHUB_IMAGE_NAME || format('{0}/openclaw-cn', github.repository_owner) }}
 
 jobs:
   build-and-push:
@@ -17,7 +18,6 @@ jobs:
       packages: write
     outputs:
       did-push: ${{ steps.docker-auth.outputs.has_creds }}
-      image-name: ${{ steps.docker-auth.outputs.image_name }}
 
     steps:
       - name: Checkout code
@@ -34,26 +34,12 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          DOCKERHUB_IMAGE_NAME: ${{ secrets.DOCKERHUB_IMAGE_NAME }}
-          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           if [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]]; then
             echo "has_creds=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_creds=false" >> "$GITHUB_OUTPUT"
           fi
-
-          image_name="${DOCKERHUB_IMAGE_NAME}"
-          if [[ -z "${image_name}" ]]; then
-            if [[ -n "${DOCKERHUB_USERNAME}" ]]; then
-              image_name="${DOCKERHUB_USERNAME}/openclaw-cn"
-            else
-              image_name="${REPO_OWNER}/openclaw-cn"
-            fi
-          fi
-          image_name="${image_name#/}"
-          echo "image_name=${image_name}" >> "$GITHUB_OUTPUT"
-          echo "Using image name: ${image_name}"
 
       - name: Log in to Docker Hub
         if: github.event_name != 'pull_request' && steps.docker-auth.outputs.has_creds == 'true'
@@ -71,7 +57,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ steps.docker-auth.outputs.image_name }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=tag,pattern=v(?<version>.*)
             type=semver,pattern={{version}}
@@ -100,5 +86,5 @@ jobs:
     steps:
       - name: Verify image on Docker Hub
         run: |
-          docker pull ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image-name }}:latest
-          docker inspect ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image-name }}:latest
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
