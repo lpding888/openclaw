@@ -3,12 +3,12 @@ name: Build and Push Multi-Architecture Docker Images
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_IMAGE_NAME || format('{0}/openclaw-cn', github.repository_owner) }}
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_IMAGE_NAME || format('{0}/openclaw-cn', secrets.DOCKERHUB_USERNAME || github.repository_owner) }}
 
 jobs:
   build-and-push:
