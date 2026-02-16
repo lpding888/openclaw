@@ -157,6 +157,31 @@ jobs:
 
       - name: Publish to npm
         if: steps.npm-auth.outputs.has_token == 'true' && steps.npm-exists.outputs.exists != 'true'
-        run: pnpm publish --access public --no-git-checks --provenance --tag ${{ steps.npm-tag.outputs.tag }}
+        run: |
+          set +e
+          log_file="$(mktemp)"
+          pnpm publish --access public --no-git-checks --provenance --tag "${{ steps.npm-tag.outputs.tag }}" 2>&1 | tee "${log_file}"
+          status="${PIPESTATUS[0]}"
+          if [[ "${status}" -eq 0 ]]; then
+            exit 0
+          fi
+
+          if grep -Eq 'EPUBLISHCONFLICT|cannot publish over existing version|previously published versions' "${log_file}"; then
+            echo "::notice::Skipping npm publish because this version already exists."
+            exit 0
+          fi
+
+          if grep -Eq 'E403|forbidden|not allowed to publish|do not have permission|authorization required' "${log_file}"; then
+            echo "::error::npm publish failed: token lacks publish permission for this package/scope. Recreate NPM_TOKEN with publish rights for this account/scope."
+            exit "${status}"
+          fi
+
+          if grep -Eq 'E404|scope not found|Not found' "${log_file}"; then
+            echo "::error::npm publish failed: package scope does not exist or token cannot access it."
+            exit "${status}"
+          fi
+
+          echo "::error::npm publish failed with an unexpected error. Open the job log for full details."
+          exit "${status}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
