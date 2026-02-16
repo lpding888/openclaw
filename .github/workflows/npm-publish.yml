@@ -1,0 +1,90 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+
+      - name: Prepare package metadata for this repo
+        env:
+          NPM_PACKAGE_NAME: ${{ vars.NPM_PACKAGE_NAME || '' }}
+          REPO_URL: https://github.com/${{ github.repository }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+
+          const pkgPath = "package.json";
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+          const override = (process.env.NPM_PACKAGE_NAME || "").trim();
+          const owner = (process.env.REPO_OWNER || "").trim();
+          const defaultScoped = owner ? `@${owner}/openclaw-cn` : pkg.name;
+
+          if (override) {
+            pkg.name = override;
+          } else if (pkg.name === "openclaw-cn" && owner && owner !== "jiulingyun") {
+            // Forks should publish to a unique scope by default.
+            pkg.name = defaultScoped;
+          }
+
+          const repoUrl = (process.env.REPO_URL || "").trim();
+          if (repoUrl) {
+            pkg.repository = { type: "git", url: repoUrl };
+            pkg.bugs = { url: `${repoUrl}/issues` };
+            pkg.homepage = `${repoUrl}#readme`;
+          }
+
+          fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+          console.log(`Publish package: ${pkg.name}`);
+          console.log(`Repository URL: ${pkg.repository?.url ?? "n/a"}`);
+          EOF
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Build UI
+        run: pnpm ui:build
+
+      - name: Determine npm tag
+        id: npm-tag
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "$VERSION" == *"-beta"* ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        run: pnpm publish --access public --no-git-checks --provenance --tag ${{ steps.npm-tag.outputs.tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

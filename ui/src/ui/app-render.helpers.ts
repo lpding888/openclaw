@@ -1,15 +1,17 @@
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import type { AppViewState } from "./app-view-state.ts";
-import type { ThemeTransitionContext } from "./theme-transition.ts";
-import type { ThemeMode } from "./theme.ts";
-import type { SessionsListResult } from "./types.ts";
-import { refreshChat } from "./app-chat.ts";
-import { syncUrlWithSessionKey } from "./app-settings.ts";
-import { ChatState, loadChatHistory } from "./controllers/chat.ts";
-import { patchSession } from "./controllers/sessions.ts";
-import { icons } from "./icons.ts";
-import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
+
+import type { AppViewState } from "./app-view-state";
+import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation";
+import { icons } from "./icons";
+import { loadChatHistory } from "./controllers/chat";
+import { loadChatTimeline } from "./controllers/chat-timeline";
+import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability";
+import { applyModelSwitcherSelection, loadModelSwitcher } from "./controllers/model-switcher";
+import { syncUrlWithSessionKey } from "./app-settings";
+import type { SessionsListResult } from "./types";
+import type { ThemeMode } from "./theme";
+import type { ThemeTransitionContext } from "./theme-transition";
 
 export function renderTab(state: AppViewState, tab: Tab) {
   const href = pathForTab(tab, state.basePath);
@@ -40,67 +42,14 @@ export function renderTab(state: AppViewState, tab: Tab) {
 }
 
 export function renderChatControls(state: AppViewState) {
-  const mainSessionKey = resolveMainSessionKey(state.hello, state.sessionsResult);
-  const sessionOptions = resolveSessionOptions(
-    state.sessionKey,
-    state.sessionsResult,
-    mainSessionKey,
-  );
-  const activeSession = state.sessionsResult?.sessions?.find((row) => row.key === state.sessionKey);
-  const defaults = state.sessionsResult?.defaults ?? null;
-  const defaultRef = typeof defaults?.model === "string" ? defaults.model.trim() : "";
-  const currentRef = (() => {
-    const model = typeof activeSession?.model === "string" ? activeSession.model.trim() : "";
-    if (!model) {
-      return "";
-    }
-    // Newer gateways may already encode provider in the model string (e.g. "anthropic/claude-...").
-    if (model.includes("/")) {
-      return model;
-    }
-    const provider =
-      typeof activeSession?.modelProvider === "string" ? activeSession.modelProvider.trim() : "";
-    return provider ? `${provider}/${model}` : model;
-  })();
-  const currentModelValue = defaultRef && currentRef === defaultRef ? "" : currentRef;
+  const sessionOptions = resolveSessionOptions(state.sessionKey, state.sessionsResult);
   const disableThinkingToggle = state.onboarding;
   const disableFocusToggle = state.onboarding;
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const focusActive = state.onboarding ? true : state.settings.chatFocusMode;
   // Refresh icon
-  const refreshIcon = html`
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-      <path d="M21 3v5h-5"></path>
-    </svg>
-  `;
-  const focusIcon = html`
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M4 7V4h3"></path>
-      <path d="M20 7V4h-3"></path>
-      <path d="M4 17v3h3"></path>
-      <path d="M20 17v3h-3"></path>
-      <circle cx="12" cy="12" r="3"></circle>
-    </svg>
-  `;
+  const refreshIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>`;
+  const focusIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
   return html`
     <div class="chat-controls">
       <label class="field chat-controls__session">
@@ -112,7 +61,21 @@ export function renderChatControls(state: AppViewState) {
             state.sessionKey = next;
             state.chatMessage = "";
             state.chatStream = null;
+            state.chatStreamStartedAt = null;
             state.chatRunId = null;
+            state.chatTimelineEvents = [];
+            state.chatTimelineError = null;
+            state.chatTimelineFollow = true;
+            state.chatTimelineFilters = { runId: "", streams: {} };
+            state.chatTimelineRuns = [];
+            state.chatTimelineRunsError = null;
+            state.chatFeedbackItems = [];
+            state.chatFeedbackError = null;
+            state.chatFeedbackDrafts = {};
+            state.chatFeedbackSubmitting = {};
+            state.chatFeedbackSubmitErrors = {};
+            state.sidebarOpen = true;
+            state.sidebarTab = state.settings.chatObservabilityPin;
             state.resetToolStream();
             state.resetChatScroll();
             state.applySettings({
@@ -121,12 +84,11 @@ export function renderChatControls(state: AppViewState) {
               lastActiveSessionKey: next,
             });
             void state.loadAssistantIdentity();
-            syncUrlWithSessionKey(
-              state as unknown as Parameters<typeof syncUrlWithSessionKey>[0],
-              next,
-              true,
-            );
-            void loadChatHistory(state as unknown as ChatState);
+            syncUrlWithSessionKey(state, next, true);
+            void loadChatHistory(state);
+            void loadChatTimeline(state);
+            void loadChatTimelineRuns(state);
+            void loadChatFeedbackList(state);
           }}
         >
           ${repeat(
@@ -139,35 +101,19 @@ export function renderChatControls(state: AppViewState) {
           )}
         </select>
       </label>
-      <label class="field chat-controls__model">
-        <select
-          .value=${currentModelValue}
-          ?disabled=${!state.connected || state.modelsLoading}
-          @change=${(e: Event) => {
-            const next = (e.target as HTMLSelectElement).value.trim();
-            // Empty value means "inherit defaults" (clear override).
-            void patchSession(state, state.sessionKey, { model: next ? next : null });
-          }}
-          title="Model for this session"
-        >
-          <option value="">${defaultRef ? `Default: ${defaultRef}` : "Default model"}</option>
-          ${groupModelsForSelect(state.modelsList).map(
-            (group) => html`
-              <optgroup label=${group.provider}>
-                ${group.models.map((m) => html`<option value=${m.ref}>${m.name}</option>`)}
-              </optgroup>
-            `,
-          )}
-        </select>
-      </label>
       <button
         class="btn btn--sm btn--icon"
         ?disabled=${state.chatLoading || !state.connected}
         @click=${() => {
           state.resetToolStream();
-          void refreshChat(state as unknown as Parameters<typeof refreshChat>[0]);
+          void Promise.all([
+            loadChatHistory(state),
+            loadChatTimeline(state),
+            loadChatTimelineRuns(state),
+            loadChatFeedbackList(state),
+          ]);
         }}
-        title="Refresh chat data"
+        title="刷新聊天记录"
       >
         ${refreshIcon}
       </button>
@@ -176,144 +122,116 @@ export function renderChatControls(state: AppViewState) {
         class="btn btn--sm btn--icon ${showThinking ? "active" : ""}"
         ?disabled=${disableThinkingToggle}
         @click=${() => {
-          if (disableThinkingToggle) {
-            return;
-          }
+          if (disableThinkingToggle) return;
           state.applySettings({
             ...state.settings,
             chatShowThinking: !state.settings.chatShowThinking,
           });
         }}
         aria-pressed=${showThinking}
-        title=${
-          disableThinkingToggle
-            ? "Disabled during onboarding"
-            : "Toggle assistant thinking/working output"
-        }
+        title=${disableThinkingToggle
+          ? "在引导期间禁用"
+          : "切换助手思考/工作输出"}
       >
         ${icons.brain}
+      </button>
+      <button
+        class="btn btn--sm btn--icon btn--icon-labeled ${state.sidebarOpen ? "active" : ""}"
+        @click=${() => {
+          if (state.sidebarOpen) {
+            state.handleCloseSidebar();
+            return;
+          }
+          state.handleSetSidebarTab("timeline");
+        }}
+        aria-pressed=${state.sidebarOpen}
+        title=${state.sidebarOpen ? "隐藏右侧面板" : "显示右侧面板"}
+      >
+        ${icons.barChart}
+        <span>实时过程</span>
       </button>
       <button
         class="btn btn--sm btn--icon ${focusActive ? "active" : ""}"
         ?disabled=${disableFocusToggle}
         @click=${() => {
-          if (disableFocusToggle) {
-            return;
-          }
+          if (disableFocusToggle) return;
           state.applySettings({
             ...state.settings,
             chatFocusMode: !state.settings.chatFocusMode,
           });
         }}
         aria-pressed=${focusActive}
-        title=${
-          disableFocusToggle
-            ? "Disabled during onboarding"
-            : "Toggle focus mode (hide sidebar + page header)"
-        }
+        title=${disableFocusToggle
+          ? "在引导期间禁用"
+          : "切换焦点模式（隐藏侧边栏和页面头部）"}
       >
         ${focusIcon}
       </button>
+      <label class="field chat-controls__session" title="发送键偏好">
+        <select
+          .value=${state.settings.sendOnEnter ? "enter" : "ctrl"}
+          @change=${(e: Event) => {
+            const v = (e.target as HTMLSelectElement).value;
+            state.applySettings({
+              ...state.settings,
+              sendOnEnter: v === "enter",
+            });
+          }}
+        >
+          <option value="enter">回车发送</option>
+          <option value="ctrl">Ctrl/⌘+回车发送</option>
+        </select>
+      </label>
+      <label class="field chat-controls__session" title="视觉预设">
+        <select
+          .value=${state.settings.uiVisualPreset}
+          @change=${(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value;
+            state.applySettings({
+              ...state.settings,
+              uiVisualPreset: value === "neo-v1" ? "neo-v1" : "neo-v2",
+            });
+          }}
+        >
+          <option value="neo-v2">拟物 V2</option>
+          <option value="neo-v1">拟物 V1</option>
+        </select>
+      </label>
+      <label class="field chat-controls__session" title="动效强度">
+        <select
+          .value=${state.settings.uiMotionLevel}
+          @change=${(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value;
+            state.applySettings({
+              ...state.settings,
+              uiMotionLevel: value === "reduced" ? "reduced" : "full",
+            });
+          }}
+        >
+          <option value="full">动效完整</option>
+          <option value="reduced">动效简化</option>
+        </select>
+      </label>
     </div>
   `;
 }
 
-function groupModelsForSelect(models: AppViewState["modelsList"]) {
-  const groups = new Map<string, Array<{ ref: string; name: string }>>();
-  for (const m of models ?? []) {
-    const provider = typeof m?.provider === "string" ? m.provider.trim() : "";
-    const id = typeof m?.id === "string" ? m.id.trim() : "";
-    const name = typeof m?.name === "string" ? m.name.trim() : "";
-    if (!provider || !id) {
-      continue;
-    }
-    const ref = `${provider}/${id}`;
-    const list = groups.get(provider) ?? [];
-    list.push({ ref, name: name || ref });
-    groups.set(provider, list);
-  }
-  return Array.from(groups.entries())
-    .map(([provider, list]) => ({
-      provider,
-      models: list.toSorted((a, b) => a.name.localeCompare(b.name)),
-    }))
-    .toSorted((a, b) => a.provider.localeCompare(b.provider));
-}
-
-type SessionDefaultsSnapshot = {
-  mainSessionKey?: string;
-  mainKey?: string;
-};
-
-function resolveMainSessionKey(
-  hello: AppViewState["hello"],
-  sessions: SessionsListResult | null,
-): string | null {
-  const snapshot = hello?.snapshot as { sessionDefaults?: SessionDefaultsSnapshot } | undefined;
-  const mainSessionKey = snapshot?.sessionDefaults?.mainSessionKey?.trim();
-  if (mainSessionKey) {
-    return mainSessionKey;
-  }
-  const mainKey = snapshot?.sessionDefaults?.mainKey?.trim();
-  if (mainKey) {
-    return mainKey;
-  }
-  if (sessions?.sessions?.some((row) => row.key === "main")) {
-    return "main";
-  }
-  return null;
-}
-
-function resolveSessionDisplayName(key: string, row?: SessionsListResult["sessions"][number]) {
-  const label = row?.label?.trim();
-  if (label) {
-    return `${label} (${key})`;
-  }
-  const displayName = row?.displayName?.trim();
-  if (displayName) {
-    return displayName;
-  }
-  return key;
-}
-
-function resolveSessionOptions(
-  sessionKey: string,
-  sessions: SessionsListResult | null,
-  mainSessionKey?: string | null,
-) {
+function resolveSessionOptions(sessionKey: string, sessions: SessionsListResult | null) {
   const seen = new Set<string>();
   const options: Array<{ key: string; displayName?: string }> = [];
 
-  const resolvedMain = mainSessionKey && sessions?.sessions?.find((s) => s.key === mainSessionKey);
   const resolvedCurrent = sessions?.sessions?.find((s) => s.key === sessionKey);
 
-  // Add main session key first
-  if (mainSessionKey) {
-    seen.add(mainSessionKey);
-    options.push({
-      key: mainSessionKey,
-      displayName: resolveSessionDisplayName(mainSessionKey, resolvedMain || undefined),
-    });
-  }
-
-  // Add current session key next
-  if (!seen.has(sessionKey)) {
-    seen.add(sessionKey);
-    options.push({
-      key: sessionKey,
-      displayName: resolveSessionDisplayName(sessionKey, resolvedCurrent),
-    });
-  }
+  // Add current session key first
+  seen.add(sessionKey);
+  options.push({ key: sessionKey, displayName: resolvedCurrent?.displayName });
 
   // Add sessions from the result
   if (sessions?.sessions) {
     for (const s of sessions.sessions) {
       if (!seen.has(s.key)) {
         seen.add(s.key);
-        options.push({
-          key: s.key,
-          displayName: resolveSessionDisplayName(s.key, s),
-        });
+        options.push({ key: s.key, displayName: s.displayName });
       }
     }
   }
@@ -337,14 +255,14 @@ export function renderThemeToggle(state: AppViewState) {
 
   return html`
     <div class="theme-toggle" style="--theme-index: ${index};">
-      <div class="theme-toggle__track" role="group" aria-label="Theme">
+      <div class="theme-toggle__track" role="group" aria-label="主题">
         <span class="theme-toggle__indicator"></span>
         <button
           class="theme-toggle__button ${state.theme === "system" ? "active" : ""}"
           @click=${applyTheme("system")}
           aria-pressed=${state.theme === "system"}
-          aria-label="System theme"
-          title="System"
+          aria-label="系统主题"
+          title="系统"
         >
           ${renderMonitorIcon()}
         </button>
@@ -352,8 +270,8 @@ export function renderThemeToggle(state: AppViewState) {
           class="theme-toggle__button ${state.theme === "light" ? "active" : ""}"
           @click=${applyTheme("light")}
           aria-pressed=${state.theme === "light"}
-          aria-label="Light theme"
-          title="Light"
+          aria-label="浅色主题"
+          title="浅色"
         >
           ${renderSunIcon()}
         </button>
@@ -361,12 +279,71 @@ export function renderThemeToggle(state: AppViewState) {
           class="theme-toggle__button ${state.theme === "dark" ? "active" : ""}"
           @click=${applyTheme("dark")}
           aria-pressed=${state.theme === "dark"}
-          aria-label="Dark theme"
-          title="Dark"
+          aria-label="深色主题"
+          title="深色"
         >
           ${renderMoonIcon()}
         </button>
       </div>
+    </div>
+  `;
+}
+
+export function renderTopbarModelSwitcher(state: AppViewState) {
+  const disabled = !state.connected || state.modelSwitcherLoading || state.modelSwitcherSaving;
+  const hasOptions = state.modelSwitcherOptions.length > 0;
+  const selected = state.modelSwitcherSelected;
+  const showApply =
+    Boolean(selected) &&
+    !state.modelSwitcherSaving &&
+    selected !== (state.modelSwitcherCurrent ?? "");
+  const hint = state.modelSwitcherSaving
+    ? "应用中..."
+    : state.modelSwitcherLoading
+      ? "加载中..."
+      : state.modelSwitcherCurrent
+        ? `当前：${state.modelSwitcherCurrent}`
+        : "未设置";
+
+  return html`
+    <div class="topbar-model" title="快速切换默认模型">
+      <span class="topbar-model__label">模型</span>
+      <select
+        class="topbar-model__select"
+        .value=${selected}
+        ?disabled=${disabled || !hasOptions}
+        @change=${(event: Event) => {
+          state.modelSwitcherSelected = (event.target as HTMLSelectElement).value;
+        }}
+      >
+        ${hasOptions
+          ? state.modelSwitcherOptions.map(
+              (entry) => html`<option value=${entry.id}>${entry.label}</option>`,
+            )
+          : html`<option value="">暂无可用模型</option>`}
+      </select>
+      <button
+        class="btn btn--sm"
+        ?disabled=${state.modelSwitcherLoading || state.modelSwitcherSaving || !state.connected}
+        @click=${() => {
+          void loadModelSwitcher(state);
+        }}
+      >
+        刷新
+      </button>
+      <button
+        class="btn btn--sm primary"
+        ?disabled=${!showApply}
+        @click=${() => {
+          void applyModelSwitcherSelection(state);
+        }}
+      >
+        应用
+      </button>
+      <span class="topbar-model__hint">${hint}</span>
+      ${state.modelSwitcherError
+        ? html`<span class="topbar-model__error" title=${state.modelSwitcherError}>!</span>`
+        : nothing}
     </div>
   `;
 }

@@ -76,8 +76,9 @@
 
   .topbar-status {
     gap: 6px;
-    width: auto;
-    flex-wrap: nowrap;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .topbar-status .pill {
@@ -91,6 +92,29 @@
   }
 
   .topbar-status .pill span:nth-child(2) {
+    display: none;
+  }
+
+  .topbar-model {
+    width: 100%;
+    order: 2;
+  }
+
+  .topbar-model__label {
+    display: none;
+  }
+
+  .topbar-model__select {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .topbar-model .btn {
+    flex: 0 0 auto;
+  }
+
+  .topbar-model__hint {
     display: none;
   }
 
@@ -239,6 +263,16 @@
     font-size: 14px;
   }
 
+  .chat-run-status__item:nth-child(n + 5) {
+    display: none;
+  }
+
+  .chat-sidebar-tab,
+  .chat-sidebar-close {
+    min-height: 36px;
+    min-width: 44px;
+  }
+
   /* Log stream */
   .log-stream {
     border-radius: var(--radius-md);
@@ -349,6 +383,10 @@
     min-height: 52px;
     padding: 8px 10px;
     font-size: 13px;
+  }
+
+  .chat-run-status__item:nth-child(n + 4) {
+    display: none;
   }
 
   .btn {

@@ -1,0 +1,141 @@
+name: Sync Upstream and Open PR
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Target branch to update"
+        required: false
+        default: "main"
+      upstream_branch:
+        description: "Upstream branch to merge from"
+        required: false
+        default: "main"
+      run_build_check:
+        description: "Run build check before opening PR"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO || 'openclaw/openclaw' }}
+      TARGET_BRANCH: ${{ inputs.target_branch || github.event.repository.default_branch }}
+      UPSTREAM_BRANCH: ${{ inputs.upstream_branch || 'main' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream into sync branch
+        id: sync
+        run: |
+          bash scripts/merge-helpers/sync-upstream-branch.sh \
+            --target-branch "${TARGET_BRANCH}" \
+            --upstream-branch "${UPSTREAM_BRANCH}" \
+            --upstream-url "https://github.com/${UPSTREAM_REPO}.git" \
+            --sync-branch "automation/upstream-sync" \
+            --ci-mode
+
+      - name: Install dependencies
+        if: steps.sync.outputs.changed == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_build_check
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+
+      - name: Setup Node.js
+        if: steps.sync.outputs.changed == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_build_check
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Build check
+        if: steps.sync.outputs.changed == 'true' && github.event_name == 'workflow_dispatch' && inputs.run_build_check
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Push sync branch
+        if: steps.sync.outputs.changed == 'true' && steps.sync.outputs.conflict != 'true'
+        run: git push --force-with-lease origin "${{ steps.sync.outputs.sync_branch }}"
+
+      - name: Create or update PR
+        if: steps.sync.outputs.changed == 'true' && steps.sync.outputs.conflict != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SYNC_BRANCH: ${{ steps.sync.outputs.sync_branch }}
+          TARGET_BRANCH: ${{ steps.sync.outputs.target_branch }}
+          UPSTREAM_REF: ${{ steps.sync.outputs.upstream_ref }}
+        run: |
+          title="chore(sync): merge ${UPSTREAM_REF} into ${TARGET_BRANCH}"
+          body_file="$(mktemp)"
+          cat > "${body_file}" <<EOF
+          ## Upstream Sync
+
+          This PR was generated automatically.
+
+          - Upstream source: \`${UPSTREAM_REF}\`
+          - Target branch: \`${TARGET_BRANCH}\`
+          - Workflow: \`${GITHUB_WORKFLOW}\`
+          - Trigger: \`${GITHUB_EVENT_NAME}\`
+
+          Please run project checks before merge:
+
+          \`\`\`bash
+          pnpm install
+          pnpm build
+          pnpm test
+          \`\`\`
+          EOF
+
+          pr_number="$(gh pr list --state open --head "${SYNC_BRANCH}" --base "${TARGET_BRANCH}" --json number --jq '.[0].number')"
+          if [[ -n "${pr_number}" ]]; then
+            gh pr edit "${pr_number}" --title "${title}" --body-file "${body_file}"
+            echo "Updated PR #${pr_number}"
+          else
+            gh pr create --head "${SYNC_BRANCH}" --base "${TARGET_BRANCH}" --title "${title}" --body-file "${body_file}"
+            echo "Created new sync PR"
+          fi
+
+      - name: Conflict summary
+        if: steps.sync.outputs.conflict == 'true'
+        run: |
+          {
+            echo "## Upstream sync requires manual merge"
+            echo ""
+            echo "- target branch: \`${{ steps.sync.outputs.target_branch }}\`"
+            echo "- upstream ref: \`${{ steps.sync.outputs.upstream_ref }}\`"
+            echo "- status: merge conflict detected"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: No changes summary
+        if: steps.sync.outputs.changed != 'true' && steps.sync.outputs.conflict != 'true'
+        run: |
+          {
+            echo "## Upstream sync"
+            echo ""
+            echo "No new upstream changes detected."
+            echo "- target branch: \`${{ steps.sync.outputs.target_branch }}\`"
+            echo "- upstream ref: \`${{ steps.sync.outputs.upstream_ref }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
