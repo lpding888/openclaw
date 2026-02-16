@@ -84,7 +84,12 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
+      - name: Skip npm publish when token is missing
+        if: secrets.NPM_TOKEN == ''
+        run: echo "::notice::Skipping npm publish because NPM_TOKEN is not configured."
+
       - name: Publish to npm
+        if: secrets.NPM_TOKEN != ''
         run: pnpm publish --access public --no-git-checks --provenance --tag ${{ steps.npm-tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
