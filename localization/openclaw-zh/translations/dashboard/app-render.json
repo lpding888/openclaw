@@ -1,0 +1,4 @@
+{
+  "file": "ui/src/ui/app-render.ts",
+  "description": "Dashboard 主布局和顶栏（保留官方图标，仅汉化文字和添加链接）"
+}

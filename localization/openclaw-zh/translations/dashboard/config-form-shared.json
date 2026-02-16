@@ -1,0 +1,5 @@
+{
+  "file": "ui/src/ui/views/config-form.shared.ts",
+  "description": "Dashboard 配置表单共享函数 - 添加动态标签翻译映射",
+  "replacements": {}
+}

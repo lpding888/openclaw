@@ -1,0 +1,7 @@
+{
+  "file": "src/daemon/schtasks.ts",
+  "description": "Windows schtasks 兼容修复 - 命令不可用时不阻断 onboarding",
+  "replacements": {
+    "throw new Error(`schtasks unavailable: ${detail || \"unknown error\"}`.trim());": "throw new Error(`schtasks unavailable: ${detail || \"unknown error\"}. On Windows, run in PowerShell/CMD or skip daemon install.`.trim());"
+  }
+}

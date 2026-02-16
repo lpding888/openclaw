@@ -1,0 +1,8 @@
+{
+  "file": "src/agents/models-config.providers.ts",
+  "description": "胜算云供应商注册 - 使用实时模型目录构建 provider",
+  "replacements": {
+    "__comment_shengsuanyun_import": "在 models-config.providers.ts 中注入胜算云模型发现函数导入与隐式注册",
+    "import { discoverVeniceModels, VENICE_BASE_URL } from \"./venice-models.js\";": "import { discoverVeniceModels, VENICE_BASE_URL } from \"./venice-models.js\";\nimport { getShengSuanYunModels, SHENGSUANYUN_BASE_URL } from \"./shengsuanyun-models.js\";"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "file": "src/commands/auth-choice-options.ts",
+  "description": "胜算云认证菜单 - 在顶层提供商分组和子选项中添加胜算云",
+  "replacements": {}
+}

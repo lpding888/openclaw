@@ -1,0 +1,7 @@
+{
+  "file": "src/commands/auth-choice.apply.api-providers.ts",
+  "description": "胜算云认证流程 - 在 together-api-key 之前插入胜算云处理逻辑",
+  "replacements": {
+    "setTogetherApiKey,": "setShengSuanYunApiKey,\n setTogetherApiKey,"
+  }
+}

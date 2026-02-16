@@ -1,0 +1,21 @@
+{
+  "file": "ui/src/ui/views/config.ts",
+  "description": "Dashboard 配置页面",
+  "replacements": {
+    "<div class=\"config-sidebar__title\">Settings</div>": "<div class=\"config-sidebar__title\">设置</div>",
+    "placeholder=\"Search settings...\"": "placeholder=\"搜索设置...\"",
+    "<span class=\"config-nav__label\">All Settings</span>": "<span class=\"config-nav__label\">所有设置</span>",
+    "\"Unsaved changes\"": "\"未保存的更改\"",
+    "`${diff.length} unsaved change${diff.length !== 1 ? \"s\" : \"\"}`": "`${diff.length} 项未保存更改`",
+    "<span class=\"config-status muted\">No changes</span>": "<span class=\"config-status muted\">无更改</span>",
+    "${props.loading ? \"Loading…\" : \"Reload\"}": "${props.loading ? \"加载中…\" : \"重新加载\"}",
+    "${props.saving ? \"Saving…\" : \"Save\"}": "${props.saving ? \"保存中…\" : \"保存\"}",
+    "${props.applying ? \"Applying…\" : \"Apply\"}": "${props.applying ? \"应用中…\" : \"应用\"}",
+    "${props.updating ? \"Updating…\" : \"Update\"}": "${props.updating ? \"更新中…\" : \"更新\"}",
+    "<span>Loading schema…</span>": "<span>加载架构中…</span>",
+    "Form view can't safely edit some fields.": "表单视图无法安全编辑某些字段。",
+    "Use Raw to avoid losing config entries.": "使用原始模式以避免丢失配置条目。",
+    "<span>Raw JSON5</span>": "<span>原始 JSON5</span>",
+    ".map((k) => ({ key: k, label: k.charAt(0).toUpperCase() + k.slice(1) }))": ".map((k) => ({ key: k, label: humanize(k) }))"
+  }
+}
