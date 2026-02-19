@@ -9,6 +9,7 @@ import { formatZonedTimestamp } from "../../infra/format-time/format-datetime.js
 import { resetLogger, setLoggerOverride } from "../../logging.js";
 import { ExecApprovalManager } from "../exec-approval-manager.js";
 import { validateExecApprovalRequestParams } from "../protocol/index.js";
+import { handleGatewayRequest } from "../server-methods.js";
 import { waitForAgentJob } from "./agent-job.js";
 import { injectTimestamp, timestampOptsFromConfig } from "./agent-timestamp.js";
 import { normalizeRpcAttachmentsToChatAttachments } from "./attachment-normalize.js";
@@ -533,5 +534,52 @@ describe("logs.tail", () => {
     );
 
     await fsPromises.rm(tempDir, { recursive: true, force: true });
+  });
+});
+
+describe("gateway method scopes for models.default", () => {
+  it("allows models.default.get with operator.read", async () => {
+    const respond = vi.fn();
+    const handler = vi.fn(({ respond: res }: { respond: typeof respond }) =>
+      res(true, { primary: "openai/gpt-test" }, undefined),
+    );
+
+    await handleGatewayRequest({
+      req: { type: "req", id: "m-read", method: "models.default.get", params: {} },
+      respond,
+      client: { connect: { role: "operator", scopes: ["operator.read"] } },
+      isWebchatConnect: () => false,
+      extraHandlers: { "models.default.get": handler },
+      context: {} as Parameters<typeof handleGatewayRequest>[0]["context"],
+    });
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(respond).toHaveBeenCalledWith(true, { primary: "openai/gpt-test" }, undefined);
+  });
+
+  it("rejects models.default.set without operator.admin", async () => {
+    const respond = vi.fn();
+    const handler = vi.fn();
+
+    await handleGatewayRequest({
+      req: {
+        type: "req",
+        id: "m-set",
+        method: "models.default.set",
+        params: { primary: "openai/gpt-test", baseHash: "hash" },
+      },
+      respond,
+      client: { connect: { role: "operator", scopes: ["operator.read"] } },
+      isWebchatConnect: () => false,
+      extraHandlers: { "models.default.set": handler },
+      context: {} as Parameters<typeof handleGatewayRequest>[0]["context"],
+    });
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(respond).toHaveBeenCalledWith(
+      false,
+      undefined,
+      expect.objectContaining({ message: "missing scope: operator.admin" }),
+    );
   });
 });
