@@ -162,6 +162,71 @@ describe("runCronIsolatedAgentTurn", () => {
     });
   });
 
+  it("uses cron origin session for unpinned announce fallback and implicit delivery resolution", async () => {
+    await withTempCronHome(async (home) => {
+      const storePath = await writeSessionStore(home, { lastProvider: "webchat", lastTo: "" });
+      const originSessionKey = "agent:main:bluebubbles:direct:+19257864429";
+      await fs.writeFile(
+        storePath,
+        JSON.stringify(
+          {
+            "agent:main:main": {
+              sessionId: "main-session",
+              updatedAt: Date.now(),
+              lastChannel: "telegram",
+              lastTo: "999",
+            },
+            [originSessionKey]: {
+              sessionId: "origin-session",
+              updatedAt: Date.now(),
+              lastChannel: "telegram",
+              lastTo: "123",
+            },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+      const deps = createCliDeps();
+      mockAgentPayloads([{ text: "Final weather summary" }]);
+
+      const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          session: {
+            store: storePath,
+            mainKey: "main",
+            dmScope: "per-channel-peer",
+          },
+          channels: {
+            telegram: { botToken: "t-1" },
+          },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          sessionKey: originSessionKey,
+          delivery: { mode: "announce" },
+        },
+        message: "do it",
+        sessionKey: "cron:job-1",
+        lane: "cron",
+      });
+
+      expect(res.status).toBe("ok");
+      expect(runSubagentAnnounceFlow).toHaveBeenCalledTimes(1);
+      const announceArgs = vi.mocked(runSubagentAnnounceFlow).mock.calls[0]?.[0] as
+        | {
+            requesterSessionKey?: string;
+            requesterOrigin?: { channel?: string; to?: string };
+          }
+        | undefined;
+      expect(announceArgs?.requesterSessionKey).toBe(originSessionKey);
+      expect(announceArgs?.requesterOrigin?.channel).toBe("telegram");
+      expect(announceArgs?.requesterOrigin?.to).toBe("123");
+    });
+  });
+
   it("passes resolved threadId into shared subagent announce flow", async () => {
     await withTempCronHome(async (home) => {
       const storePath = await writeSessionStore(home, { lastProvider: "webchat", lastTo: "" });

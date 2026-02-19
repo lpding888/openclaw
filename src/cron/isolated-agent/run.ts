@@ -45,6 +45,7 @@ import {
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { deliverOutboundPayloads } from "../../infra/outbound/deliver.js";
 import { resolveAgentOutboundIdentity } from "../../infra/outbound/identity.js";
+import { resolveOutboundSessionRoute } from "../../infra/outbound/outbound-session.js";
 import { logWarn } from "../../logger.js";
 import { buildAgentMainSessionKey, normalizeAgentId } from "../../routing/session-key.js";
 import {
@@ -100,6 +101,48 @@ function resolveCronDeliveryBestEffort(job: CronJob): boolean {
   return false;
 }
 
+function hasPinnedCronAnnounceTarget(plan: { channel?: string; to?: string }): boolean {
+  const to = typeof plan.to === "string" ? plan.to.trim() : "";
+  if (to) {
+    return true;
+  }
+  const channel = typeof plan.channel === "string" ? plan.channel.trim().toLowerCase() : "";
+  return Boolean(channel && channel !== "last");
+}
+
+async function resolveCronAnnounceSessionKey(params: {
+  cfg: OpenClawConfig;
+  agentId: string;
+  fallbackSessionKey: string;
+  delivery: {
+    channel: Parameters<typeof resolveOutboundSessionRoute>[0]["channel"];
+    to?: string;
+    accountId?: string;
+    threadId?: string | number;
+  };
+}): Promise<string> {
+  const to = params.delivery.to?.trim();
+  if (!to) {
+    return params.fallbackSessionKey;
+  }
+  try {
+    const route = await resolveOutboundSessionRoute({
+      cfg: params.cfg,
+      channel: params.delivery.channel,
+      agentId: params.agentId,
+      accountId: params.delivery.accountId,
+      target: to,
+      threadId: params.delivery.threadId,
+    });
+    const resolved = route?.sessionKey?.trim();
+    if (resolved) {
+      return resolved;
+    }
+  } catch {
+    // Fall back to main session routing if announce session resolution fails.
+  }
+  return params.fallbackSessionKey;
+}
 export type RunCronAgentTurnResult = {
   status: "ok" | "error" | "skipped";
   summary?: string;
@@ -324,10 +367,17 @@ export async function runCronIsolatedAgentTurn(params: {
   const agentPayload = params.job.payload.kind === "agentTurn" ? params.job.payload : null;
   const deliveryPlan = resolveCronDeliveryPlan(params.job);
   const deliveryRequested = deliveryPlan.requested;
+  const cronOriginSessionKey =
+    params.job.sessionKey?.trim() ||
+    resolveAgentMainSessionKey({
+      cfg: params.cfg,
+      agentId,
+    });
 
   const resolvedDelivery = await resolveDeliveryTarget(cfgWithAgentDefaults, agentId, {
     channel: deliveryPlan.channel ?? "last",
     to: deliveryPlan.to,
+    sessionKey: cronOriginSessionKey,
   });
 
   const { formattedTime, timeLine } = resolveCronStyleNow(params.cfg, now);
@@ -599,10 +649,23 @@ export async function runCronIsolatedAgentTurn(params: {
         }
       }
     } else if (synthesizedText) {
-      const announceSessionKey = resolveAgentMainSessionKey({
-        cfg: params.cfg,
-        agentId,
+      const announceUsesPinnedTarget = hasPinnedCronAnnounceTarget({
+        channel: deliveryPlan.channel,
+        to: deliveryPlan.to,
       });
+      const announceSessionKey = announceUsesPinnedTarget
+        ? await resolveCronAnnounceSessionKey({
+            cfg: cfgWithAgentDefaults,
+            agentId,
+            fallbackSessionKey: cronOriginSessionKey,
+            delivery: {
+              channel: resolvedDelivery.channel,
+              to: resolvedDelivery.to,
+              accountId: resolvedDelivery.accountId,
+              threadId: resolvedDelivery.threadId,
+            },
+          })
+        : cronOriginSessionKey;
       const taskLabel =
         typeof params.job.name === "string" && params.job.name.trim()
           ? params.job.name.trim()
