@@ -89,6 +89,32 @@ Related:
 - [/gateway/authentication](/gateway/authentication)
 - [/gateway/remote](/gateway/remote)
 
+## Control UI model switching fails
+
+Use this when top bar model switching or model center save fails.
+
+```bash
+openclaw models list
+openclaw config get agents.defaults.model
+openclaw gateway status
+openclaw logs --follow
+```
+
+Look for:
+
+- Stale base hash conflict (`config changed since last load`).
+- Unknown model IDs rejected by validation.
+- Compatibility mode fallback on older gateways.
+
+Common signatures:
+
+- `config changed since last load; re-run models.default.get and retry`:
+  - Another client changed config; reload the page and retry.
+- `unknown model id` / `unknown fallback model id`:
+  - Pick a model from `openclaw models list`, or use model center custom mode intentionally.
+- `unknown method` for `models.default.get` or `models.default.set`:
+  - Gateway is older; Control UI should show compatibility mode and use legacy apply flow.
+
 ## Gateway service not running
 
 Use this when service is installed but process does not stay up.

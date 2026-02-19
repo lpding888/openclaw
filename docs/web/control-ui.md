@@ -75,6 +75,8 @@ you revoke it with `openclaw devices revoke --device <id> --role <role>`. See
 - Config: apply + restart with validation (`config.apply`) and wake the last active session
 - Config writes include a base-hash guard to prevent clobbering concurrent edits
 - Config schema + form rendering (`config.schema`, including plugin + channel schemas); Raw JSON editor remains available
+- Models: quick default model switch from the top bar (`models.default.get`, `models.default.set`)
+- Models: model center in Config tab for primary + fallback editing with explicit save
 - Debug: status/health/models snapshots + event log + manual RPC calls (`status`, `health`, `models.list`)
 - Logs: live tail of gateway file logs with filter/export (`logs.tail`)
 - Update: run a package/git update + restart (`update.run`) with a restart report
@@ -87,6 +89,24 @@ Cron jobs panel notes:
 - For main-session jobs, webhook and none delivery modes are available.
 - Set `cron.webhookToken` to send a dedicated bearer token, if omitted the webhook is sent without an auth header.
 - Deprecated fallback: stored legacy jobs with `notify: true` can still use `cron.webhook` until migrated.
+
+## Default model switching
+
+Control UI provides two modes for default model management:
+
+- Quick mode (top bar):
+  - Pick a model and save immediately.
+  - UI shows saving state and success feedback.
+  - On failure, UI rolls back to the previous model.
+- Model center (Config tab):
+  - Edit primary and fallback models together, then save explicitly.
+  - Optional custom model ID support for advanced setups.
+  - Includes reset to current config state.
+
+Compatibility behavior:
+
+- If the gateway does not support `models.default.get/set`, Control UI enters compatibility mode.
+- Compatibility mode falls back to `config.get + config.apply` and shows a UI hint.
 
 ## Chat behavior
 

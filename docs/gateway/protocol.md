@@ -175,6 +175,19 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 - When an exec request needs approval, the gateway broadcasts `exec.approval.requested`.
 - Operator clients resolve by calling `exec.approval.resolve` (requires `operator.approvals` scope).
 
+## Model default control
+
+- `models.default.get` (scope: `operator.read`) returns:
+  - `primary`
+  - `fallbacks`
+  - `configHash`
+  - `sourcePath`
+- `models.default.set` (scope: `operator.admin`) updates only `agents.defaults.model`.
+  - Input: `primary`, `baseHash`, optional `fallbacks`, optional `allowUnknown`.
+  - `baseHash` is checked for optimistic concurrency; stale hashes are rejected.
+  - This path writes config directly and does not use `config.apply` restart flow.
+- `models.default.changed` is broadcast after successful updates so multiple control clients can sync.
+
 ## Versioning
 
 - `PROTOCOL_VERSION` lives in `src/gateway/protocol/schema.ts`.
