@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import fs from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
 import { execFile } from "node:child_process";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { promisify } from "node:util";
 import { sanitizeOpenClawZh } from "./sanitize-openclaw-zh.mjs";
 
@@ -57,7 +57,9 @@ const main = async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-zh-sync-"));
   try {
     await execFileAsync("git", ["clone", "--depth=1", sourceRepo, tempDir]);
-    const { stdout: commitRaw } = await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: tempDir });
+    const { stdout: commitRaw } = await execFileAsync("git", ["rev-parse", "HEAD"], {
+      cwd: tempDir,
+    });
     const sourceCommit = commitRaw.trim();
 
     const sourceTranslations = path.join(tempDir, "translations");

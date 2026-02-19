@@ -89,7 +89,11 @@ export const applyCopyFiles = async (copyConfig, targetDir, options = {}) => {
   };
 
   for (const item of items) {
-    const sourcePath = assertPathWithin(TRANSLATIONS_DIR, path.join(TRANSLATIONS_DIR, item.source), "source");
+    const sourcePath = assertPathWithin(
+      TRANSLATIONS_DIR,
+      path.join(TRANSLATIONS_DIR, item.source),
+      "source",
+    );
     const targetPath = assertPathWithin(targetDir, path.join(targetDir, item.target), "target");
 
     const sourceContent = await fs.readFile(sourcePath, "utf8").catch(() => null);
@@ -120,10 +124,15 @@ export const applyCopyFiles = async (copyConfig, targetDir, options = {}) => {
 
 export const applyTranslation = async (translation, targetDir, options = {}) => {
   const { dryRun = false, verify = false, verbose = false } = options;
-  const replacements = translation.replacements && typeof translation.replacements === "object"
-    ? translation.replacements
-    : {};
-  const targetPath = assertPathWithin(targetDir, path.join(targetDir, translation.file || ""), "translation target");
+  const replacements =
+    translation.replacements && typeof translation.replacements === "object"
+      ? translation.replacements
+      : {};
+  const targetPath = assertPathWithin(
+    targetDir,
+    path.join(targetDir, translation.file || ""),
+    "translation target",
+  );
 
   const stats = {
     file: translation.file || translation.configFile || "unknown",

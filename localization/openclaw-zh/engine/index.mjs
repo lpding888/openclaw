@@ -5,7 +5,9 @@ import { statusCommand } from "./commands/status.mjs";
 import { log } from "./utils/logger.mjs";
 
 const printHelp = () => {
-  console.log(`openclaw zh engine\n\nusage:\n  node localization/openclaw-zh/engine/index.mjs <command> [options]\n\ncommands:\n  status [--target=/path]\n  apply --target=/path [--dry-run] [--verbose]\n  verify --target=/path [--verbose]\n  restore --target=/path\n`);
+  console.log(
+    `openclaw zh engine\n\nusage:\n  node localization/openclaw-zh/engine/index.mjs <command> [options]\n\ncommands:\n  status [--target=/path]\n  apply --target=/path [--dry-run] [--verbose]\n  verify --target=/path [--verbose]\n  restore --target=/path\n`,
+  );
 };
 
 const run = async () => {

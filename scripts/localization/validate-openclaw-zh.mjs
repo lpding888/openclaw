@@ -55,7 +55,9 @@ const parseArgs = () => {
   const thresholdArg = args.find((a) => a.startsWith("--min-hit-rate="));
   return {
     targetDir: targetArg ? path.resolve(targetArg.slice("--target=".length)) : process.cwd(),
-    minHitRate: thresholdArg ? Number(thresholdArg.slice("--min-hit-rate=".length)) : DEFAULT_MIN_HIT_RATE,
+    minHitRate: thresholdArg
+      ? Number(thresholdArg.slice("--min-hit-rate=".length))
+      : DEFAULT_MIN_HIT_RATE,
   };
 };
 
@@ -97,7 +99,10 @@ const main = async () => {
 
     if (parsed.file && parsed.replacements) {
       const targetFile = path.resolve(path.join(targetDir, parsed.file));
-      if (!targetFile.startsWith(`${path.resolve(targetDir)}${path.sep}`) && targetFile !== path.resolve(targetDir)) {
+      if (
+        !targetFile.startsWith(`${path.resolve(targetDir)}${path.sep}`) &&
+        targetFile !== path.resolve(targetDir)
+      ) {
         errors.push(`target escape in ${rel}: ${parsed.file}`);
         continue;
       }

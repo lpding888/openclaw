@@ -48,9 +48,9 @@ const ENGINE_JSON_PATH_ALLOWLIST = [
 const isEngineJsonShape = (node) =>
   Boolean(
     node &&
-      typeof node === "object" &&
-      !Array.isArray(node) &&
-      ("modules" in node || "replacements" in node || "copyFiles" in node || "file" in node),
+    typeof node === "object" &&
+    !Array.isArray(node) &&
+    ("modules" in node || "replacements" in node || "copyFiles" in node || "file" in node),
   );
 
 const isBannedText = (value) => {
@@ -78,7 +78,8 @@ const stripExternal = (value, stats) => {
   return compacted;
 };
 
-const isAllowedEnginePath = (pathKey) => ENGINE_JSON_PATH_ALLOWLIST.some((pattern) => pattern.test(pathKey));
+const isAllowedEnginePath = (pathKey) =>
+  ENGINE_JSON_PATH_ALLOWLIST.some((pattern) => pattern.test(pathKey));
 
 const sanitizePathKey = (rawPath) => rawPath.replace(/^\./, "");
 
@@ -149,7 +150,12 @@ const sanitizeJsonNode = (node, stats, ctx = { inReplacements: false }) => {
 
     const nextValue = sanitizeJsonNode(value, stats, { inReplacements });
 
-    if (inReplacements && !key.startsWith("__comment") && typeof nextValue === "string" && nextValue.length === 0) {
+    if (
+      inReplacements &&
+      !key.startsWith("__comment") &&
+      typeof nextValue === "string" &&
+      nextValue.length === 0
+    ) {
       stats.removedEntries += 1;
       continue;
     }

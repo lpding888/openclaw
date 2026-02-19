@@ -30,7 +30,10 @@ export const statusCommand = async (args) => {
   log.info(`translationFiles=${fileCount}`);
 
   const syncMetaPath = path.join(ROOT_DIR, "sync-source.json");
-  const syncMeta = await fs.readFile(syncMetaPath, "utf8").then((s) => JSON.parse(s)).catch(() => null);
+  const syncMeta = await fs
+    .readFile(syncMetaPath, "utf8")
+    .then((s) => JSON.parse(s))
+    .catch(() => null);
   if (syncMeta) {
     log.info(`sourceRepo=${syncMeta.sourceRepo}`);
     log.info(`sourceCommit=${syncMeta.sourceCommit}`);

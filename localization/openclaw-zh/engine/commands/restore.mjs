@@ -40,7 +40,9 @@ export const restoreCommand = async (args) => {
 
   const existing = [];
   for (const f of targetFiles) {
-    const out = await execFileAsync("git", ["ls-files", "--error-unmatch", f], { cwd: targetDir }).then(
+    const out = await execFileAsync("git", ["ls-files", "--error-unmatch", f], {
+      cwd: targetDir,
+    }).then(
       () => true,
       () => false,
     );

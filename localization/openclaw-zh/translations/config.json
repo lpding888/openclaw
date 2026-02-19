@@ -19,10 +19,7 @@
       "wizard/finalize.json",
       "wizard/onboarding-finalize.json"
     ],
-    "tui": [
-      "tui/waiting.json",
-      "tui/commands.json"
-    ],
+    "tui": ["tui/waiting.json", "tui/commands.json"],
     "commands": [
       "commands/auth-choice.json",
       "commands/auth-choice-options.json",
@@ -48,10 +45,7 @@
       "commands/package-root-fix.json",
       "commands/model-picker.json"
     ],
-    "daemon": [
-      "daemon/systemd-hints.json",
-      "daemon/schtasks.json"
-    ],
+    "daemon": ["daemon/systemd-hints.json", "daemon/schtasks.json"],
     "dashboard": [
       "dashboard/navigation.json",
       "dashboard/app-render.json",
