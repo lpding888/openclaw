@@ -72,10 +72,14 @@ export class ResizableDivider extends LitElement {
   };
 
   private handleMouseMove = (e: MouseEvent) => {
-    if (!this.isDragging) return;
+    if (!this.isDragging) {
+      return;
+    }
 
     const container = this.parentElement;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const containerWidth = container.getBoundingClientRect().width;
     const deltaX = e.clientX - this.startX;
@@ -89,7 +93,7 @@ export class ResizableDivider extends LitElement {
         detail: { splitRatio: newRatio },
         bubbles: true,
         composed: true,
-      })
+      }),
     );
   };
 

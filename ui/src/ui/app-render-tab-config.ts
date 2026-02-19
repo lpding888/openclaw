@@ -1,8 +1,13 @@
 import type { TemplateResult } from "lit";
-
-import type { AppViewState } from "./app-view-state";
-import { applyConfig, loadConfig, runUpdate, saveConfig, updateConfigFormValue } from "./controllers/config";
-import { renderConfig } from "./views/config";
+import type { AppViewState } from "./app-view-state.ts";
+import {
+  applyConfig,
+  loadConfig,
+  runUpdate,
+  saveConfig,
+  updateConfigFormValue,
+} from "./controllers/config.ts";
+import { renderConfig } from "./views/config.ts";
 
 export function renderConfigTab(state: AppViewState): TemplateResult {
   return renderConfig({

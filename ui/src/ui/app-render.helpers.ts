@@ -1,17 +1,18 @@
 import { html, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-
-import type { AppViewState } from "./app-view-state";
-import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation";
-import { icons } from "./icons";
-import { loadChatHistory } from "./controllers/chat";
-import { loadChatTimeline } from "./controllers/chat-timeline";
-import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability";
-import { applyModelSwitcherSelection, loadModelSwitcher } from "./controllers/model-switcher";
-import { syncUrlWithSessionKey } from "./app-settings";
-import type { SessionsListResult } from "./types";
-import type { ThemeMode } from "./theme";
-import type { ThemeTransitionContext } from "./theme-transition";
+import type { AppViewState } from "./app-view-state.ts";
+import type { OpenClawApp } from "./app.ts";
+import type { ThemeTransitionContext } from "./theme-transition.ts";
+import type { ThemeMode } from "./theme.ts";
+import type { SessionsListResult } from "./types.ts";
+import { refreshChat } from "./app-chat.ts";
+import { syncUrlWithSessionKey } from "./app-settings.ts";
+import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability.ts";
+import { loadChatTimeline } from "./controllers/chat-timeline.ts";
+import { loadChatHistory } from "./controllers/chat.ts";
+import { applyModelSwitcherSelection, loadModelSwitcher } from "./controllers/model-switcher.ts";
+import { icons } from "./icons.ts";
+import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
 
 type SessionDefaultsSnapshot = {
   mainSessionKey?: string;
@@ -90,8 +91,39 @@ export function renderChatControls(state: AppViewState) {
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const focusActive = state.onboarding ? true : state.settings.chatFocusMode;
   // Refresh icon
-  const refreshIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>`;
-  const focusIcon = html`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h3"></path><path d="M20 7V4h-3"></path><path d="M4 17v3h3"></path><path d="M20 17v3h-3"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  const refreshIcon = html`
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+      <path d="M21 3v5h-5"></path>
+    </svg>
+  `;
+  const focusIcon = html`
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M4 7V4h3"></path>
+      <path d="M20 7V4h-3"></path>
+      <path d="M4 17v3h3"></path>
+      <path d="M20 17v3h-3"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+  `;
   return html`
     <div class="chat-controls">
       <label class="field chat-controls__session">
@@ -173,16 +205,16 @@ export function renderChatControls(state: AppViewState) {
         class="btn btn--sm btn--icon ${showThinking ? "active" : ""}"
         ?disabled=${disableThinkingToggle}
         @click=${() => {
-          if (disableThinkingToggle) return;
+          if (disableThinkingToggle) {
+            return;
+          }
           state.applySettings({
             ...state.settings,
             chatShowThinking: !state.settings.chatShowThinking,
           });
         }}
         aria-pressed=${showThinking}
-        title=${disableThinkingToggle
-          ? "在引导期间禁用"
-          : "切换助手思考/工作输出"}
+        title=${disableThinkingToggle ? "在引导期间禁用" : "切换助手思考/工作输出"}
       >
         ${icons.brain}
       </button>
@@ -205,16 +237,16 @@ export function renderChatControls(state: AppViewState) {
         class="btn btn--sm btn--icon ${focusActive ? "active" : ""}"
         ?disabled=${disableFocusToggle}
         @click=${() => {
-          if (disableFocusToggle) return;
+          if (disableFocusToggle) {
+            return;
+          }
           state.applySettings({
             ...state.settings,
             chatFocusMode: !state.settings.chatFocusMode,
           });
         }}
         aria-pressed=${focusActive}
-        title=${disableFocusToggle
-          ? "在引导期间禁用"
-          : "切换焦点模式（隐藏侧边栏和页面头部）"}
+        title=${disableFocusToggle ? "在引导期间禁用" : "切换焦点模式（隐藏侧边栏和页面头部）"}
       >
         ${focusIcon}
       </button>
@@ -265,25 +297,6 @@ export function renderChatControls(state: AppViewState) {
       </label>
     </div>
   `;
-}
-
-function resolveMainSessionKey(
-  hello: AppViewState["hello"],
-  sessions: SessionsListResult | null,
-): string | null {
-  const snapshot = hello?.snapshot as { sessionDefaults?: SessionDefaultsSnapshot } | undefined;
-  const mainSessionKey = snapshot?.sessionDefaults?.mainSessionKey?.trim();
-  if (mainSessionKey) {
-    return mainSessionKey;
-  }
-  const mainKey = snapshot?.sessionDefaults?.mainKey?.trim();
-  if (mainKey) {
-    return mainKey;
-  }
-  if (sessions?.sessions?.some((row) => row.key === "main")) {
-    return "main";
-  }
-  return null;
 }
 
 /* ── Channel display labels ────────────────────────────── */
@@ -378,11 +391,7 @@ export function resolveSessionDisplayName(
   return fallbackName;
 }
 
-function resolveSessionOptions(
-  sessionKey: string,
-  sessions: SessionsListResult | null,
-  mainSessionKey?: string | null,
-) {
+function resolveSessionOptions(sessionKey: string, sessions: SessionsListResult | null) {
   const seen = new Set<string>();
   const options: Array<{ key: string; displayName?: string }> = [];
 
@@ -482,11 +491,15 @@ export function renderTopbarModelSwitcher(state: AppViewState) {
           state.modelSwitcherSelected = (event.target as HTMLSelectElement).value;
         }}
       >
-        ${hasOptions
-          ? state.modelSwitcherOptions.map(
-              (entry) => html`<option value=${entry.id}>${entry.label}</option>`,
-            )
-          : html`<option value="">暂无可用模型</option>`}
+        ${
+          hasOptions
+            ? state.modelSwitcherOptions.map(
+                (entry) => html`<option value=${entry.id}>${entry.label}</option>`,
+              )
+            : html`
+                <option value="">暂无可用模型</option>
+              `
+        }
       </select>
       <button
         class="btn btn--sm"
@@ -507,9 +520,11 @@ export function renderTopbarModelSwitcher(state: AppViewState) {
         应用
       </button>
       <span class="topbar-model__hint">${hint}</span>
-      ${state.modelSwitcherError
-        ? html`<span class="topbar-model__error" title=${state.modelSwitcherError}>!</span>`
-        : nothing}
+      ${
+        state.modelSwitcherError
+          ? html`<span class="topbar-model__error" title=${state.modelSwitcherError}>!</span>`
+          : nothing
+      }
     </div>
   `;
 }

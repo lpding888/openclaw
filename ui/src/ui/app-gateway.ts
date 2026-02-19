@@ -1,34 +1,40 @@
-import { loadChatHistory } from "./controllers/chat";
-import { loadDevices } from "./controllers/devices";
-import { loadNodes } from "./controllers/nodes";
-import { loadAgents } from "./controllers/agents";
-import type { GatewayEventFrame, GatewayHelloOk } from "./gateway";
-import { GatewayBrowserClient } from "./gateway";
-import type { EventLogEntry } from "./app-events";
-import type { AgentsListResult, PresenceEntry, HealthSnapshot } from "./types";
-import type { Tab } from "./navigation";
-import type { UiSettings } from "./storage";
-import { handleAgentEvent, resetToolStream, type AgentEventPayload } from "./app-tool-stream";
-import { flushChatQueueForEvent } from "./app-chat";
+import type { EventLogEntry } from "./app-events.ts";
+import type { AgentEventPayload } from "./app-tool-stream.ts";
+import type { ClawdbotApp } from "./app.ts";
+import type { ChatEventPayload } from "./controllers/chat.ts";
+import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
+import type { GatewayEventFrame, GatewayHelloOk } from "./gateway.ts";
+import type { Tab } from "./navigation.ts";
+import type { UiSettings } from "./storage.ts";
+import type { AgentsListResult, PresenceEntry, HealthSnapshot } from "./types.ts";
+import { GATEWAY_CLIENT_NAMES } from "../../../src/gateway/protocol/client-info.js";
+import { flushChatQueueForEvent } from "./app-chat.ts";
 import {
   applySettings,
   loadCron,
   refreshActiveTab,
   setLastActiveSessionKey,
-} from "./app-settings";
-import { handleChatEvent, type ChatEventPayload } from "./controllers/chat";
+} from "./app-settings.ts";
+import { handleAgentEvent, resetToolStream } from "./app-tool-stream.ts";
+import { loadAgents } from "./controllers/agents.ts";
+import { loadAssistantIdentity } from "./controllers/assistant-identity.ts";
+import {
+  appendChatTimelineRunSummary,
+  syncFallbackRunSummaries,
+} from "./controllers/chat-observability.ts";
+import { appendChatTimelineEvent } from "./controllers/chat-timeline.ts";
+import { loadChatHistory } from "./controllers/chat.ts";
+import { handleChatEvent } from "./controllers/chat.ts";
+import { loadDevices } from "./controllers/devices.ts";
 import {
   addExecApproval,
   parseExecApprovalRequested,
   parseExecApprovalResolved,
   removeExecApproval,
-} from "./controllers/exec-approval";
-import type { ClawdbotApp } from "./app";
-import type { ExecApprovalRequest } from "./controllers/exec-approval";
-import { loadAssistantIdentity } from "./controllers/assistant-identity";
-import { appendChatTimelineEvent } from "./controllers/chat-timeline";
-import { appendChatTimelineRunSummary, syncFallbackRunSummaries } from "./controllers/chat-observability";
-import { loadModelSwitcher } from "./controllers/model-switcher";
+} from "./controllers/exec-approval.ts";
+import { loadModelSwitcher } from "./controllers/model-switcher.ts";
+import { loadNodes } from "./controllers/nodes.ts";
+import { GatewayBrowserClient } from "./gateway.ts";
 
 type GatewayHost = {
   settings: UiSettings;
@@ -55,8 +61,8 @@ type GatewayHost = {
   chatRunId: string | null;
   chatTimelineServerSupported: boolean;
   chatTimelineRunsServerSupported: boolean;
-  chatTimelineRuns: import("./types").ChatTimelineRunSummary[];
-  chatTimelineEvents: import("./types").ChatTimelineEvent[];
+  chatTimelineRuns: import("./types.ts").ChatTimelineRunSummary[];
+  chatTimelineEvents: import("./types.ts").ChatTimelineEvent[];
   execApprovalQueue: ExecApprovalRequest[];
   execApprovalError: string | null;
 };
@@ -74,21 +80,26 @@ function normalizeSessionKeyForDefaults(
 ): string {
   const raw = (value ?? "").trim();
   const mainSessionKey = defaults.mainSessionKey?.trim();
-  if (!mainSessionKey) return raw;
-  if (!raw) return mainSessionKey;
+  if (!mainSessionKey) {
+    return raw;
+  }
+  if (!raw) {
+    return mainSessionKey;
+  }
   const mainKey = defaults.mainKey?.trim() || "main";
   const defaultAgentId = defaults.defaultAgentId?.trim();
   const isAlias =
     raw === "main" ||
     raw === mainKey ||
     (defaultAgentId &&
-      (raw === `agent:${defaultAgentId}:main` ||
-        raw === `agent:${defaultAgentId}:${mainKey}`));
+      (raw === `agent:${defaultAgentId}:main` || raw === `agent:${defaultAgentId}:${mainKey}`));
   return isAlias ? mainSessionKey : raw;
 }
 
 function applySessionDefaults(host: GatewayHost, defaults?: SessionDefaultsSnapshot) {
-  if (!defaults?.mainSessionKey) return;
+  if (!defaults?.mainSessionKey) {
+    return;
+  }
   const resolvedSessionKey = normalizeSessionKeyForDefaults(host.sessionKey, defaults);
   const resolvedSettingsSessionKey = normalizeSessionKeyForDefaults(
     host.settings.sessionKey,
@@ -127,7 +138,7 @@ export function connectGateway(host: GatewayHost) {
     url: host.settings.gatewayUrl,
     token: host.settings.token.trim() ? host.settings.token : undefined,
     password: host.password.trim() ? host.password : undefined,
-    clientName: "clawdbot-control-ui",
+    clientName: GATEWAY_CLIENT_NAMES.CONTROL_UI,
     mode: "webchat",
     onHello: (hello) => {
       if (host.client !== client) {
@@ -190,9 +201,11 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   }
 
   if (evt.event === "agent") {
-    if (host.onboarding) return;
+    if (host.onboarding) {
+      return;
+    }
+    const payload = evt.payload as AgentEventPayload | undefined;
     if (!host.chatTimelineServerSupported) {
-      const payload = evt.payload as AgentEventPayload | undefined;
       if (payload?.sessionKey === host.sessionKey) {
         appendChatTimelineEvent(host as unknown as Parameters<typeof appendChatTimelineEvent>[0], {
           sessionKey: payload.sessionKey,
@@ -205,10 +218,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
         syncFallbackRunSummaries(host as unknown as Parameters<typeof syncFallbackRunSummaries>[0]);
       }
     }
-    handleAgentEvent(
-      host as unknown as Parameters<typeof handleAgentEvent>[0],
-      evt.payload as AgentEventPayload | undefined,
-    );
+    handleAgentEvent(host as unknown as Parameters<typeof handleAgentEvent>[0], payload);
     return;
   }
 
@@ -223,11 +233,11 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
     const state = handleChatEvent(host as unknown as ClawdbotApp, payload);
     if (state === "final" || state === "error" || state === "aborted") {
       resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
-      void flushChatQueueForEvent(
-        host as unknown as Parameters<typeof flushChatQueueForEvent>[0],
-      );
+      void flushChatQueueForEvent(host as unknown as Parameters<typeof flushChatQueueForEvent>[0]);
     }
-    if (state === "final") void loadChatHistory(host as unknown as ClawdbotApp);
+    if (state === "final") {
+      void loadChatHistory(host as unknown as ClawdbotApp);
+    }
     return;
   }
 

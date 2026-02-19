@@ -429,6 +429,41 @@ export type GatewayAgentRow = {
   };
 };
 
+export type AgentIdentityResult = {
+  agentId: string;
+  name?: string;
+  avatar?: string;
+  emoji?: string;
+};
+
+export type AgentFileEntry = {
+  name: string;
+  path: string;
+  missing: boolean;
+  size?: number;
+  updatedAtMs?: number;
+  content?: string;
+};
+
+export type AgentsFilesListResult = {
+  agentId: string;
+  workspace: string;
+  files: AgentFileEntry[];
+};
+
+export type AgentsFilesGetResult = {
+  agentId: string;
+  workspace: string;
+  file: AgentFileEntry;
+};
+
+export type AgentsFilesSetResult = {
+  ok: true;
+  agentId: string;
+  workspace: string;
+  file: AgentFileEntry;
+};
+
 export type AgentsListResult = {
   defaultId: string;
   mainKey: string;
@@ -529,6 +564,10 @@ export type CronDelivery = {
   bestEffort?: boolean;
 };
 
+export type CronIsolation = {
+  postToMainPrefix?: string;
+};
+
 export type CronJobState = {
   nextRunAtMs?: number;
   runningAtMs?: number;
@@ -551,6 +590,7 @@ export type CronJob = {
   sessionTarget: CronSessionTarget;
   wakeMode: CronWakeMode;
   payload: CronPayload;
+  delivery?: CronDelivery;
   isolation?: CronIsolation;
   state?: CronJobState;
 };
@@ -594,6 +634,7 @@ export type SkillStatusEntry = {
   primaryEnv?: string;
   emoji?: string;
   homepage?: string;
+  bundled?: boolean;
   always: boolean;
   disabled: boolean;
   blockedByAllowlist: boolean;
@@ -624,13 +665,7 @@ export type StatusSummary = Record<string, unknown>;
 
 export type HealthSnapshot = Record<string, unknown>;
 
-export type LogLevel =
-  | "trace"
-  | "debug"
-  | "info"
-  | "warn"
-  | "error"
-  | "fatal";
+export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 
 export type LogEntry = {
   raw: string;

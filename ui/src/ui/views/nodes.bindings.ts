@@ -1,8 +1,7 @@
 import { html, nothing } from "lit";
-
-import { nodeLabel, nodeSupportsCommand } from "../node-snapshot";
-import type { NodeSnapshot } from "../types";
-import type { NodesProps } from "./nodes.types";
+import type { NodeSnapshot } from "../types.ts";
+import type { NodesProps } from "./nodes.types.ts";
+import { nodeLabel, nodeSupportsCommand } from "../node-snapshot.ts";
 
 type BindingAgent = {
   id: string;
@@ -55,20 +54,25 @@ export function renderBindingsSection(props: NodesProps) {
         </button>
       </div>
 
-      ${state.formMode === "raw"
-        ? html`<div class="callout warn" style="margin-top: 12px;">
-            将配置选项卡切换到<strong>表单</strong>模式以在此处编辑绑定。
-          </div>`
-        : nothing}
+      ${
+        state.formMode === "raw"
+          ? html`
+              <div class="callout warn" style="margin-top: 12px">
+                将配置选项卡切换到<strong>表单</strong>模式以在此处编辑绑定。
+              </div>
+            `
+          : nothing
+      }
 
-      ${!state.ready
-        ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
+      ${
+        !state.ready
+          ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
             <div class="muted">加载配置以编辑绑定。</div>
             <button class="btn" ?disabled=${state.configLoading} @click=${state.onLoadConfig}>
               ${state.configLoading ? "加载中…" : "加载配置"}
             </button>
           </div>`
-        : html`
+          : html`
             <div class="list" style="margin-top: 16px;">
               <div class="list-item">
                 <div class="list-main">
@@ -98,19 +102,26 @@ export function renderBindingsSection(props: NodesProps) {
                       )}
                     </select>
                   </label>
-                  ${!supportsBinding
-                    ? html`<div class="muted">没有可用system.run的节点。</div>`
-                    : nothing}
+                  ${
+                    !supportsBinding
+                      ? html`
+                          <div class="muted">没有可用system.run的节点。</div>
+                        `
+                      : nothing
+                  }
                 </div>
               </div>
 
-              ${state.agents.length === 0
-                ? html`<div class="muted">未找到代理。</div>`
-                : state.agents.map((agent) =>
-                    renderAgentBinding(agent, state),
-                  )}
+              ${
+                state.agents.length === 0
+                  ? html`
+                      <div class="muted">未找到代理。</div>
+                    `
+                  : state.agents.map((agent) => renderAgentBinding(agent, state))
+              }
             </div>
-          `}
+          `
+      }
     </section>
   `;
 }
@@ -148,9 +159,11 @@ function renderAgentBinding(agent: BindingAgent, state: BindingState) {
         <div class="list-title">${label}</div>
         <div class="list-sub">
           ${agent.isDefault ? "默认代理" : "代理"} ·
-          ${bindingValue === "__default__"
-            ? `使用默认值 (${state.defaultBinding ?? "任意"})`
-            : `覆盖: ${agent.binding}`}
+          ${
+            bindingValue === "__default__"
+              ? `使用默认值 (${state.defaultBinding ?? "任意"})`
+              : `覆盖: ${agent.binding}`
+          }
         </div>
       </div>
       <div class="list-meta">
@@ -186,9 +199,13 @@ function renderAgentBinding(agent: BindingAgent, state: BindingState) {
 function resolveExecNodes(nodes: NodeSnapshot[]): BindingNode[] {
   const list: BindingNode[] = [];
   for (const node of nodes) {
-    if (!nodeSupportsCommand(node, "system.run")) continue;
+    if (!nodeSupportsCommand(node, "system.run")) {
+      continue;
+    }
     const nodeId = node.nodeId?.trim() ?? "";
-    if (!nodeId) continue;
+    if (!nodeId) {
+      continue;
+    }
     list.push({ id: nodeId, label: nodeLabel(node) });
   }
   list.sort((a, b) => a.label.localeCompare(b.label));
@@ -222,18 +239,20 @@ function resolveAgentBindings(config: Record<string, unknown> | null): {
 
   const agents: BindingAgent[] = [];
   list.forEach((entry, index) => {
-    if (!entry || typeof entry !== "object") return;
+    if (!entry || typeof entry !== "object") {
+      return;
+    }
     const record = entry as Record<string, unknown>;
     const id = typeof record.id === "string" ? record.id.trim() : "";
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const name = typeof record.name === "string" ? record.name.trim() : undefined;
     const isDefault = record.default === true;
     const toolsEntry = (record.tools ?? {}) as Record<string, unknown>;
     const execEntry = (toolsEntry.exec ?? {}) as Record<string, unknown>;
     const binding =
-      typeof execEntry.node === "string" && execEntry.node.trim()
-        ? execEntry.node.trim()
-        : null;
+      typeof execEntry.node === "string" && execEntry.node.trim() ? execEntry.node.trim() : null;
     agents.push({
       id,
       name: name || undefined,

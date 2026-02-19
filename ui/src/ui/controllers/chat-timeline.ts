@@ -1,5 +1,5 @@
-import type { ChatTimelineEvent } from "../types";
-import { deriveTimelineRunsFromEvents } from "./chat-observability";
+import type { ChatTimelineEvent } from "../types.ts";
+import { deriveTimelineRunsFromEvents } from "./chat-observability.ts";
 
 export const CHAT_TIMELINE_DEFAULT_LIMIT = 500;
 
@@ -19,7 +19,7 @@ type ChatTimelineState = {
   chatTimelineError: string | null;
   chatTimelineServerSupported: boolean;
   chatTimelineRunsServerSupported?: boolean;
-  chatTimelineRuns?: import("../types").ChatTimelineRunSummary[];
+  chatTimelineRuns?: import("../types.ts").ChatTimelineRunSummary[];
 };
 
 type ChatTimelinePayload = {
@@ -33,7 +33,9 @@ type ChatTimelinePayload = {
 };
 
 function normalizeTimelineEvent(raw: unknown): ChatTimelineEvent | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
   const event = raw as Record<string, unknown>;
   const sessionKey = typeof event.sessionKey === "string" ? event.sessionKey.trim() : "";
   const runId = typeof event.runId === "string" ? event.runId.trim() : "";
@@ -70,14 +72,22 @@ function mergeTimelineEvents(
   const known = new Set(current.map((entry) => timelineKey(entry)));
   for (const entry of incoming) {
     const key = timelineKey(entry);
-    if (known.has(key)) continue;
+    if (known.has(key)) {
+      continue;
+    }
     merged.push(entry);
     known.add(key);
   }
   merged.sort((a, b) => {
-    if (a.ts !== b.ts) return a.ts - b.ts;
-    if (a.seq !== b.seq) return a.seq - b.seq;
-    if (a.runId !== b.runId) return a.runId.localeCompare(b.runId);
+    if (a.ts !== b.ts) {
+      return a.ts - b.ts;
+    }
+    if (a.seq !== b.seq) {
+      return a.seq - b.seq;
+    }
+    if (a.runId !== b.runId) {
+      return a.runId.localeCompare(b.runId);
+    }
     return a.stream.localeCompare(b.stream);
   });
   return merged;
@@ -87,7 +97,9 @@ export async function loadChatTimeline(
   state: ChatTimelineState,
   opts?: { limit?: number; quiet?: boolean },
 ) {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
   if (!opts?.quiet) {
     state.chatTimelineLoading = true;
     state.chatTimelineError = null;
@@ -120,14 +132,17 @@ export async function loadChatTimeline(
   }
 }
 
-export function appendChatTimelineEvent(
-  state: ChatTimelineState,
-  payload?: ChatTimelinePayload,
-) {
-  if (!payload) return;
+export function appendChatTimelineEvent(state: ChatTimelineState, payload?: ChatTimelinePayload) {
+  if (!payload) {
+    return;
+  }
   const normalized = normalizeTimelineEvent(payload);
-  if (!normalized) return;
-  if (normalized.sessionKey !== state.sessionKey) return;
+  if (!normalized) {
+    return;
+  }
+  if (normalized.sessionKey !== state.sessionKey) {
+    return;
+  }
   state.chatTimelineEvents = mergeTimelineEvents(state.chatTimelineEvents, [normalized]);
   if (state.chatTimelineRunsServerSupported === false && Array.isArray(state.chatTimelineRuns)) {
     state.chatTimelineRuns = deriveTimelineRunsFromEvents(state.chatTimelineEvents);

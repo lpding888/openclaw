@@ -1,12 +1,12 @@
 const KEY = "clawdbot.control.settings.v1";
 
-import type { ThemeMode } from "./theme";
+import type { ThemeMode } from "./theme.ts";
 import type {
   ChatObservabilityPin,
   ChatTimelineDensity,
   UiMotionLevel,
   UiVisualPreset,
-} from "./types";
+} from "./types.ts";
 
 export type UiSettings = {
   gatewayUrl: string;
@@ -53,7 +53,9 @@ export function loadSettings(): UiSettings {
 
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return defaults;
+    if (!raw) {
+      return defaults;
+    }
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
     return {
       gatewayUrl:
@@ -66,30 +68,22 @@ export function loadSettings(): UiSettings {
           ? parsed.sessionKey.trim()
           : defaults.sessionKey,
       lastActiveSessionKey:
-        typeof parsed.lastActiveSessionKey === "string" &&
-        parsed.lastActiveSessionKey.trim()
+        typeof parsed.lastActiveSessionKey === "string" && parsed.lastActiveSessionKey.trim()
           ? parsed.lastActiveSessionKey.trim()
-          : (typeof parsed.sessionKey === "string" &&
-              parsed.sessionKey.trim()) ||
+          : (typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()) ||
             defaults.lastActiveSessionKey,
       theme:
-        parsed.theme === "light" ||
-        parsed.theme === "dark" ||
-        parsed.theme === "system"
+        parsed.theme === "light" || parsed.theme === "dark" || parsed.theme === "system"
           ? parsed.theme
           : defaults.theme,
       chatFocusMode:
-        typeof parsed.chatFocusMode === "boolean"
-          ? parsed.chatFocusMode
-          : defaults.chatFocusMode,
+        typeof parsed.chatFocusMode === "boolean" ? parsed.chatFocusMode : defaults.chatFocusMode,
       chatShowThinking:
         typeof parsed.chatShowThinking === "boolean"
           ? parsed.chatShowThinking
           : defaults.chatShowThinking,
       sendOnEnter:
-        typeof (parsed as Partial<UiSettings>).sendOnEnter === "boolean"
-          ? (parsed as Partial<UiSettings>).sendOnEnter as boolean
-          : defaults.sendOnEnter,
+        typeof parsed.sendOnEnter === "boolean" ? parsed.sendOnEnter : defaults.sendOnEnter,
       splitRatio:
         typeof parsed.splitRatio === "number" &&
         parsed.splitRatio >= 0.4 &&
@@ -97,12 +91,9 @@ export function loadSettings(): UiSettings {
           ? parsed.splitRatio
           : defaults.splitRatio,
       navCollapsed:
-        typeof parsed.navCollapsed === "boolean"
-          ? parsed.navCollapsed
-          : defaults.navCollapsed,
+        typeof parsed.navCollapsed === "boolean" ? parsed.navCollapsed : defaults.navCollapsed,
       navGroupsCollapsed:
-        typeof parsed.navGroupsCollapsed === "object" &&
-        parsed.navGroupsCollapsed !== null
+        typeof parsed.navGroupsCollapsed === "object" && parsed.navGroupsCollapsed !== null
           ? parsed.navGroupsCollapsed
           : defaults.navGroupsCollapsed,
       uiVisualPreset:
@@ -114,13 +105,11 @@ export function loadSettings(): UiSettings {
           ? parsed.uiMotionLevel
           : defaults.uiMotionLevel,
       chatTimelineDensity:
-        parsed.chatTimelineDensity === "expanded" ||
-        parsed.chatTimelineDensity === "summary"
+        parsed.chatTimelineDensity === "expanded" || parsed.chatTimelineDensity === "summary"
           ? parsed.chatTimelineDensity
           : defaults.chatTimelineDensity,
       chatObservabilityPin:
-        parsed.chatObservabilityPin === "insights" ||
-        parsed.chatObservabilityPin === "timeline"
+        parsed.chatObservabilityPin === "insights" || parsed.chatObservabilityPin === "timeline"
           ? parsed.chatObservabilityPin
           : defaults.chatObservabilityPin,
     };

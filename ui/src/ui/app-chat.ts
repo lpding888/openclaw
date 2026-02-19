@@ -1,16 +1,16 @@
-import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat";
-import { loadChatTimeline } from "./controllers/chat-timeline";
-import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability";
-import { loadSessions } from "./controllers/sessions";
-import { generateUUID } from "./uuid";
-import { resetToolStream } from "./app-tool-stream";
-import { scheduleChatScroll } from "./app-scroll";
-import { setLastActiveSessionKey } from "./app-settings";
-import { normalizeBasePath } from "./navigation";
-import type { GatewayHelloOk } from "./gateway";
+import type { ClawdbotApp } from "./app.ts";
+import type { GatewayHelloOk } from "./gateway.ts";
+import type { ChatAttachment, ChatQueueItem } from "./ui-types.ts";
 import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
-import type { ClawdbotApp } from "./app";
-import type { ChatAttachment, ChatQueueItem } from "./ui-types";
+import { scheduleChatScroll } from "./app-scroll.ts";
+import { setLastActiveSessionKey } from "./app-settings.ts";
+import { resetToolStream } from "./app-tool-stream.ts";
+import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability.ts";
+import { loadChatTimeline } from "./controllers/chat-timeline.ts";
+import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat.ts";
+import { loadSessions } from "./controllers/sessions.ts";
+import { normalizeBasePath } from "./navigation.ts";
+import { generateUUID } from "./uuid.ts";
 
 type ChatHost = {
   connected: boolean;
@@ -23,15 +23,15 @@ type ChatHost = {
   basePath: string;
   hello: GatewayHelloOk | null;
   chatAvatarUrl: string | null;
-  chatTimelineEvents: import("./types").ChatTimelineEvent[];
+  chatTimelineEvents: import("./types.ts").ChatTimelineEvent[];
   chatTimelineLoading: boolean;
   chatTimelineError: string | null;
   chatTimelineServerSupported: boolean;
-  chatTimelineRuns: import("./types").ChatTimelineRunSummary[];
+  chatTimelineRuns: import("./types.ts").ChatTimelineRunSummary[];
   chatTimelineRunsLoading: boolean;
   chatTimelineRunsError: string | null;
   chatTimelineRunsServerSupported: boolean;
-  chatFeedbackItems: import("./types").ChatFeedbackItem[];
+  chatFeedbackItems: import("./types.ts").ChatFeedbackItem[];
   chatFeedbackLoading: boolean;
   chatFeedbackError: string | null;
   chatFeedbackServerSupported: boolean;
@@ -43,9 +43,13 @@ export function isChatBusy(host: ChatHost) {
 
 export function isChatStopCommand(text: string) {
   const trimmed = text.trim();
-  if (!trimmed) return false;
+  if (!trimmed) {
+    return false;
+  }
   const normalized = trimmed.toLowerCase();
-  if (normalized === "/stop") return true;
+  if (normalized === "/stop") {
+    return true;
+  }
   return (
     normalized === "stop" ||
     normalized === "esc" ||
@@ -56,7 +60,9 @@ export function isChatStopCommand(text: string) {
 }
 
 export async function handleAbortChat(host: ChatHost) {
-  if (!host.connected) return;
+  if (!host.connected) {
+    return;
+  }
   host.chatMessage = "";
   await abortChatRun(host as unknown as ClawdbotApp);
 }
@@ -64,7 +70,9 @@ export async function handleAbortChat(host: ChatHost) {
 function enqueueChatMessage(host: ChatHost, text: string, attachments?: ChatAttachment[]) {
   const trimmed = text.trim();
   const hasAttachments = Boolean(attachments && attachments.length > 0);
-  if (!trimmed && !hasAttachments) return;
+  if (!trimmed && !hasAttachments) {
+    return;
+  }
   host.chatQueue = [
     ...host.chatQueue,
     {
@@ -96,7 +104,10 @@ async function sendChatMessageNow(
     host.chatAttachments = opts.previousAttachments;
   }
   if (ok) {
-    setLastActiveSessionKey(host as unknown as Parameters<typeof setLastActiveSessionKey>[0], host.sessionKey);
+    setLastActiveSessionKey(
+      host as unknown as Parameters<typeof setLastActiveSessionKey>[0],
+      host.sessionKey,
+    );
   }
   if (ok && opts?.restoreDraft && opts.previousDraft?.trim()) {
     host.chatMessage = opts.previousDraft;
@@ -112,9 +123,13 @@ async function sendChatMessageNow(
 }
 
 async function flushChatQueue(host: ChatHost) {
-  if (!host.connected || isChatBusy(host)) return;
+  if (!host.connected || isChatBusy(host)) {
+    return;
+  }
   const [next, ...rest] = host.chatQueue;
-  if (!next) return;
+  if (!next) {
+    return;
+  }
   host.chatQueue = rest;
   const ok = await sendChatMessageNow(host, next.text, { attachments: next.attachments });
   if (!ok) {
@@ -131,7 +146,9 @@ export async function handleSendChat(
   messageOverride?: string,
   opts?: { restoreDraft?: boolean },
 ) {
-  if (!host.connected) return;
+  if (!host.connected) {
+    return;
+  }
   const previousDraft = host.chatMessage;
   const message = (messageOverride ?? host.chatMessage).trim();
   const attachments = host.chatAttachments ?? [];
@@ -139,7 +156,9 @@ export async function handleSendChat(
   const hasAttachments = attachmentsToSend.length > 0;
 
   // Allow sending with just attachments (no message text required)
-  if (!message && !hasAttachments) return;
+  if (!message && !hasAttachments) {
+    return;
+  }
 
   if (isChatStopCommand(message)) {
     await handleAbortChat(host);
@@ -188,8 +207,12 @@ type SessionDefaultsSnapshot = {
 
 function resolveAgentIdForSession(host: ChatHost): string | null {
   const parsed = parseAgentSessionKey(host.sessionKey);
-  if (parsed?.agentId) return parsed.agentId;
-  const snapshot = host.hello?.snapshot as { sessionDefaults?: SessionDefaultsSnapshot } | undefined;
+  if (parsed?.agentId) {
+    return parsed.agentId;
+  }
+  const snapshot = host.hello?.snapshot as
+    | { sessionDefaults?: SessionDefaultsSnapshot }
+    | undefined;
   const fallback = snapshot?.sessionDefaults?.defaultAgentId?.trim();
   return fallback || "main";
 }

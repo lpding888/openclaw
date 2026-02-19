@@ -138,7 +138,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+  transition:
+    background 150ms ease-out,
+    color 150ms ease-out,
+    border-color 150ms ease-out;
   box-shadow: var(--neo-shadow-outset-soft);
 }
 
@@ -146,7 +149,9 @@
   background: var(--neo-grad-raised);
   color: var(--text);
   border-color: var(--neo-border-strong);
-  box-shadow: var(--neo-shadow-outset-soft), 0 0 0 1px rgba(255, 92, 92, 0.18) inset;
+  box-shadow:
+    var(--neo-shadow-outset-soft),
+    0 0 0 1px rgba(255, 92, 92, 0.18) inset;
 }
 
 .chat-focus-exit svg {

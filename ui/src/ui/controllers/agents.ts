@@ -1,5 +1,5 @@
-import type { GatewayBrowserClient } from "../gateway";
-import type { AgentsListResult } from "../types";
+import type { GatewayBrowserClient } from "../gateway.ts";
+import type { AgentsListResult } from "../types.ts";
 
 export type AgentsState = {
   client: GatewayBrowserClient | null;
@@ -10,13 +10,19 @@ export type AgentsState = {
 };
 
 export async function loadAgents(state: AgentsState) {
-  if (!state.client || !state.connected) return;
-  if (state.agentsLoading) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
+  if (state.agentsLoading) {
+    return;
+  }
   state.agentsLoading = true;
   state.agentsError = null;
   try {
-    const res = (await state.client.request("agents.list", {})) as AgentsListResult | undefined;
-    if (res) state.agentsList = res;
+    const res = await state.client.request<AgentsListResult>("agents.list", {});
+    if (res) {
+      state.agentsList = res;
+    }
   } catch (err) {
     state.agentsError = String(err);
   } finally {

@@ -36,18 +36,22 @@ export function renderDiscordCard(params: {
         </div>
       </div>
 
-      ${discord?.lastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">
+      ${
+        discord?.lastError
+          ? html`<div class="callout danger" style="margin-top: 12px;">
             ${discord.lastError}
           </div>`
-        : nothing}
+          : nothing
+      }
 
-      ${discord?.probe
-        ? html`<div class="callout" style="margin-top: 12px;">
+      ${
+        discord?.probe
+          ? html`<div class="callout" style="margin-top: 12px;">
             探测 ${discord.probe.ok ? "成功" : "失败"} ·
             ${discord.probe.status ?? ""} ${discord.probe.error ?? ""}
           </div>`
-        : nothing}
+          : nothing
+      }
 
       ${renderChannelConfigSection({ channelId: "discord", props })}
 

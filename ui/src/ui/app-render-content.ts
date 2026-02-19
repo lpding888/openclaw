@@ -1,26 +1,44 @@
-import type { TemplateResult } from "lit";
-
-import type { AppViewState } from "./app-view-state";
-import type { Tab } from "./navigation";
-import { renderChannels } from "./views/channels";
-import { renderCron } from "./views/cron";
-import { renderDebug } from "./views/debug";
-import { renderInstances } from "./views/instances";
-import { renderLogs } from "./views/logs";
-import { renderOverview } from "./views/overview";
-import { renderSessions } from "./views/sessions";
-import { renderSkills } from "./views/skills";
-import { loadChannels } from "./controllers/channels";
-import { loadPresence } from "./controllers/presence";
-import { deleteSession, loadSessions, patchSession } from "./controllers/sessions";
-import { installSkill, loadSkills, saveSkillApiKey, updateSkillEdit, updateSkillEnabled } from "./controllers/skills";
-import { applyGatewayAuthProfile, loadConfig, updateConfigFormValue } from "./controllers/config";
-import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob } from "./controllers/cron";
-import { loadDebug, callDebugMethod } from "./controllers/debug";
-import { loadLogs } from "./controllers/logs";
-import { renderChatTab } from "./app-render-tab-chat";
-import { renderConfigTab } from "./app-render-tab-config";
-import { renderNodesTab } from "./app-render-tab-nodes";
+import { nothing, type TemplateResult } from "lit";
+import type { AppViewState } from "./app-view-state.ts";
+import type { Tab } from "./navigation.ts";
+import { renderAgentsTab } from "./app-render-tab-agents.ts";
+import { renderChatTab } from "./app-render-tab-chat.ts";
+import { renderConfigTab } from "./app-render-tab-config.ts";
+import { renderNodesTab } from "./app-render-tab-nodes.ts";
+import { renderUsageTab } from "./app-render-usage-tab.ts";
+import { loadChannels } from "./controllers/channels.ts";
+import {
+  applyGatewayAuthProfile,
+  loadConfig,
+  updateConfigFormValue,
+} from "./controllers/config.ts";
+import {
+  loadCronRuns,
+  toggleCronJob,
+  runCronJob,
+  removeCronJob,
+  addCronJob,
+  normalizeCronFormState,
+} from "./controllers/cron.ts";
+import { loadDebug, callDebugMethod } from "./controllers/debug.ts";
+import { loadLogs } from "./controllers/logs.ts";
+import { loadPresence } from "./controllers/presence.ts";
+import { deleteSession, loadSessions, patchSession } from "./controllers/sessions.ts";
+import {
+  installSkill,
+  loadSkills,
+  saveSkillApiKey,
+  updateSkillEdit,
+  updateSkillEnabled,
+} from "./controllers/skills.ts";
+import { renderChannels } from "./views/channels.ts";
+import { renderCron } from "./views/cron.ts";
+import { renderDebug } from "./views/debug.ts";
+import { renderInstances } from "./views/instances.ts";
+import { renderLogs } from "./views/logs.ts";
+import { renderOverview } from "./views/overview.ts";
+import { renderSessions } from "./views/sessions.ts";
+import { renderSkills } from "./views/skills.ts";
 
 export type RenderMainContentOptions = {
   presenceCount: number;
@@ -34,10 +52,7 @@ export type RenderMainContentOptions = {
   serverAllowInsecureAuth: boolean | null;
 };
 
-type TabRenderer = (
-  state: AppViewState,
-  options: RenderMainContentOptions,
-) => TemplateResult;
+type TabRenderer = (state: AppViewState, options: RenderMainContentOptions) => TemplateResult;
 
 function renderOverviewTab(state: AppViewState, options: RenderMainContentOptions): TemplateResult {
   return renderOverview({
@@ -112,11 +127,9 @@ function renderChannelsTab(state: AppViewState): TemplateResult {
     onConfigPatch: (path, value) => updateConfigFormValue(state, path, value),
     onConfigSave: () => state.handleChannelConfigSave(),
     onConfigReload: () => state.handleChannelConfigReload(),
-    onNostrProfileEdit: (accountId, profile) =>
-      state.handleNostrProfileEdit(accountId, profile),
+    onNostrProfileEdit: (accountId, profile) => state.handleNostrProfileEdit(accountId, profile),
     onNostrProfileCancel: () => state.handleNostrProfileCancel(),
-    onNostrProfileFieldChange: (field, value) =>
-      state.handleNostrProfileFieldChange(field, value),
+    onNostrProfileFieldChange: (field, value) => state.handleNostrProfileFieldChange(field, value),
     onNostrProfileSave: () => state.handleNostrProfileSave(),
     onNostrProfileImport: () => state.handleNostrProfileImport(),
     onNostrProfileToggleAdvanced: () => state.handleNostrProfileToggleAdvanced(),
@@ -157,6 +170,7 @@ function renderSessionsTab(state: AppViewState): TemplateResult {
 
 function renderCronTab(state: AppViewState): TemplateResult {
   return renderCron({
+    basePath: state.basePath,
     loading: state.cronLoading,
     status: state.cronStatus,
     jobs: state.cronJobs,
@@ -165,12 +179,13 @@ function renderCronTab(state: AppViewState): TemplateResult {
     form: state.cronForm,
     channels: state.channelsSnapshot?.channelMeta?.length
       ? state.channelsSnapshot.channelMeta.map((entry) => entry.id)
-      : state.channelsSnapshot?.channelOrder ?? [],
+      : (state.channelsSnapshot?.channelOrder ?? []),
     channelLabels: state.channelsSnapshot?.channelLabels ?? {},
     channelMeta: state.channelsSnapshot?.channelMeta ?? [],
     runsJobId: state.cronRunsJobId,
     runs: state.cronRuns,
-    onFormChange: (patch) => (state.cronForm = { ...state.cronForm, ...patch }),
+    onFormChange: (patch) =>
+      (state.cronForm = normalizeCronFormState({ ...state.cronForm, ...patch })),
     onRefresh: () => state.loadCron(),
     onAdd: () => addCronJob(state),
     onToggle: (job, enabled) => toggleCronJob(state, job, enabled),
@@ -239,20 +254,26 @@ function renderLogsTab(state: AppViewState): TemplateResult {
 }
 
 // Single dispatch table for tab rendering to avoid long conditional chains.
-const TAB_RENDERERS: Record<Tab, TabRenderer> = {
+const TAB_RENDERERS: Partial<Record<Tab, TabRenderer>> = {
   overview: renderOverviewTab,
   channels: (state) => renderChannelsTab(state),
   instances: (state) => renderInstancesTab(state),
   sessions: (state) => renderSessionsTab(state),
   cron: (state) => renderCronTab(state),
+  agents: (state) => renderAgentsTab(state),
   skills: (state) => renderSkillsTab(state),
   nodes: (state) => renderNodesTab(state),
   chat: renderChatTab,
+  usage: (state) => renderUsageTab(state) as unknown as TemplateResult,
   config: (state) => renderConfigTab(state),
   debug: (state) => renderDebugTab(state),
   logs: (state) => renderLogsTab(state),
 };
 
 export function renderMainContent(state: AppViewState, options: RenderMainContentOptions) {
-  return TAB_RENDERERS[state.tab](state, options);
+  const renderer = TAB_RENDERERS[state.tab];
+  if (!renderer) {
+    return nothing;
+  }
+  return renderer(state, options);
 }

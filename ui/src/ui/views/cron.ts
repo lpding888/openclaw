@@ -29,22 +29,28 @@ export type CronProps = {
 
 function buildChannelOptions(props: CronProps): string[] {
   const options = ["last", ...props.channels.filter(Boolean)];
-  const current = props.form.channel?.trim();
+  const current = props.form.deliveryChannel?.trim();
   if (current && !options.includes(current)) {
     options.push(current);
   }
   const seen = new Set<string>();
   return options.filter((value) => {
-    if (seen.has(value)) return false;
+    if (seen.has(value)) {
+      return false;
+    }
     seen.add(value);
     return true;
   });
 }
 
 function resolveChannelLabel(props: CronProps, channel: string): string {
-  if (channel === "last") return "last";
+  if (channel === "last") {
+    return "last";
+  }
   const meta = props.channelMeta?.find((entry) => entry.id === channel);
-  if (meta?.label) return meta.label;
+  if (meta?.label) {
+    return meta.label;
+  }
   return props.channelLabels?.[channel] ?? channel;
 }
 
@@ -67,11 +73,7 @@ export function renderCron(props: CronProps) {
           <div class="stat">
             <div class="stat-label">已启用</div>
             <div class="stat-value">
-              ${props.status
-                ? props.status.enabled
-                  ? "是"
-                  : "否"
-                : "无"}
+              ${props.status ? (props.status.enabled ? "是" : "否") : "无"}
             </div>
           </div>
           <div class="stat">
@@ -135,7 +137,8 @@ export function renderCron(props: CronProps) {
               .value=${props.form.scheduleKind}
               @change=${(e: Event) =>
                 props.onFormChange({
-                  scheduleKind: (e.target as HTMLSelectElement).value as CronFormState["scheduleKind"],
+                  scheduleKind: (e.target as HTMLSelectElement)
+                    .value as CronFormState["scheduleKind"],
                 })}
             >
               <option value="every">每隔</option>
@@ -152,7 +155,8 @@ export function renderCron(props: CronProps) {
               .value=${props.form.sessionTarget}
               @change=${(e: Event) =>
                 props.onFormChange({
-                  sessionTarget: (e.target as HTMLSelectElement).value as CronFormState["sessionTarget"],
+                  sessionTarget: (e.target as HTMLSelectElement)
+                    .value as CronFormState["sessionTarget"],
                 })}
             >
               <option value="main">主会话</option>
@@ -178,7 +182,8 @@ export function renderCron(props: CronProps) {
               .value=${props.form.payloadKind}
               @change=${(e: Event) =>
                 props.onFormChange({
-                  payloadKind: (e.target as HTMLSelectElement).value as CronFormState["payloadKind"],
+                  payloadKind: (e.target as HTMLSelectElement)
+                    .value as CronFormState["payloadKind"],
                 })}
             >
               <option value="systemEvent">系统事件</option>
@@ -302,13 +307,17 @@ export function renderCron(props: CronProps) {
     <section class="card" style="margin-top: 18px;">
       <div class="card-title">任务</div>
       <div class="card-sub">存储在网关中的所有定时任务。</div>
-      ${props.jobs.length === 0
-        ? html`<div class="muted" style="margin-top: 12px;">暂无任务。</div>`
-        : html`
+      ${
+        props.jobs.length === 0
+          ? html`
+              <div class="muted" style="margin-top: 12px">暂无任务。</div>
+            `
+          : html`
             <div class="list" style="margin-top: 12px;">
               ${props.jobs.map((job) => renderJob(job, props))}
             </div>
-          `}
+          `
+      }
     </section>
 
     <section class="card" style="margin-top: 18px;">
@@ -327,7 +336,8 @@ export function renderCron(props: CronProps) {
               <div class="list" style="margin-top: 12px;">
                 ${orderedRuns.map((entry) => renderRun(entry, props.basePath))}
               </div>
-            `}
+            `
+      }
     </section>
   `;
 }

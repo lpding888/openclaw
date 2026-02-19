@@ -1,6 +1,6 @@
-import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "../controllers/exec-approvals";
-import type { DevicePairingList } from "../controllers/devices";
-import type { NodeSnapshot } from "../types";
+import type { DevicePairingList } from "../controllers/devices.ts";
+import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "../controllers/exec-approvals.ts";
+import type { NodeSnapshot } from "../types.ts";
 
 export type NodesProps = {
   loading: boolean;

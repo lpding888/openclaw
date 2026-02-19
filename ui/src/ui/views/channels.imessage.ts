@@ -36,18 +36,22 @@ export function renderIMessageCard(params: {
         </div>
       </div>
 
-      ${imessage?.lastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">
+      ${
+        imessage?.lastError
+          ? html`<div class="callout danger" style="margin-top: 12px;">
             ${imessage.lastError}
           </div>`
-        : nothing}
+          : nothing
+      }
 
-      ${imessage?.probe
-        ? html`<div class="callout" style="margin-top: 12px;">
+      ${
+        imessage?.probe
+          ? html`<div class="callout" style="margin-top: 12px;">
             探测 ${imessage.probe.ok ? "成功" : "失败"} ·
             ${imessage.probe.error ?? ""}
           </div>`
-        : nothing}
+          : nothing
+      }
 
       ${renderChannelConfigSection({ channelId: "imessage", props })}
 

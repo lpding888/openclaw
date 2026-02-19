@@ -1,7 +1,7 @@
-import { extractText } from "../chat/message-extract";
-import type { GatewayBrowserClient } from "../gateway";
-import { generateUUID } from "../uuid";
-import type { ChatAttachment } from "../ui-types";
+import type { GatewayBrowserClient } from "../gateway.ts";
+import type { ChatAttachment } from "../ui-types.ts";
+import { extractText } from "../chat/message-extract.ts";
+import { generateUUID } from "../uuid.ts";
 
 export type ChatState = {
   client: GatewayBrowserClient | null;
@@ -27,15 +27,22 @@ export type ChatEventPayload = {
   errorMessage?: string;
 };
 
+type ChatHistoryResponse = {
+  messages?: unknown[];
+  thinkingLevel?: string | null;
+};
+
 export async function loadChatHistory(state: ChatState) {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
   state.chatLoading = true;
   state.lastError = null;
   try {
-    const res = (await state.client.request("chat.history", {
+    const res = await state.client.request<ChatHistoryResponse>("chat.history", {
       sessionKey: state.sessionKey,
       limit: 200,
-    })) as { messages?: unknown[]; thinkingLevel?: string | null };
+    });
     state.chatMessages = Array.isArray(res.messages) ? res.messages : [];
     state.chatThinkingLevel = res.thinkingLevel ?? null;
   } catch (err) {
@@ -47,7 +54,9 @@ export async function loadChatHistory(state: ChatState) {
 
 function dataUrlToBase64(dataUrl: string): { content: string; mimeType: string } | null {
   const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   return { mimeType: match[1], content: match[2] };
 }
 
@@ -70,10 +79,14 @@ export async function sendChatMessage(
   message: string,
   attachments?: ChatAttachment[],
 ): Promise<boolean> {
-  if (!state.client || !state.connected) return false;
+  if (!state.client || !state.connected) {
+    return false;
+  }
   const msg = message.trim();
   const hasAttachments = attachments && attachments.length > 0;
-  if (!msg && !hasAttachments) return false;
+  if (!msg && !hasAttachments) {
+    return false;
+  }
 
   const now = Date.now();
 
@@ -113,7 +126,9 @@ export async function sendChatMessage(
     ? attachments
         .map((att) => {
           const parsed = dataUrlToBase64(att.dataUrl);
-          if (!parsed) return null;
+          if (!parsed) {
+            return null;
+          }
           return {
             type: "image",
             mimeType: parsed.mimeType,
@@ -153,14 +168,14 @@ export async function sendChatMessage(
 }
 
 export async function abortChatRun(state: ChatState): Promise<boolean> {
-  if (!state.client || !state.connected) return false;
+  if (!state.client || !state.connected) {
+    return false;
+  }
   const runId = state.chatRunId;
   try {
     await state.client.request(
       "chat.abort",
-      runId
-        ? { sessionKey: state.sessionKey, runId }
-        : { sessionKey: state.sessionKey },
+      runId ? { sessionKey: state.sessionKey, runId } : { sessionKey: state.sessionKey },
     );
     return true;
   } catch (err) {
@@ -169,21 +184,20 @@ export async function abortChatRun(state: ChatState): Promise<boolean> {
   }
 }
 
-export function handleChatEvent(
-  state: ChatState,
-  payload?: ChatEventPayload,
-) {
-  if (!payload) return null;
-  if (payload.sessionKey !== state.sessionKey) return null;
+export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
+  if (!payload) {
+    return null;
+  }
+  if (payload.sessionKey !== state.sessionKey) {
+    return null;
+  }
 
   // Final from another run (e.g. sub-agent announce): refresh history to show new message.
   // See https://github.com/clawdbot/clawdbot/issues/1909
-  if (
-    payload.runId &&
-    state.chatRunId &&
-    payload.runId !== state.chatRunId
-  ) {
-    if (payload.state === "final") return "final";
+  if (payload.runId && state.chatRunId && payload.runId !== state.chatRunId) {
+    if (payload.state === "final") {
+      return "final";
+    }
     return null;
   }
 

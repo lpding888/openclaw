@@ -81,9 +81,11 @@
   --theme-switch-y: 50%;
 
   /* Typography - Space Grotesk for personality */
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
   --font-body: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display:
+    "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Shadows - Richer with subtle color */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -134,22 +136,48 @@
   --neo-state-info-edge: rgba(59, 130, 246, 0.5);
 
   --neo-shadow-outset:
-    calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
-    calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+    calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y))
+      calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
+    calc(var(--neo-depth-3) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2)
+      var(--neo-shadow-light);
   --neo-shadow-outset-soft:
-    calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
-    calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+    calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y))
+      calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
+    calc(var(--neo-depth-2) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2)
+      var(--neo-shadow-light-soft);
   --neo-shadow-inset:
-    inset calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
-    inset calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+    inset calc(var(--neo-depth-3) * var(--neo-light-x))
+      calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2)
+      var(--neo-shadow-dark),
+    inset calc(var(--neo-depth-3) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2)
+      var(--neo-shadow-light);
   --neo-shadow-inset-soft:
-    inset calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
-    inset calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+    inset calc(var(--neo-depth-2) * var(--neo-light-x))
+      calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2)
+      var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-depth-2) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2)
+      var(--neo-shadow-light-soft);
   --neo-shadow-press:
-    inset calc(var(--neo-press-depth) * var(--neo-light-x)) calc(var(--neo-press-depth) * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-dark-soft),
-    inset calc(var(--neo-press-depth) * -1 * var(--neo-light-x)) calc(var(--neo-press-depth) * -1 * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-light-soft);
-  --neo-grad-raised: linear-gradient(var(--neo-light-angle), var(--neo-surface-hi), var(--neo-surface-lo));
-  --neo-grad-inset: linear-gradient(var(--neo-light-angle), var(--neo-surface-lo), var(--neo-surface-hi));
+    inset calc(var(--neo-press-depth) * var(--neo-light-x))
+      calc(var(--neo-press-depth) * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2)
+      var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-press-depth) * -1 * var(--neo-light-x))
+      calc(var(--neo-press-depth) * -1 * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2)
+      var(--neo-shadow-light-soft);
+  --neo-grad-raised: linear-gradient(
+    var(--neo-light-angle),
+    var(--neo-surface-hi),
+    var(--neo-surface-lo)
+  );
+  --neo-grad-inset: linear-gradient(
+    var(--neo-light-angle),
+    var(--neo-surface-lo),
+    var(--neo-surface-hi)
+  );
   --neo-border: rgba(255, 255, 255, 0.045);
   --neo-border-strong: rgba(255, 255, 255, 0.09);
 
@@ -249,22 +277,48 @@
   --neo-state-warn-edge: rgba(217, 119, 6, 0.5);
   --neo-state-info-edge: rgba(37, 99, 235, 0.44);
   --neo-shadow-outset:
-    calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
-    calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+    calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y))
+      calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
+    calc(var(--neo-depth-3) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2)
+      var(--neo-shadow-light);
   --neo-shadow-outset-soft:
-    calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
-    calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+    calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y))
+      calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
+    calc(var(--neo-depth-2) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2)
+      var(--neo-shadow-light-soft);
   --neo-shadow-inset:
-    inset calc(var(--neo-depth-3) * var(--neo-light-x)) calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-dark),
-    inset calc(var(--neo-depth-3) * -1 * var(--neo-light-x)) calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2) var(--neo-shadow-light);
+    inset calc(var(--neo-depth-3) * var(--neo-light-x))
+      calc(var(--neo-depth-3) * var(--neo-light-y)) calc(var(--neo-depth-3) * 2)
+      var(--neo-shadow-dark),
+    inset calc(var(--neo-depth-3) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-3) * -1 * var(--neo-light-y)) calc(var(--neo-depth-3) * 2)
+      var(--neo-shadow-light);
   --neo-shadow-inset-soft:
-    inset calc(var(--neo-depth-2) * var(--neo-light-x)) calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-dark-soft),
-    inset calc(var(--neo-depth-2) * -1 * var(--neo-light-x)) calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2) var(--neo-shadow-light-soft);
+    inset calc(var(--neo-depth-2) * var(--neo-light-x))
+      calc(var(--neo-depth-2) * var(--neo-light-y)) calc(var(--neo-depth-2) * 2)
+      var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-depth-2) * -1 * var(--neo-light-x))
+      calc(var(--neo-depth-2) * -1 * var(--neo-light-y)) calc(var(--neo-depth-2) * 2)
+      var(--neo-shadow-light-soft);
   --neo-shadow-press:
-    inset calc(var(--neo-press-depth) * var(--neo-light-x)) calc(var(--neo-press-depth) * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-dark-soft),
-    inset calc(var(--neo-press-depth) * -1 * var(--neo-light-x)) calc(var(--neo-press-depth) * -1 * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2) var(--neo-shadow-light-soft);
-  --neo-grad-raised: linear-gradient(var(--neo-light-angle), var(--neo-surface-hi), var(--neo-surface-lo));
-  --neo-grad-inset: linear-gradient(var(--neo-light-angle), var(--neo-surface-lo), var(--neo-surface-hi));
+    inset calc(var(--neo-press-depth) * var(--neo-light-x))
+      calc(var(--neo-press-depth) * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2)
+      var(--neo-shadow-dark-soft),
+    inset calc(var(--neo-press-depth) * -1 * var(--neo-light-x))
+      calc(var(--neo-press-depth) * -1 * var(--neo-light-y)) calc(var(--neo-press-depth) * 2.2)
+      var(--neo-shadow-light-soft);
+  --neo-grad-raised: linear-gradient(
+    var(--neo-light-angle),
+    var(--neo-surface-hi),
+    var(--neo-surface-lo)
+  );
+  --neo-grad-inset: linear-gradient(
+    var(--neo-light-angle),
+    var(--neo-surface-lo),
+    var(--neo-surface-hi)
+  );
   --neo-border: rgba(255, 255, 255, 0.75);
   --neo-border-strong: rgba(255, 255, 255, 0.95);
 
@@ -373,7 +427,8 @@ html.theme-transition::view-transition-new(theme) {
   }
 }
 
-clawdbot-app {
+clawdbot-app,
+openclaw-app {
   display: block;
   position: relative;
   z-index: 1;
@@ -474,7 +529,8 @@ select {
 }
 
 @keyframes pulse-subtle {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -483,7 +539,8 @@ select {
 }
 
 @keyframes glow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 rgba(255, 92, 92, 0);
   }
   50% {
@@ -492,12 +549,24 @@ select {
 }
 
 /* Stagger animation delays for grouped elements */
-.stagger-1 { animation-delay: 0ms; }
-.stagger-2 { animation-delay: 50ms; }
-.stagger-3 { animation-delay: 100ms; }
-.stagger-4 { animation-delay: 150ms; }
-.stagger-5 { animation-delay: 200ms; }
-.stagger-6 { animation-delay: 250ms; }
+.stagger-1 {
+  animation-delay: 0ms;
+}
+.stagger-2 {
+  animation-delay: 50ms;
+}
+.stagger-3 {
+  animation-delay: 100ms;
+}
+.stagger-4 {
+  animation-delay: 150ms;
+}
+.stagger-5 {
+  animation-delay: 200ms;
+}
+.stagger-6 {
+  animation-delay: 250ms;
+}
 
 /* Focus visible styles */
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {

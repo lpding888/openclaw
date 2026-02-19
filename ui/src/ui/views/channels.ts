@@ -1,6 +1,4 @@
 import { html, nothing } from "lit";
-
-import { formatAgo } from "../format";
 import type {
   ChannelAccountSnapshot,
   ChannelUiMetaEntry,
@@ -30,12 +28,8 @@ import { renderWhatsAppCard } from "./channels.whatsapp.ts";
 
 export function renderChannels(props: ChannelsProps) {
   const channels = props.snapshot?.channels as Record<string, unknown> | null;
-  const whatsapp = (channels?.whatsapp ?? undefined) as
-    | WhatsAppStatus
-    | undefined;
-  const telegram = (channels?.telegram ?? undefined) as
-    | TelegramStatus
-    | undefined;
+  const whatsapp = (channels?.whatsapp ?? undefined) as WhatsAppStatus | undefined;
+  const telegram = (channels?.telegram ?? undefined) as TelegramStatus | undefined;
   const discord = (channels?.discord ?? null) as DiscordStatus | null;
   const googlechat = (channels?.googlechat ?? null) as GoogleChatStatus | null;
   const slack = (channels?.slack ?? null) as SlackStatus | null;
@@ -49,8 +43,10 @@ export function renderChannels(props: ChannelsProps) {
       enabled: channelEnabled(key, props),
       order: index,
     }))
-    .sort((a, b) => {
-      if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+    .toSorted((a, b) => {
+      if (a.enabled !== b.enabled) {
+        return a.enabled ? -1 : 1;
+      }
       return a.order - b.order;
     });
 
@@ -79,11 +75,13 @@ export function renderChannels(props: ChannelsProps) {
         </div>
         <div class="muted">${props.lastSuccessAt ? formatRelativeTimestamp(props.lastSuccessAt) : "n/a"}</div>
       </div>
-      ${props.lastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">
+      ${
+        props.lastError
+          ? html`<div class="callout danger" style="margin-top: 12px;">
             ${props.lastError}
           </div>`
-        : nothing}
+          : nothing
+      }
       <pre class="code-block" style="margin-top: 12px;">
 ${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : "暂无快照。"}
       </pre>
@@ -93,32 +91,16 @@ ${props.snapshot ? JSON.stringify(props.snapshot, null, 2) : "暂无快照。"}
 
 function resolveChannelOrder(snapshot: ChannelsStatusSnapshot | null): ChannelKey[] {
   if (snapshot?.channelMeta?.length) {
-    return snapshot.channelMeta.map((entry) => entry.id) as ChannelKey[];
+    return snapshot.channelMeta.map((entry) => entry.id);
   }
   if (snapshot?.channelOrder?.length) {
     return snapshot.channelOrder;
   }
-  return [
-    "whatsapp",
-    "telegram",
-    "discord",
-    "googlechat",
-    "slack",
-    "signal",
-    "imessage",
-    "nostr",
-  ];
+  return ["whatsapp", "telegram", "discord", "googlechat", "slack", "signal", "imessage", "nostr"];
 }
 
-function renderChannel(
-  key: ChannelKey,
-  props: ChannelsProps,
-  data: ChannelsChannelData,
-) {
-  const accountCountLabel = renderChannelAccountCount(
-    key,
-    data.channelAccounts,
-  );
+function renderChannel(key: ChannelKey, props: ChannelsProps, data: ChannelsChannelData) {
+  const accountCountLabel = renderChannelAccountCount(key, data.channelAccounts);
   switch (key) {
     case "whatsapp":
       return renderWhatsAppCard({
@@ -215,13 +197,14 @@ function renderGenericChannelCard(
       <div class="card-sub">通道状态和配置。</div>
       ${accountCountLabel}
 
-      ${accounts.length > 0
-        ? html`
+      ${
+        accounts.length > 0
+          ? html`
             <div class="account-card-list">
               ${accounts.map((account) => renderGenericAccount(account))}
             </div>
           `
-        : html`
+          : html`
             <div class="status-list" style="margin-top: 16px;">
               <div>
                 <span class="label">已配置</span>
@@ -236,13 +219,16 @@ function renderGenericChannelCard(
                 <span>${connected == null ? "无" : connected ? "是" : "否"}</span>
               </div>
             </div>
-          `}
+          `
+      }
 
-      ${lastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">
+      ${
+        lastError
+          ? html`<div class="callout danger" style="margin-top: 12px;">
             ${lastError}
           </div>`
-        : nothing}
+          : nothing
+      }
 
       ${renderChannelConfigSection({ channelId: key, props })}
     </div>
@@ -252,14 +238,13 @@ function renderGenericChannelCard(
 function resolveChannelMetaMap(
   snapshot: ChannelsStatusSnapshot | null,
 ): Record<string, ChannelUiMetaEntry> {
-  if (!snapshot?.channelMeta?.length) return {};
+  if (!snapshot?.channelMeta?.length) {
+    return {};
+  }
   return Object.fromEntries(snapshot.channelMeta.map((entry) => [entry.id, entry]));
 }
 
-function resolveChannelLabel(
-  snapshot: ChannelsStatusSnapshot | null,
-  key: string,
-): string {
+function resolveChannelLabel(snapshot: ChannelsStatusSnapshot | null, key: string): string {
   const meta = resolveChannelMetaMap(snapshot)[key];
   return meta?.label ?? snapshot?.channelLabels?.[key] ?? key;
 }
@@ -267,22 +252,34 @@ function resolveChannelLabel(
 const RECENT_ACTIVITY_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 
 function hasRecentActivity(account: ChannelAccountSnapshot): boolean {
-  if (!account.lastInboundAt) return false;
+  if (!account.lastInboundAt) {
+    return false;
+  }
   return Date.now() - account.lastInboundAt < RECENT_ACTIVITY_THRESHOLD_MS;
 }
 
 function deriveRunningStatus(account: ChannelAccountSnapshot): "是" | "否" | "活跃" {
-  if (account.running) return "是";
+  if (account.running) {
+    return "是";
+  }
   // If we have recent inbound activity, the channel is effectively running
-  if (hasRecentActivity(account)) return "活跃";
+  if (hasRecentActivity(account)) {
+    return "活跃";
+  }
   return "否";
 }
 
 function deriveConnectedStatus(account: ChannelAccountSnapshot): "是" | "否" | "活跃" | "无" {
-  if (account.connected === true) return "是";
-  if (account.connected === false) return "否";
+  if (account.connected === true) {
+    return "是";
+  }
+  if (account.connected === false) {
+    return "否";
+  }
   // If connected is null/undefined but we have recent activity, show as active
-  if (hasRecentActivity(account)) return "活跃";
+  if (hasRecentActivity(account)) {
+    return "活跃";
+  }
   return "无";
 }
 
@@ -313,13 +310,15 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
           <span class="label">Last inbound</span>
           <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
         </div>
-        ${account.lastError
-          ? html`
+        ${
+          account.lastError
+            ? html`
               <div class="account-card-error">
                 ${account.lastError}
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;

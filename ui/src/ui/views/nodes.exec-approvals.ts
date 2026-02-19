@@ -1,15 +1,14 @@
 import { html, nothing } from "lit";
-
-import { clampText, formatAgo } from "../format";
-import type { ExecApprovalsAllowlistEntry } from "../controllers/exec-approvals";
-import type { NodesProps } from "./nodes.types";
+import type { ExecApprovalsAllowlistEntry } from "../controllers/exec-approvals.ts";
+import type { NodesProps } from "./nodes.types.ts";
+import { clampText, formatAgo } from "../format.ts";
 import {
   EXEC_APPROVALS_DEFAULT_SCOPE,
   resolveExecApprovalsState,
   type ExecApprovalsState,
   type ExecAsk,
   type ExecSecurity,
-} from "./nodes.exec-approvals.state";
+} from "./nodes.exec-approvals.state.ts";
 
 const SECURITY_OPTIONS: Array<{ value: ExecSecurity; label: string }> = [
   { value: "deny", label: "拒绝" },
@@ -47,20 +46,24 @@ export function renderExecApprovalsSection(props: NodesProps) {
 
       ${renderExecApprovalsTarget(state)}
 
-      ${!ready
-        ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
+      ${
+        !ready
+          ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
             <div class="muted">加载执行审批以编辑白名单。</div>
             <button class="btn" ?disabled=${state.loading || !targetReady} @click=${state.onLoad}>
               ${state.loading ? "加载中…" : "加载审批"}
             </button>
           </div>`
-        : html`
+          : html`
             ${renderExecApprovalsTabs(state)}
             ${renderExecApprovalsPolicy(state)}
-            ${state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE
-              ? nothing
-              : renderExecApprovalsAllowlist(state)}
-          `}
+            ${
+              state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE
+                ? nothing
+                : renderExecApprovalsAllowlist(state)
+            }
+          `
+      }
     </section>
   `;
 }
@@ -97,8 +100,9 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
               <option value="node" ?selected=${state.target === "node"}>节点</option>
             </select>
           </label>
-          ${state.target === "node"
-            ? html`
+          ${
+            state.target === "node"
+              ? html`
                 <label class="field">
                   <span>节点</span>
                   <select
@@ -122,12 +126,17 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                   </select>
                 </label>
               `
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
-      ${state.target === "node" && !hasNodes
-        ? html`<div class="muted">尚无节点发布执行审批广告。</div>`
-        : nothing}
+      ${
+        state.target === "node" && !hasNodes
+          ? html`
+              <div class="muted">尚无节点发布执行审批广告。</div>
+            `
+          : nothing
+      }
     </div>
   `;
 }
@@ -166,13 +175,10 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
   const basePath = isDefaults ? ["defaults"] : ["agents", state.selectedScope];
   const agentSecurity = typeof agent.security === "string" ? agent.security : undefined;
   const agentAsk = typeof agent.ask === "string" ? agent.ask : undefined;
-  const agentAskFallback =
-    typeof agent.askFallback === "string" ? agent.askFallback : undefined;
-  const securityValue = isDefaults ? defaults.security : agentSecurity ?? "__default__";
-  const askValue = isDefaults ? defaults.ask : agentAsk ?? "__default__";
-  const askFallbackValue = isDefaults
-    ? defaults.askFallback
-    : agentAskFallback ?? "__default__";
+  const agentAskFallback = typeof agent.askFallback === "string" ? agent.askFallback : undefined;
+  const securityValue = isDefaults ? defaults.security : (agentSecurity ?? "__default__");
+  const askValue = isDefaults ? defaults.ask : (agentAsk ?? "__default__");
+  const askFallbackValue = isDefaults ? defaults.askFallback : (agentAskFallback ?? "__default__");
   const autoOverride =
     typeof agent.autoAllowSkills === "boolean" ? agent.autoAllowSkills : undefined;
   const autoEffective = autoOverride ?? defaults.autoAllowSkills;
@@ -184,9 +190,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
         <div class="list-main">
           <div class="list-title">安全</div>
           <div class="list-sub">
-            ${isDefaults
-              ? "默认安全模式。"
-              : `默认值: ${defaults.security}.`}
+            ${isDefaults ? "默认安全模式。" : `默认值: ${defaults.security}.`}
           </div>
         </div>
         <div class="list-meta">
@@ -204,11 +208,13 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
                 }
               }}
             >
-              ${!isDefaults
-                ? html`<option value="__default__" ?selected=${securityValue === "__default__"}>
+              ${
+                !isDefaults
+                  ? html`<option value="__default__" ?selected=${securityValue === "__default__"}>
                     使用默认值 (${defaults.security})
                   </option>`
-                : nothing}
+                  : nothing
+              }
               ${SECURITY_OPTIONS.map(
                 (option) =>
                   html`<option
@@ -245,11 +251,13 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
                 }
               }}
             >
-              ${!isDefaults
-                ? html`<option value="__default__" ?selected=${askValue === "__default__"}>
+              ${
+                !isDefaults
+                  ? html`<option value="__default__" ?selected=${askValue === "__default__"}>
                     使用默认值 (${defaults.ask})
                   </option>`
-                : nothing}
+                  : nothing
+              }
               ${ASK_OPTIONS.map(
                 (option) =>
                   html`<option
@@ -268,9 +276,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
         <div class="list-main">
           <div class="list-title">询问回退</div>
           <div class="list-sub">
-            ${isDefaults
-              ? "当UI提示不可用时应用。"
-              : `默认值: ${defaults.askFallback}.`}
+            ${isDefaults ? "当UI提示不可用时应用。" : `默认值: ${defaults.askFallback}.`}
           </div>
         </div>
         <div class="list-meta">
@@ -288,11 +294,13 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
                 }
               }}
             >
-              ${!isDefaults
-                ? html`<option value="__default__" ?selected=${askFallbackValue === "__default__"}>
+              ${
+                !isDefaults
+                  ? html`<option value="__default__" ?selected=${askFallbackValue === "__default__"}>
                     使用默认值 (${defaults.askFallback})
                   </option>`
-                : nothing}
+                  : nothing
+              }
               ${SECURITY_OPTIONS.map(
                 (option) =>
                   html`<option
@@ -311,11 +319,13 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
         <div class="list-main">
           <div class="list-title">自动允许技能CLI</div>
           <div class="list-sub">
-            ${isDefaults
-              ? "允许网关列出的技能可执行文件。"
-              : autoIsDefault
-                ? `使用默认值 (${defaults.autoAllowSkills ? "开" : "关"}).`
-                : `覆盖 (${autoEffective ? "开" : "关"}).`}
+            ${
+              isDefaults
+                ? "允许网关列出的技能可执行文件。"
+                : autoIsDefault
+                  ? `使用默认值 (${defaults.autoAllowSkills ? "开" : "关"}).`
+                  : `覆盖 (${autoEffective ? "开" : "关"}).`
+            }
           </div>
         </div>
         <div class="list-meta">
@@ -331,15 +341,17 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
               }}
             />
           </label>
-          ${!isDefaults && !autoIsDefault
-            ? html`<button
+          ${
+            !isDefaults && !autoIsDefault
+              ? html`<button
                 class="btn btn--sm"
                 ?disabled=${state.disabled}
                 @click=${() => state.onRemove([...basePath, "autoAllowSkills"])}
               >
                 使用默认值
               </button>`
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
     </div>
@@ -367,11 +379,13 @@ function renderExecApprovalsAllowlist(state: ExecApprovalsState) {
       </button>
     </div>
     <div class="list" style="margin-top: 12px;">
-      ${entries.length === 0
-        ? html`<div class="muted">尚无白名单条目。</div>`
-        : entries.map((entry, index) =>
-            renderAllowlistEntry(state, entry, index),
-          )}
+      ${
+        entries.length === 0
+          ? html`
+              <div class="muted">尚无白名单条目。</div>
+            `
+          : entries.map((entry, index) => renderAllowlistEntry(state, entry, index))
+      }
     </div>
   `;
 }
@@ -382,12 +396,8 @@ function renderAllowlistEntry(
   index: number,
 ) {
   const lastUsed = entry.lastUsedAt ? formatAgo(entry.lastUsedAt) : "从未";
-  const lastCommand = entry.lastUsedCommand
-    ? clampText(entry.lastUsedCommand, 120)
-    : null;
-  const lastPath = entry.lastResolvedPath
-    ? clampText(entry.lastResolvedPath, 120)
-    : null;
+  const lastCommand = entry.lastUsedCommand ? clampText(entry.lastUsedCommand, 120) : null;
+  const lastPath = entry.lastResolvedPath ? clampText(entry.lastResolvedPath, 120) : null;
   return html`
     <div class="list-item">
       <div class="list-main">

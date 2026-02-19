@@ -82,7 +82,11 @@
   height: var(--shell-topbar-height);
   border-bottom: 1px solid var(--neo-border);
   background:
-    linear-gradient(var(--neo-light-angle), color-mix(in srgb, var(--neo-surface-hi) 78%, transparent), color-mix(in srgb, var(--neo-surface-lo) 82%, transparent)),
+    linear-gradient(
+      var(--neo-light-angle),
+      color-mix(in srgb, var(--neo-surface-hi) 78%, transparent),
+      color-mix(in srgb, var(--neo-surface-lo) 82%, transparent)
+    ),
     var(--chrome);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -253,7 +257,11 @@
   overflow-x: hidden;
   padding: 16px 12px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--neo-surface-mid) 72%, transparent) 0%, color-mix(in srgb, var(--bg) 95%, transparent) 100%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--neo-surface-mid) 72%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 95%, transparent) 100%
+    ),
     linear-gradient(var(--neo-light-angle), var(--neo-surface-hi), var(--neo-surface-lo));
   border-right: 1px solid var(--neo-border);
   scrollbar-width: none; /* Firefox */
@@ -461,7 +469,9 @@
   color: var(--text);
   background: var(--neo-grad-raised);
   transform: translateX(calc(var(--neo-depth-1) * 0.25));
-  box-shadow: var(--neo-shadow-outset-soft), inset 0 0 0 1px var(--neo-border-strong);
+  box-shadow:
+    var(--neo-shadow-outset-soft),
+    inset 0 0 0 1px var(--neo-border-strong);
   text-decoration: none;
 }
 
@@ -505,14 +515,12 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 220px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 220px);
 }
 
 :root[data-theme="light"] .content {
   background:
-    linear-gradient(180deg, rgba(220, 38, 38, 0.04) 0%, transparent 200px),
-    var(--bg-content);
+    linear-gradient(180deg, rgba(220, 38, 38, 0.04) 0%, transparent 200px), var(--bg-content);
 }
 
 .content--chat {

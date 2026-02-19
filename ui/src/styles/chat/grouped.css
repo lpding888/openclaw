@@ -160,7 +160,9 @@ img.chat-avatar {
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 120ms ease-out, background 120ms ease-out;
+  transition:
+    opacity 120ms ease-out,
+    background 120ms ease-out;
 }
 
 .chat-copy-btn__icon {
@@ -279,7 +281,8 @@ img.chat-avatar {
 }
 
 @keyframes pulsing-border {
-  0%, 100% {
+  0%,
+  100% {
     border-color: var(--border);
   }
   50% {

@@ -1,7 +1,10 @@
-import type { ExecApprovalsAllowlistEntry, ExecApprovalsFile } from "../controllers/exec-approvals";
-import { nodeLabel, nodeSupportsCommand } from "../node-snapshot";
-import type { NodeSnapshot } from "../types";
-import type { NodesProps } from "./nodes.types";
+import type {
+  ExecApprovalsAllowlistEntry,
+  ExecApprovalsFile,
+} from "../controllers/exec-approvals.ts";
+import type { NodeSnapshot } from "../types.ts";
+import type { NodesProps } from "./nodes.types.ts";
+import { nodeLabel, nodeSupportsCommand } from "../node-snapshot.ts";
 
 export type ExecSecurity = "deny" | "allowlist" | "full";
 export type ExecAsk = "off" | "on-miss" | "always";
@@ -49,12 +52,16 @@ export type ExecApprovalsState = {
 export const EXEC_APPROVALS_DEFAULT_SCOPE = "__defaults__";
 
 function normalizeSecurity(value?: string): ExecSecurity {
-  if (value === "allowlist" || value === "full" || value === "deny") return value;
+  if (value === "allowlist" || value === "full" || value === "deny") {
+    return value;
+  }
   return "deny";
 }
 
 function normalizeAsk(value?: string): ExecAsk {
-  if (value === "always" || value === "off" || value === "on-miss") return value;
+  if (value === "always" || value === "off" || value === "on-miss") {
+    return value;
+  }
   return "on-miss";
 }
 
@@ -75,10 +82,14 @@ function resolveConfigAgents(config: Record<string, unknown> | null): ExecApprov
   const list = Array.isArray(agentsNode.list) ? agentsNode.list : [];
   const agents: ExecApprovalsAgentOption[] = [];
   list.forEach((entry) => {
-    if (!entry || typeof entry !== "object") return;
+    if (!entry || typeof entry !== "object") {
+      return;
+    }
     const record = entry as Record<string, unknown>;
     const id = typeof record.id === "string" ? record.id.trim() : "";
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const name = typeof record.name === "string" ? record.name.trim() : undefined;
     const isDefault = record.default === true;
     agents.push({ id, name: name || undefined, isDefault });
@@ -95,7 +106,9 @@ function resolveExecApprovalsAgents(
   const merged = new Map<string, ExecApprovalsAgentOption>();
   configAgents.forEach((agent) => merged.set(agent.id, agent));
   approvalsAgents.forEach((id) => {
-    if (merged.has(id)) return;
+    if (merged.has(id)) {
+      return;
+    }
     merged.set(id, { id });
   });
   const agents = Array.from(merged.values());
@@ -103,8 +116,12 @@ function resolveExecApprovalsAgents(
     agents.push({ id: "main", isDefault: true });
   }
   agents.sort((a, b) => {
-    if (a.isDefault && !b.isDefault) return -1;
-    if (!a.isDefault && b.isDefault) return 1;
+    if (a.isDefault && !b.isDefault) {
+      return -1;
+    }
+    if (!a.isDefault && b.isDefault) {
+      return 1;
+    }
     const aLabel = a.name?.trim() ? a.name : a.id;
     const bLabel = b.name?.trim() ? b.name : b.id;
     return aLabel.localeCompare(bLabel);
@@ -116,8 +133,12 @@ function resolveExecApprovalsScope(
   selected: string | null,
   agents: ExecApprovalsAgentOption[],
 ): string {
-  if (selected === EXEC_APPROVALS_DEFAULT_SCOPE) return EXEC_APPROVALS_DEFAULT_SCOPE;
-  if (selected && agents.some((agent) => agent.id === selected)) return selected;
+  if (selected === EXEC_APPROVALS_DEFAULT_SCOPE) {
+    return EXEC_APPROVALS_DEFAULT_SCOPE;
+  }
+  if (selected && agents.some((agent) => agent.id === selected)) {
+    return selected;
+  }
   return EXEC_APPROVALS_DEFAULT_SCOPE;
 }
 
@@ -127,9 +148,13 @@ function resolveExecApprovalsNodes(nodes: NodeSnapshot[]): ExecApprovalsTargetNo
     const supports =
       nodeSupportsCommand(node, "system.execApprovals.get") ||
       nodeSupportsCommand(node, "system.execApprovals.set");
-    if (!supports) continue;
+    if (!supports) {
+      continue;
+    }
     const nodeId = node.nodeId?.trim() ?? "";
-    if (!nodeId) continue;
+    if (!nodeId) {
+      continue;
+    }
     list.push({ id: nodeId, label: nodeLabel(node) });
   }
   list.sort((a, b) => a.label.localeCompare(b.label));
@@ -144,21 +169,17 @@ export function resolveExecApprovalsState(props: NodesProps): ExecApprovalsState
   const targetNodes = resolveExecApprovalsNodes(props.nodes);
   const target = props.execApprovalsTarget;
   let targetNodeId =
-    target === "node" && props.execApprovalsTargetNodeId
-      ? props.execApprovalsTargetNodeId
-      : null;
+    target === "node" && props.execApprovalsTargetNodeId ? props.execApprovalsTargetNodeId : null;
   if (target === "node" && targetNodeId && !targetNodes.some((node) => node.id === targetNodeId)) {
     targetNodeId = null;
   }
   const selectedScope = resolveExecApprovalsScope(props.execApprovalsSelectedAgent, agents);
   const selectedAgent =
     selectedScope !== EXEC_APPROVALS_DEFAULT_SCOPE
-      ? ((form?.agents ?? {})[selectedScope] as Record<string, unknown> | undefined) ??
-        null
+      ? (((form?.agents ?? {})[selectedScope] as Record<string, unknown> | undefined) ?? null)
       : null;
   const allowlist = Array.isArray((selectedAgent as { allowlist?: unknown })?.allowlist)
-    ? ((selectedAgent as { allowlist?: ExecApprovalsAllowlistEntry[] }).allowlist ??
-        [])
+    ? ((selectedAgent as { allowlist?: ExecApprovalsAllowlistEntry[] }).allowlist ?? [])
     : [];
   return {
     ready,

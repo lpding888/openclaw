@@ -2,7 +2,6 @@ import { html, nothing } from "lit";
 import type { SkillMessageMap } from "../controllers/skills.ts";
 import type { SkillStatusEntry, SkillStatusReport } from "../types.ts";
 import { clampText } from "../format.ts";
-import { groupSkills } from "./skills-grouping.ts";
 import {
   computeSkillMissing,
   computeSkillReasons,
@@ -37,8 +36,12 @@ function translateSource(source: string): string {
 
 function resolveArchitectAliases(raw: string): string[] {
   const normalized = raw.trim().toLowerCase();
-  if (!normalized) return [];
-  if (!["架构", "架构师", "architect", "architecture"].includes(normalized)) return [];
+  if (!normalized) {
+    return [];
+  }
+  if (!["架构", "架构师", "architect", "architecture"].includes(normalized)) {
+    return [];
+  }
   return ["architect", "architecture", "design", "workflow", "skill-creator", "skill-installer"];
 }
 
@@ -81,25 +84,30 @@ export function renderSkills(props: SkillsProps) {
           <span>过滤器</span>
           <input
             .value=${props.filter}
-            @input=${(e: Event) =>
-              props.onFilterChange((e.target as HTMLInputElement).value)}
+            @input=${(e: Event) => props.onFilterChange((e.target as HTMLInputElement).value)}
             placeholder="搜索技能"
           />
         </label>
         <div class="muted">显示${filtered.length}项</div>
       </div>
 
-      ${props.error
-        ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>`
-        : nothing}
+      ${
+        props.error
+          ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>`
+          : nothing
+      }
 
-      ${filtered.length === 0
-        ? html`<div class="muted" style="margin-top: 16px;">未找到技能。</div>`
-        : html`
+      ${
+        filtered.length === 0
+          ? html`
+              <div class="muted" style="margin-top: 16px">未找到技能。</div>
+            `
+          : html`
             <div class="list" style="margin-top: 16px;">
               ${filtered.map((skill) => renderSkill(skill, props))}
             </div>
-          `}
+          `
+      }
     </section>
   `;
 }
@@ -124,7 +132,13 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
             <span class="chip ${skill.eligible ? "chip-ok" : "chip-warn"}>
               ${skill.eligible ? "符合条件" : "被阻止"}
             </span>
-            ${skill.disabled ? html`<span class="chip chip-warn">已禁用</span>` : nothing}
+            ${
+              skill.disabled
+                ? html`
+                    <span class="chip chip-warn">已禁用</span>
+                  `
+                : nothing
+            }
           </div>
         </div>
         <div class="list-sub">${clampText(skill.description, 140)}</div>
@@ -136,14 +150,17 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
                 Missing: ${missing.join(", ")}
               </div>
             `
-          : nothing}
-        ${reasons.length > 0
-          ? html`
+            : nothing
+        }
+        ${
+          reasons.length > 0
+            ? html`
               <div class="muted" style="margin-top: 6px; font-size: 11px;">
                 原因: ${reasons.join(", ")}
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
       <div class="list-meta">
         <div class="row" style="justify-content: flex-end; flex-wrap: wrap;">
@@ -154,19 +171,21 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
           >
             ${skill.disabled ? "启用" : "禁用"}
           </button>
-          ${canInstall
-            ? html`<button
+          ${
+            canInstall
+              ? html`<button
                 class="btn"
                 ?disabled=${busy}
-                @click=${() =>
-                  props.onInstall(skill.skillKey, skill.name, skill.install[0].id)}
+                @click=${() => props.onInstall(skill.skillKey, skill.name, skill.install[0].id)}
               >
                 ${busy ? "安装中…" : skill.install[0].label}
               </button>`
-            : nothing}
+              : nothing
+          }
         </div>
-        ${message
-          ? html`<div
+        ${
+          message
+            ? html`<div
               class="muted"
               style="margin-top: 8px; color: ${
                 message.kind === "error"
@@ -176,9 +195,11 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
             >
               ${message.message}
             </div>`
-          : nothing}
-        ${skill.primaryEnv
-          ? html`
+            : nothing
+        }
+        ${
+          skill.primaryEnv
+            ? html`
               <div class="field" style="margin-top: 10px;">
                 <span>API密钥</span>
                 <input
@@ -197,7 +218,8 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
                 保存密钥
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     </div>
   `;

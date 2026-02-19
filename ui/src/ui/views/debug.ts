@@ -1,7 +1,6 @@
 import { html, nothing } from "lit";
-
-import { formatEventPayload } from "../presenter";
-import type { EventLogEntry } from "../app-events";
+import type { EventLogEntry } from "../app-events.ts";
+import { formatEventPayload } from "../presenter.ts";
 
 export type DebugProps = {
   loading: boolean;
@@ -57,8 +56,7 @@ export function renderDebug(props: DebugProps) {
             <span>方法</span>
             <input
               .value=${props.callMethod}
-              @input=${(e: Event) =>
-                props.onCallMethodChange((e.target as HTMLInputElement).value)}
+              @input=${(e: Event) => props.onCallMethodChange((e.target as HTMLInputElement).value)}
               placeholder="系统状态"
             />
           </label>
@@ -75,14 +73,18 @@ export function renderDebug(props: DebugProps) {
         <div class="row" style="margin-top: 12px;">
           <button class="btn primary" @click=${props.onCall}>调用</button>
         </div>
-        ${props.callError
-          ? html`<div class="callout danger" style="margin-top: 12px;">
+        ${
+          props.callError
+            ? html`<div class="callout danger" style="margin-top: 12px;">
               ${props.callError}
             </div>`
-          : nothing}
-        ${props.callResult
-          ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
-          : nothing}
+            : nothing
+        }
+        ${
+          props.callResult
+            ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
+            : nothing
+        }
       </div>
     </section>
 
@@ -99,9 +101,12 @@ export function renderDebug(props: DebugProps) {
     <section class="card" style="margin-top: 18px;">
       <div class="card-title">事件日志</div>
       <div class="card-sub">最新的网关事件。</div>
-      ${props.eventLog.length === 0
-        ? html`<div class="muted" style="margin-top: 12px;">暂无事件。</div>`
-        : html`
+      ${
+        props.eventLog.length === 0
+          ? html`
+              <div class="muted" style="margin-top: 12px">暂无事件。</div>
+            `
+          : html`
             <div class="list" style="margin-top: 12px;">
               ${props.eventLog.map(
                 (evt) => html`
@@ -117,7 +122,8 @@ export function renderDebug(props: DebugProps) {
                 `,
               )}
             </div>
-          `}
+          `
+      }
     </section>
   `;
 }

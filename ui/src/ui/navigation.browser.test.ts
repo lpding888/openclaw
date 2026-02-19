@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-import { ClawdbotApp } from "./app";
+import { ClawdbotApp } from "./app.ts";
 import "../styles.css";
 
-const originalConnect = ClawdbotApp.prototype.connect;
+const originalConnectDescriptor = Object.getOwnPropertyDescriptor(ClawdbotApp.prototype, "connect");
 
 function mountApp(pathname: string) {
   window.history.replaceState({}, "", pathname);
@@ -41,7 +40,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  ClawdbotApp.prototype.connect = originalConnect;
+  if (originalConnectDescriptor) {
+    Object.defineProperty(ClawdbotApp.prototype, "connect", originalConnectDescriptor);
+  }
   window.__CLAWDBOT_CONTROL_UI_BASE_PATH__ = undefined;
   localStorage.clear();
   document.body.innerHTML = "";
@@ -88,13 +89,9 @@ describe("control UI routing", () => {
     const app = mountApp("/chat");
     await app.updateComplete;
 
-    const link = app.querySelector<HTMLAnchorElement>(
-      'a.nav-item[href="/channels"]',
-    );
+    const link = app.querySelector<HTMLAnchorElement>('a.nav-item[href="/channels"]');
     expect(link).not.toBeNull();
-    link?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }),
-    );
+    link?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
 
     await app.updateComplete;
     expect(app.tab).toBe("channels");
@@ -122,13 +119,17 @@ describe("control UI routing", () => {
 
     expect(window.matchMedia("(max-width: 768px)").matches).toBe(true);
 
-    const split = app.querySelector(".chat-split-container") as HTMLElement | null;
+    const split = app.querySelector(".chat-split-container");
     expect(split).not.toBeNull();
-    if (!split) return;
+    if (!split) {
+      return;
+    }
 
-    const chatMain = app.querySelector(".chat-main") as HTMLElement | null;
+    const chatMain = app.querySelector(".chat-main");
     expect(chatMain).not.toBeNull();
-    if (!chatMain) return;
+    if (!chatMain) {
+      return;
+    }
 
     split.classList.add("chat-split-container--open");
     await app.updateComplete;
@@ -139,9 +140,11 @@ describe("control UI routing", () => {
     const app = mountApp("/chat");
     await app.updateComplete;
 
-    const initialContainer = app.querySelector(".chat-thread") as HTMLElement | null;
+    const initialContainer = app.querySelector<HTMLElement>(".chat-thread");
     expect(initialContainer).not.toBeNull();
-    if (!initialContainer) return;
+    if (!initialContainer) {
+      return;
+    }
     initialContainer.style.maxHeight = "180px";
     initialContainer.style.overflow = "auto";
 
@@ -156,9 +159,11 @@ describe("control UI routing", () => {
       await nextFrame();
     }
 
-    const container = app.querySelector(".chat-thread") as HTMLElement | null;
+    const container = app.querySelector<HTMLElement>(".chat-thread");
     expect(container).not.toBeNull();
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     Object.defineProperty(container, "scrollHeight", { value: 1200, configurable: true });
     Object.defineProperty(container, "clientHeight", { value: 180, configurable: true });
     let scrollTop = 0;
@@ -172,7 +177,9 @@ describe("control UI routing", () => {
     const maxScroll = container.scrollHeight - container.clientHeight;
     expect(maxScroll).toBeGreaterThan(0);
     for (let i = 0; i < 10; i++) {
-      if (container.scrollTop === maxScroll) break;
+      if (container.scrollTop === maxScroll) {
+        break;
+      }
       await nextFrame();
     }
     expect(container.scrollTop).toBeGreaterThanOrEqual(maxScroll);

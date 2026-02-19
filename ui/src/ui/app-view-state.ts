@@ -3,6 +3,7 @@ import type { CompactionStatus } from "./app-tool-stream.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
+import type { ModelSwitcherOption } from "./controllers/model-switcher.ts";
 import type { SkillMessage } from "./controllers/skills.ts";
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
@@ -13,6 +14,11 @@ import type {
   AgentsListResult,
   AgentsFilesListResult,
   AgentIdentityResult,
+  ChatFeedbackDraft,
+  ChatFeedbackItem,
+  ChatTimelineEvent,
+  ChatTimelineFilterState,
+  ChatTimelineRunSummary,
   ChannelsStatusSnapshot,
   ConfigSnapshot,
   ConfigUiHints,
@@ -64,11 +70,29 @@ export type AppViewState = {
   chatAvatarUrl: string | null;
   chatThinkingLevel: string | null;
   chatQueue: ChatQueueItem[];
+  chatTimelineEvents: ChatTimelineEvent[];
+  chatTimelineLoading: boolean;
+  chatTimelineError: string | null;
+  chatTimelineServerSupported: boolean;
+  chatTimelineFollow: boolean;
+  chatTimelineFilters: ChatTimelineFilterState;
+  chatTimelineRuns: ChatTimelineRunSummary[];
+  chatTimelineRunsLoading: boolean;
+  chatTimelineRunsError: string | null;
+  chatTimelineRunsServerSupported: boolean;
+  chatFeedbackItems: ChatFeedbackItem[];
+  chatFeedbackLoading: boolean;
+  chatFeedbackError: string | null;
+  chatFeedbackServerSupported: boolean;
+  chatFeedbackDrafts: Record<string, ChatFeedbackDraft>;
+  chatFeedbackSubmitting: Record<string, boolean>;
+  chatFeedbackSubmitErrors: Record<string, string | null>;
   chatManualRefreshInFlight: boolean;
   nodesLoading: boolean;
   nodes: Array<Record<string, unknown>>;
   chatNewMessagesBelow: boolean;
   sidebarOpen: boolean;
+  sidebarTab: "timeline" | "tool" | "insights";
   sidebarContent: string | null;
   sidebarError: string | null;
   splitRatio: number;
@@ -108,6 +132,12 @@ export type AppViewState = {
   configSearchQuery: string;
   configActiveSection: string | null;
   configActiveSubsection: string | null;
+  modelSwitcherLoading: boolean;
+  modelSwitcherSaving: boolean;
+  modelSwitcherCurrent: string | null;
+  modelSwitcherSelected: string;
+  modelSwitcherOptions: ModelSwitcherOption[];
+  modelSwitcherError: string | null;
   channelsLoading: boolean;
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
@@ -281,5 +311,6 @@ export type AppViewState = {
   handleLogsScroll: (event: Event) => void;
   handleOpenSidebar: (content: string) => void;
   handleCloseSidebar: () => void;
+  handleSetSidebarTab: (tab: "timeline" | "tool" | "insights") => void;
   handleSplitRatioChange: (ratio: number) => void;
 };

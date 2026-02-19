@@ -6,7 +6,7 @@ import type {
   ChatTimelineEvent,
   ChatTimelineRunStatus,
   ChatTimelineRunSummary,
-} from "../types";
+} from "../types.ts";
 
 const CHAT_TIMELINE_RUNS_METHOD_UNKNOWN_RE =
   /unknown method:\s*chat\.timeline\.runs|invalid request:\s*unknown method:\s*chat\.timeline\.runs/i;
@@ -75,7 +75,9 @@ function normalizeRunStatus(value: unknown): ChatTimelineRunStatus | null {
 }
 
 function normalizeRunSummary(raw: unknown): ChatTimelineRunSummary | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
   const row = raw as Record<string, unknown>;
   const sessionKey = typeof row.sessionKey === "string" ? row.sessionKey.trim() : "";
   const runId = typeof row.runId === "string" ? row.runId.trim() : "";
@@ -128,7 +130,9 @@ function normalizeFeedbackTag(value: unknown): ChatFeedbackTag | null {
 }
 
 function normalizeFeedbackItem(raw: unknown): ChatFeedbackItem | null {
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
   const row = raw as Record<string, unknown>;
   const feedbackId = typeof row.feedbackId === "string" ? row.feedbackId.trim() : "";
   const sessionKey = typeof row.sessionKey === "string" ? row.sessionKey.trim() : "";
@@ -179,7 +183,9 @@ export function mergeChatTimelineRuns(
   incoming: ChatTimelineRunSummary[],
 ): ChatTimelineRunSummary[] {
   const byRun = new Map<string, ChatTimelineRunSummary>();
-  for (const item of current) byRun.set(runSummaryKey(item), item);
+  for (const item of current) {
+    byRun.set(runSummaryKey(item), item);
+  }
   for (const item of incoming) {
     const key = runSummaryKey(item);
     const prev = byRun.get(key);
@@ -189,18 +195,28 @@ export function mergeChatTimelineRuns(
   }
   const merged = Array.from(byRun.values());
   merged.sort((a, b) => {
-    if (a.startedAt !== b.startedAt) return b.startedAt - a.startedAt;
-    if (a.updatedAt !== b.updatedAt) return b.updatedAt - a.updatedAt;
+    if (a.startedAt !== b.startedAt) {
+      return b.startedAt - a.startedAt;
+    }
+    if (a.updatedAt !== b.updatedAt) {
+      return b.updatedAt - a.updatedAt;
+    }
     return b.runId.localeCompare(a.runId);
   });
   return merged;
 }
 
-export function deriveTimelineRunsFromEvents(events: ChatTimelineEvent[]): ChatTimelineRunSummary[] {
+export function deriveTimelineRunsFromEvents(
+  events: ChatTimelineEvent[],
+): ChatTimelineRunSummary[] {
   const byRun = new Map<string, ChatTimelineRunSummary>();
-  const sorted = [...events].sort((a, b) => {
-    if (a.ts !== b.ts) return a.ts - b.ts;
-    if (a.seq !== b.seq) return a.seq - b.seq;
+  const sorted = [...events].toSorted((a, b) => {
+    if (a.ts !== b.ts) {
+      return a.ts - b.ts;
+    }
+    if (a.seq !== b.seq) {
+      return a.seq - b.seq;
+    }
     return a.runId.localeCompare(b.runId);
   });
 
@@ -235,8 +251,12 @@ export function deriveTimelineRunsFromEvents(events: ChatTimelineEvent[]): ChatT
         }
       }
     } else if (evt.stream === "tool") {
-      if (phase === "start") next.toolCalls += 1;
-      if (phase === "error" || evt.data.isError === true) next.toolErrors += 1;
+      if (phase === "start") {
+        next.toolCalls += 1;
+      }
+      if (phase === "error" || evt.data.isError === true) {
+        next.toolErrors += 1;
+      }
     } else if (evt.stream === "compaction") {
       next.compactionCount += 1;
     } else if (evt.stream === "error") {
@@ -256,7 +276,9 @@ export function deriveTimelineRunsFromEvents(events: ChatTimelineEvent[]): ChatT
         if (usage) {
           const input = typeof usage.input === "number" ? usage.input : usage.inputTokens;
           const output = typeof usage.output === "number" ? usage.output : usage.outputTokens;
-          if (typeof input === "number" && Number.isFinite(input)) next.inputTokens = Math.max(0, input);
+          if (typeof input === "number" && Number.isFinite(input)) {
+            next.inputTokens = Math.max(0, input);
+          }
           if (typeof output === "number" && Number.isFinite(output)) {
             next.outputTokens = Math.max(0, output);
           }
@@ -285,11 +307,16 @@ function feedbackKey(item: ChatFeedbackItem): string {
   return item.feedbackId;
 }
 
-function mergeFeedbackItems(current: ChatFeedbackItem[], incoming: ChatFeedbackItem[]): ChatFeedbackItem[] {
+function mergeFeedbackItems(
+  current: ChatFeedbackItem[],
+  incoming: ChatFeedbackItem[],
+): ChatFeedbackItem[] {
   const known = new Set(current.map((item) => feedbackKey(item)));
   const next = [...current];
   for (const item of incoming) {
-    if (known.has(feedbackKey(item))) continue;
+    if (known.has(feedbackKey(item))) {
+      continue;
+    }
     next.push(item);
     known.add(feedbackKey(item));
   }
@@ -301,7 +328,9 @@ export async function loadChatTimelineRuns(
   state: ChatObservabilityState,
   opts?: { limit?: number; quiet?: boolean },
 ) {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
   if (!opts?.quiet) {
     state.chatTimelineRunsLoading = true;
     state.chatTimelineRunsError = null;
@@ -341,19 +370,29 @@ export function appendChatTimelineRunSummary(
   >,
   payload?: unknown,
 ) {
-  if (!payload) return;
+  if (!payload) {
+    return;
+  }
   const normalized = normalizeRunSummary(payload);
-  if (!normalized) return;
-  if (normalized.sessionKey !== state.sessionKey) return;
+  if (!normalized) {
+    return;
+  }
+  if (normalized.sessionKey !== state.sessionKey) {
+    return;
+  }
   state.chatTimelineRunsServerSupported = true;
   state.chatTimelineRuns = mergeChatTimelineRuns(state.chatTimelineRuns, [normalized]);
 }
 
-export function syncFallbackRunSummaries(state: Pick<
-  ChatObservabilityState,
-  "chatTimelineRunsServerSupported" | "chatTimelineEvents" | "chatTimelineRuns" | "sessionKey"
->) {
-  if (state.chatTimelineRunsServerSupported) return;
+export function syncFallbackRunSummaries(
+  state: Pick<
+    ChatObservabilityState,
+    "chatTimelineRunsServerSupported" | "chatTimelineEvents" | "chatTimelineRuns" | "sessionKey"
+  >,
+) {
+  if (state.chatTimelineRunsServerSupported) {
+    return;
+  }
   const events = state.chatTimelineEvents.filter((item) => item.sessionKey === state.sessionKey);
   state.chatTimelineRuns = deriveTimelineRunsFromEvents(events);
 }
@@ -362,7 +401,9 @@ export async function loadChatFeedbackList(
   state: ChatObservabilityState,
   opts?: { limit?: number; runId?: string; quiet?: boolean },
 ) {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
   if (!opts?.quiet) {
     state.chatFeedbackLoading = true;
     state.chatFeedbackError = null;
@@ -422,7 +463,11 @@ export async function submitChatFeedback(
       applyScope: params.applyScope ?? "agent",
       source: params.source ?? "chat-ui",
     })) as { ok?: boolean; feedbackId?: unknown; acceptedAt?: unknown };
-    if (res.ok !== true || typeof res.feedbackId !== "string" || typeof res.acceptedAt !== "number") {
+    if (
+      res.ok !== true ||
+      typeof res.feedbackId !== "string" ||
+      typeof res.acceptedAt !== "number"
+    ) {
       throw new Error("feedback submit failed");
     }
     const item: ChatFeedbackItem = {
@@ -468,17 +513,30 @@ export function selectActiveRunSummary(
 ): ChatTimelineRunSummary | null {
   if (currentRunId) {
     const hit = runs.find((item) => item.runId === currentRunId);
-    if (hit) return hit;
+    if (hit) {
+      return hit;
+    }
   }
-  if (runs.length === 0) return null;
+  if (runs.length === 0) {
+    return null;
+  }
   return runs[0] ?? null;
 }
 
-export function detectRunAlerts(run: ChatTimelineRunSummary, events: ChatTimelineEvent[]): string[] {
+export function detectRunAlerts(
+  run: ChatTimelineRunSummary,
+  events: ChatTimelineEvent[],
+): string[] {
   const alerts: string[] = [];
-  if (typeof run.firstTokenMs === "number" && run.firstTokenMs > 10_000) alerts.push("首字节过慢");
-  if (run.toolErrors > 0) alerts.push("工具报错");
-  if (run.truncatedEvents > 0) alerts.push("事件截断");
+  if (typeof run.firstTokenMs === "number" && run.firstTokenMs > 10_000) {
+    alerts.push("首字节过慢");
+  }
+  if (run.toolErrors > 0) {
+    alerts.push("工具报错");
+  }
+  if (run.truncatedEvents > 0) {
+    alerts.push("事件截断");
+  }
   if (run.status === "error") {
     const hasTimeout = events.some((entry) => {
       const message =
@@ -489,7 +547,9 @@ export function detectRunAlerts(run: ChatTimelineRunSummary, events: ChatTimelin
             : "";
       return /timeout|timed out|超时/i.test(message);
     });
-    if (hasTimeout) alerts.push("run 超时");
+    if (hasTimeout) {
+      alerts.push("run 超时");
+    }
   }
   return alerts;
 }
@@ -498,8 +558,12 @@ function pickTraceEvents(events: ChatTimelineEvent[], runId: string): ChatTimeli
   return events
     .filter((item) => item.runId === runId)
     .filter((item) => {
-      if (item.stream === "error" || item.stream === "compaction") return true;
-      if (item.stream === "lifecycle") return true;
+      if (item.stream === "error" || item.stream === "compaction") {
+        return true;
+      }
+      if (item.stream === "lifecycle") {
+        return true;
+      }
       if (item.stream === "tool") {
         const phase = typeof item.data.phase === "string" ? item.data.phase : "";
         return phase === "start" || phase === "result" || phase === "error";

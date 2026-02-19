@@ -1,6 +1,5 @@
 import { html, nothing } from "lit";
-
-import type { ChatFeedbackItem, ChatTimelineRunSummary } from "../types";
+import type { ChatFeedbackItem, ChatTimelineRunSummary } from "../types.ts";
 
 export type ChatInsightsProps = {
   activeRun: ChatTimelineRunSummary | null;
@@ -13,13 +12,19 @@ export type ChatInsightsProps = {
 };
 
 function formatDuration(ms?: number): string {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return "-";
-  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (typeof ms !== "number" || !Number.isFinite(ms)) {
+    return "-";
+  }
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
   return `${(ms / 1000).toFixed(ms >= 10_000 ? 0 : 1)}s`;
 }
 
 function formatTime(ts?: number): string {
-  if (typeof ts !== "number" || !Number.isFinite(ts)) return "-";
+  if (typeof ts !== "number" || !Number.isFinite(ts)) {
+    return "-";
+  }
   return new Date(ts).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -34,21 +39,26 @@ export function renderChatInsights(props: ChatInsightsProps) {
       <header class="chat-insights-panel__header">
         <div class="chat-insights-panel__title">洞察</div>
         <div class="chat-insights-panel__sub">
-          ${!limited
-            ? "运行摘要与反馈持久化已启用"
-            : "洞察能力受限（网关缺少部分方法）"}
+          ${!limited ? "运行摘要与反馈持久化已启用" : "洞察能力受限（网关缺少部分方法）"}
         </div>
       </header>
 
-      ${limited
-        ? html`<div class="callout info chat-insights-panel__limited">当前网关不支持完整洞察接口，已自动降级到可用能力。</div>`
-        : nothing}
+      ${
+        limited
+          ? html`
+              <div class="callout info chat-insights-panel__limited">
+                当前网关不支持完整洞察接口，已自动降级到可用能力。
+              </div>
+            `
+          : nothing
+      }
       ${props.feedbackError ? html`<div class="callout danger">${props.feedbackError}</div>` : nothing}
 
       <div class="chat-insights-section">
         <div class="chat-insights-section__title">当前 Run</div>
-        ${props.activeRun
-          ? html`
+        ${
+          props.activeRun
+            ? html`
               <div class="chat-insights-run">
                 <div class="chat-insights-run__meta">
                   <span class="chat-insights-run__id">${props.activeRun.runId}</span>
@@ -66,24 +76,39 @@ export function renderChatInsights(props: ChatInsightsProps) {
                   <span>开始: ${formatTime(props.activeRun.startedAt)}</span>
                   <span>结束: ${formatTime(props.activeRun.endedAt)}</span>
                 </div>
-                ${props.activeAlerts.length > 0
-                  ? html`
+                ${
+                  props.activeAlerts.length > 0
+                    ? html`
                       <div class="chat-insights-run__alerts">
                         ${props.activeAlerts.map((item) => html`<span class="chat-insights-alert">${item}</span>`)}
                       </div>
                     `
-                  : nothing}
+                    : nothing
+                }
               </div>
             `
-          : html`<div class="muted">暂无运行摘要</div>`}
+            : html`
+                <div class="muted">暂无运行摘要</div>
+              `
+        }
       </div>
 
       <div class="chat-insights-section">
         <div class="chat-insights-section__title">最近反馈</div>
-        ${props.feedbackLoading ? html`<div class="muted">正在加载反馈…</div>` : nothing}
-        ${!props.feedbackLoading && props.feedbackItems.length === 0
-          ? html`<div class="muted">暂无反馈记录</div>`
-          : nothing}
+        ${
+          props.feedbackLoading
+            ? html`
+                <div class="muted">正在加载反馈…</div>
+              `
+            : nothing
+        }
+        ${
+          !props.feedbackLoading && props.feedbackItems.length === 0
+            ? html`
+                <div class="muted">暂无反馈记录</div>
+              `
+            : nothing
+        }
         ${props.feedbackItems.slice(0, 40).map((item) => {
           const ts = new Date(item.acceptedAt).toLocaleString();
           return html`

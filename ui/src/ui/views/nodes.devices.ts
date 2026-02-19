@@ -1,8 +1,7 @@
 import { html, nothing } from "lit";
-
-import { formatAgo, formatList } from "../format";
-import type { DeviceTokenSummary, PairedDevice, PendingDevice } from "../controllers/devices";
-import type { NodesProps } from "./nodes.types";
+import type { DeviceTokenSummary, PairedDevice, PendingDevice } from "../controllers/devices.ts";
+import type { NodesProps } from "./nodes.types.ts";
+import { formatList, formatRelativeTimestamp } from "../format.ts";
 
 export function renderDevicesSection(props: NodesProps) {
   const list = props.devicesList ?? { pending: [], paired: [] };
@@ -19,25 +18,35 @@ export function renderDevicesSection(props: NodesProps) {
           ${props.devicesLoading ? "加载中…" : "刷新"}
         </button>
       </div>
-      ${props.devicesError
-        ? html`<div class="callout danger" style="margin-top: 12px;">${props.devicesError}</div>`
-        : nothing}
+      ${
+        props.devicesError
+          ? html`<div class="callout danger" style="margin-top: 12px;">${props.devicesError}</div>`
+          : nothing
+      }
       <div class="list" style="margin-top: 16px;">
-        ${pending.length > 0
-          ? html`
+        ${
+          pending.length > 0
+            ? html`
               <div class="muted" style="margin-bottom: 8px;">待处理</div>
               ${pending.map((req) => renderPendingDevice(req, props))}
             `
-          : nothing}
-        ${paired.length > 0
-          ? html`
+            : nothing
+        }
+        ${
+          paired.length > 0
+            ? html`
               <div class="muted" style="margin-top: 12px; margin-bottom: 8px;">已配对</div>
               ${paired.map((device) => renderPairedDevice(device, props))}
             `
-          : nothing}
-        ${pending.length === 0 && paired.length === 0
-          ? html`<div class="muted">无配对设备。</div>`
-          : nothing}
+            : nothing
+        }
+        ${
+          pending.length === 0 && paired.length === 0
+            ? html`
+                <div class="muted">无配对设备。</div>
+              `
+            : nothing
+        }
       </div>
     </section>
   `;
@@ -45,7 +54,7 @@ export function renderDevicesSection(props: NodesProps) {
 
 function renderPendingDevice(req: PendingDevice, props: NodesProps) {
   const name = req.displayName?.trim() || req.deviceId;
-  const age = typeof req.ts === "number" ? formatAgo(req.ts) : "无";
+  const age = typeof req.ts === "number" ? formatRelativeTimestamp(req.ts) : "无";
   const role = req.role?.trim() ? `role: ${req.role}` : "角色: -";
   const repair = req.isRepair ? " · repair" : "";
   const ip = req.remoteIp ? ` · ${req.remoteIp}` : "";
@@ -84,14 +93,18 @@ function renderPairedDevice(device: PairedDevice, props: NodesProps) {
         <div class="list-title">${name}</div>
         <div class="list-sub">${device.deviceId}${ip}</div>
         <div class="muted" style="margin-top: 6px;">${roles} · ${scopes}</div>
-        ${tokens.length === 0
-          ? html`<div class="muted" style="margin-top: 6px;">令牌: 无</div>`
-          : html`
+        ${
+          tokens.length === 0
+            ? html`
+                <div class="muted" style="margin-top: 6px">令牌: 无</div>
+              `
+            : html`
               <div class="muted" style="margin-top: 10px;">令牌</div>
               <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
                 ${tokens.map((token) => renderTokenRow(device.deviceId, token, props))}
               </div>
-            `}
+            `
+        }
       </div>
     </div>
   `;
@@ -100,7 +113,9 @@ function renderPairedDevice(device: PairedDevice, props: NodesProps) {
 function renderTokenRow(deviceId: string, token: DeviceTokenSummary, props: NodesProps) {
   const status = token.revokedAtMs ? "revoked" : "active";
   const scopes = `范围: ${formatList(token.scopes)}`;
-  const when = formatAgo(token.rotatedAtMs ?? token.createdAtMs ?? token.lastUsedAtMs ?? null);
+  const when = formatRelativeTimestamp(
+    token.rotatedAtMs ?? token.createdAtMs ?? token.lastUsedAtMs ?? null,
+  );
   return html`
     <div class="row" style="justify-content: space-between; gap: 8px;">
       <div class="list-sub">${token.role} · ${status} · ${scopes} · ${when}</div>
@@ -111,16 +126,18 @@ function renderTokenRow(deviceId: string, token: DeviceTokenSummary, props: Node
         >
           更新
         </button>
-        ${token.revokedAtMs
-          ? nothing
-          : html`
+        ${
+          token.revokedAtMs
+            ? nothing
+            : html`
               <button
                 class="btn btn--sm danger"
                 @click=${() => props.onDeviceRevoke(deviceId, token.role)}>
               >
                 撤销
               </button>
-            `}
+            `
+        }
       </div>
     </div>
   `;

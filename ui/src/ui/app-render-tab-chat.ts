@@ -1,20 +1,22 @@
 import type { TemplateResult } from "lit";
-
-import type { AppViewState } from "./app-view-state";
-import type { RenderMainContentOptions } from "./app-render-content";
-import { refreshChatAvatar } from "./app-chat";
-import { loadChatHistory } from "./controllers/chat";
-import { loadChatTimeline } from "./controllers/chat-timeline";
+import type { RenderMainContentOptions } from "./app-render-content.ts";
+import type { AppViewState } from "./app-view-state.ts";
+import { refreshChatAvatar } from "./app-chat.ts";
 import {
   CHAT_FEEDBACK_DEFAULT_DRAFT,
   loadChatFeedbackList,
   loadChatTimelineRuns,
   submitChatFeedback,
   type SubmitChatFeedbackParams,
-} from "./controllers/chat-observability";
-import { renderChat } from "./views/chat";
+} from "./controllers/chat-observability.ts";
+import { loadChatTimeline } from "./controllers/chat-timeline.ts";
+import { loadChatHistory } from "./controllers/chat.ts";
+import { renderChat } from "./views/chat.ts";
 
-export function renderChatTab(state: AppViewState, options: RenderMainContentOptions): TemplateResult {
+export function renderChatTab(
+  state: AppViewState,
+  options: RenderMainContentOptions,
+): TemplateResult {
   return renderChat({
     sessionKey: state.sessionKey,
     onSessionKeyChange: (next) => {
@@ -102,7 +104,9 @@ export function renderChatTab(state: AppViewState, options: RenderMainContentOpt
       ]);
     },
     onToggleFocusMode: () => {
-      if (state.onboarding) return;
+      if (state.onboarding) {
+        return;
+      }
       state.applySettings({
         ...state.settings,
         chatFocusMode: !state.settings.chatFocusMode,
@@ -124,20 +128,23 @@ export function renderChatTab(state: AppViewState, options: RenderMainContentOpt
     splitRatio: state.splitRatio,
     onOpenSidebar: (content: string) => state.handleOpenSidebar(content),
     onCloseSidebar: () => state.handleCloseSidebar(),
-    onSidebarTabChange: (tab: "timeline" | "tool" | "insights") =>
-      state.handleSetSidebarTab(tab),
+    onSidebarTabChange: (tab: "timeline" | "tool" | "insights") => state.handleSetSidebarTab(tab),
     onSplitRatioChange: (ratio: number) => state.handleSplitRatioChange(ratio),
     onTimelineFollowChange: (next) => (state.chatTimelineFollow = next),
     onTimelineFiltersChange: (next) => (state.chatTimelineFilters = next),
     onTimelineDensityChange: (next) => {
-      if (state.settings.chatTimelineDensity === next) return;
+      if (state.settings.chatTimelineDensity === next) {
+        return;
+      }
       state.applySettings({
         ...state.settings,
         chatTimelineDensity: next,
       });
     },
     onObservabilityPinChange: (next) => {
-      if (state.settings.chatObservabilityPin === next) return;
+      if (state.settings.chatObservabilityPin === next) {
+        return;
+      }
       state.applySettings({
         ...state.settings,
         chatObservabilityPin: next,

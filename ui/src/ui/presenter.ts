@@ -22,18 +22,28 @@ export function formatNextRun(ms?: number | null) {
 }
 
 export function formatSessionTokens(row: GatewaySessionRow) {
-  if (row.totalTokens == null) return "无";
+  if (row.totalTokens == null) {
+    return "无";
+  }
   const total = row.totalTokens ?? 0;
   const ctx = row.contextTokens ?? 0;
   return ctx ? `${total} / ${ctx}` : String(total);
 }
 
 export function formatEventPayload(payload: unknown): string {
-  if (payload == null) return "";
+  if (payload == null) {
+    return "";
+  }
+  if (typeof payload === "string") {
+    return payload;
+  }
+  if (typeof payload === "number" || typeof payload === "boolean") {
+    return String(payload);
+  }
   try {
     return JSON.stringify(payload, null, 2);
   } catch {
-    return String(payload);
+    return "[unserializable payload]";
   }
 }
 
@@ -48,8 +58,8 @@ export function formatCronState(job: CronJob) {
 export function formatCronSchedule(job: CronJob) {
   const s = job.schedule;
   if (s.kind === "at") {
-    const atMs = Date.parse(s.at);
-    return Number.isFinite(atMs) ? `At ${formatMs(atMs)}` : `At ${s.at}`;
+    const atMs = s.atMs;
+    return Number.isFinite(atMs) ? `At ${formatMs(atMs)}` : "At n/a";
   }
   if (s.kind === "every") {
     return `Every ${formatDurationHuman(s.everyMs)}`;

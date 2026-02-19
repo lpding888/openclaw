@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-
+import type { ChatFeedbackItem, ChatTimelineEvent, ChatTimelineRunSummary } from "../types.ts";
 import {
   buildCorrectionPrompt,
   deriveTimelineRunsFromEvents,
@@ -9,12 +9,7 @@ import {
   mergeChatTimelineRuns,
   submitChatFeedback,
   type SubmitChatFeedbackParams,
-} from "./chat-observability";
-import type {
-  ChatFeedbackItem,
-  ChatTimelineEvent,
-  ChatTimelineRunSummary,
-} from "../types";
+} from "./chat-observability.ts";
 
 type ObservabilityState = {
   client: { request: (method: string, params?: unknown) => Promise<unknown> } | null;

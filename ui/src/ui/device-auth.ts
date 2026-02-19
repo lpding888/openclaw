@@ -10,11 +10,19 @@ const STORAGE_KEY = "clawdbot.device.auth.v1";
 function readStore(): DeviceAuthStore | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw) as DeviceAuthStore;
-    if (!parsed || parsed.version !== 1) return null;
-    if (!parsed.deviceId || typeof parsed.deviceId !== "string") return null;
-    if (!parsed.tokens || typeof parsed.tokens !== "object") return null;
+    if (!parsed || parsed.version !== 1) {
+      return null;
+    }
+    if (!parsed.deviceId || typeof parsed.deviceId !== "string") {
+      return null;
+    }
+    if (!parsed.tokens || typeof parsed.tokens !== "object") {
+      return null;
+    }
     return parsed;
   } catch {
     return null;
@@ -39,7 +47,9 @@ export function loadDeviceAuthToken(params: {
   }
   const role = normalizeDeviceAuthRole(params.role);
   const entry = store.tokens[role];
-  if (!entry || typeof entry.token !== "string") return null;
+  if (!entry || typeof entry.token !== "string") {
+    return null;
+  }
   return entry;
 }
 

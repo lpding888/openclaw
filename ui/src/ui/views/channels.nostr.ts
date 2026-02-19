@@ -7,14 +7,18 @@ import {
   renderNostrProfileForm,
   type NostrProfileFormState,
   type NostrProfileFormCallbacks,
-} from "./channels.nostr-profile-form";
+} from "./channels.nostr-profile-form.ts";
 
 /**
  * Truncate a pubkey for display (shows first and last 8 chars)
  */
 function truncatePubkey(pubkey: string | null | undefined): string {
-  if (!pubkey) return "无";
-  if (pubkey.length <= 20) return pubkey;
+  if (!pubkey) {
+    return "无";
+  }
+  if (pubkey.length <= 20) {
+    return pubkey;
+  }
   return `${pubkey.slice(0, 8)}...${pubkey.slice(-8)}`;
 }
 
@@ -43,8 +47,7 @@ export function renderNostrCard(params: {
   const summaryConfigured = nostr?.configured ?? primaryAccount?.configured ?? false;
   const summaryRunning = nostr?.running ?? primaryAccount?.running ?? false;
   const summaryPublicKey =
-    nostr?.publicKey ??
-    (primaryAccount as { publicKey?: string } | undefined)?.publicKey;
+    nostr?.publicKey ?? (primaryAccount as { publicKey?: string } | undefined)?.publicKey;
   const summaryLastStartAt = nostr?.lastStartAt ?? primaryAccount?.lastStartAt ?? null;
   const summaryLastError = nostr?.lastError ?? primaryAccount?.lastError ?? null;
   const hasMultipleAccounts = nostrAccounts.length > 1;
@@ -78,11 +81,13 @@ export function renderNostrCard(params: {
             <span class="label">Last inbound</span>
             <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
           </div>
-          ${account.lastError
-            ? html`
+          ${
+            account.lastError
+              ? html`
                 <div class="account-card-error">${account.lastError}</div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
     `;
@@ -99,17 +104,19 @@ export function renderNostrCard(params: {
     }
 
     const profile =
-      (primaryAccount as
-        | {
-            profile?: {
-              name?: string;
-              displayName?: string;
-              about?: string;
-              picture?: string;
-              nip05?: string;
-            };
-          }
-        | undefined)?.profile ?? nostr?.profile;
+      (
+        primaryAccount as
+          | {
+              profile?: {
+                name?: string;
+                displayName?: string;
+                about?: string;
+                picture?: string;
+                nip05?: string;
+              };
+            }
+          | undefined
+      )?.profile ?? nostr?.profile;
     const { name, displayName, about, picture, nip05 } = profile ?? {};
     const hasAnyProfileData = name || displayName || about || picture || nip05;
 
@@ -117,8 +124,9 @@ export function renderNostrCard(params: {
       <div style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div style="font-weight: 500;">资料</div>
-          ${summaryConfigured
-            ? html`
+          ${
+            summaryConfigured
+              ? html`
                 <button
                   class="btn btn-sm"
                   @click=${onEditProfile}
@@ -127,13 +135,16 @@ export function renderNostrCard(params: {
                   编辑资料
                 </button>
               `
-            : nothing}
+              : nothing
+          }
         </div>
-        ${hasAnyProfileData
-          ? html`
+        ${
+          hasAnyProfileData
+            ? html`
               <div class="status-list">
-                ${picture
-                  ? html`
+                ${
+                  picture
+                    ? html`
                       <div style="margin-bottom: 8px;">
                         <img
                           src=${picture}
@@ -145,22 +156,28 @@ export function renderNostrCard(params: {
                         />
                       </div>
                     `
-                  : nothing}
+                    : nothing
+                }
                 ${name ? html`<div><span class="label">姓名</span><span>${name}</span></div>` : nothing}
-                ${displayName
-                  ? html`<div><span class="label">显示名称</span><span>${displayName}</span></div>`
-                  : nothing}
-                ${about
-                  ? html`<div><span class="label">关于</span><span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${about}</span></div>`
-                  : nothing}
+                ${
+                  displayName
+                    ? html`<div><span class="label">显示名称</span><span>${displayName}</span></div>`
+                    : nothing
+                }
+                ${
+                  about
+                    ? html`<div><span class="label">关于</span><span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${about}</span></div>`
+                    : nothing
+                }
                 ${nip05 ? html`<div><span class="label">NIP-05</span><span>${nip05}</span></div>` : nothing}
               </div>
             `
-          : html`
-              <div style="color: var(--text-muted); font-size: 13px;">
-                未设置资料。点击"编辑资料"来添加您的姓名、简介和头像。
-              </div>
-            `}
+            : html`
+                <div style="color: var(--text-muted); font-size: 13px">
+                  未设置资料。点击"编辑资料"来添加您的姓名、简介和头像。
+                </div>
+              `
+        }
       </div>
     `;
   };
@@ -171,13 +188,14 @@ export function renderNostrCard(params: {
       <div class="card-sub">通过 Nostr 中继（NIP-04）的去中心化私信。</div>
       ${accountCountLabel}
 
-      ${hasMultipleAccounts
-        ? html`
+      ${
+        hasMultipleAccounts
+          ? html`
             <div class="account-card-list">
               ${nostrAccounts.map((account) => renderAccountCard(account))}
             </div>
           `
-        : html`
+          : html`
             <div class="status-list" style="margin-top: 16px;">
               <div>
                 <span class="label">已配置</span>
@@ -198,11 +216,14 @@ export function renderNostrCard(params: {
                 <span>${summaryLastStartAt ? formatRelativeTimestamp(summaryLastStartAt) : "n/a"}</span>
               </div>
             </div>
-          `}
+          `
+      }
 
-      ${summaryLastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">${summaryLastError}</div>`
-        : nothing}
+      ${
+        summaryLastError
+          ? html`<div class="callout danger" style="margin-top: 12px;">${summaryLastError}</div>`
+          : nothing
+      }
 
       ${renderProfileSection()}
 

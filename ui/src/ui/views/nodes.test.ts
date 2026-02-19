@@ -1,7 +1,6 @@
 import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
-
-import { renderNodes, type NodesProps } from "./nodes";
+import { renderNodes, type NodesProps } from "./nodes.ts";
 
 function createProps(overrides: Partial<NodesProps> = {}): NodesProps {
   return {
@@ -96,11 +95,13 @@ describe("nodes view", () => {
     );
 
     const hostSelect = Array.from(container.querySelectorAll("select")).find((select) => {
-      const values = Array.from(select.options).map((option) => option.value);
-      return values.includes("gateway") && values.includes("node");
+      const values = new Set(Array.from(select.options).map((option) => option.value));
+      return values.has("gateway") && values.has("node");
     });
     expect(hostSelect).not.toBeUndefined();
-    if (!hostSelect) return;
+    if (!hostSelect) {
+      return;
+    }
     hostSelect.value = "node";
     hostSelect.dispatchEvent(new Event("change", { bubbles: true }));
 

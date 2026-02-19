@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-
 import {
   nodeLabel,
   nodeSupportsCommand,
   normalizeNodeSnapshot,
   normalizeNodeSnapshots,
-} from "./node-snapshot";
+} from "./node-snapshot.ts";
 
 describe("node snapshot helpers", () => {
   it("normalizes a single node snapshot with trimmed values", () => {
@@ -44,7 +43,9 @@ describe("node snapshot helpers", () => {
       commands: ["system.run"],
     });
     expect(node).not.toBeNull();
-    if (!node) return;
+    if (!node) {
+      return;
+    }
 
     expect(nodeSupportsCommand(node, "system.run")).toBe(true);
     expect(nodeSupportsCommand(node, "system.execApprovals.get")).toBe(false);

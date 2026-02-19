@@ -1,6 +1,6 @@
-import type { GatewayBrowserClient } from "../gateway";
-import type { ConfigSnapshot } from "../types";
-import { cloneConfigObject, serializeConfigForm } from "./config/form-utils";
+import type { GatewayBrowserClient } from "../gateway.ts";
+import type { ConfigSnapshot } from "../types.ts";
+import { cloneConfigObject, serializeConfigForm } from "./config/form-utils.ts";
 
 export type ModelSwitcherOption = {
   id: string;
@@ -30,13 +30,17 @@ type ModelSwitcherState = {
 };
 
 function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
   return value as Record<string, unknown>;
 }
 
 function ensureObject(parent: Record<string, unknown>, key: string): Record<string, unknown> {
   const existing = asObject(parent[key]);
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
   const next: Record<string, unknown> = {};
   parent[key] = next;
   return next;
@@ -44,7 +48,9 @@ function ensureObject(parent: Record<string, unknown>, key: string): Record<stri
 
 function readPrimaryModel(config: unknown): string | null {
   const root = asObject(config);
-  if (!root) return null;
+  if (!root) {
+    return null;
+  }
   const agents = asObject(root.agents);
   const defaults = asObject(agents?.defaults);
   const modelRaw = defaults?.model;
@@ -53,9 +59,13 @@ function readPrimaryModel(config: unknown): string | null {
     return trimmed.length > 0 ? trimmed : null;
   }
   const modelObj = asObject(modelRaw);
-  if (!modelObj) return null;
+  if (!modelObj) {
+    return null;
+  }
   const primary = modelObj.primary;
-  if (typeof primary !== "string") return null;
+  if (typeof primary !== "string") {
+    return null;
+  }
   const trimmed = primary.trim();
   return trimmed.length > 0 ? trimmed : null;
 }
@@ -65,10 +75,14 @@ function normalizeModelOptions(payload: ModelsListResponse): ModelSwitcherOption
   const dedup = new Map<string, ModelSwitcherOption>();
   for (const entry of raw) {
     const id = typeof entry?.id === "string" ? entry.id.trim() : "";
-    if (!id) continue;
+    if (!id) {
+      continue;
+    }
     const name = typeof entry?.name === "string" && entry.name.trim() ? entry.name.trim() : id;
     const provider =
-      typeof entry?.provider === "string" && entry.provider.trim() ? entry.provider.trim() : "unknown";
+      typeof entry?.provider === "string" && entry.provider.trim()
+        ? entry.provider.trim()
+        : "unknown";
     dedup.set(id, {
       id,
       name,
@@ -76,7 +90,7 @@ function normalizeModelOptions(payload: ModelsListResponse): ModelSwitcherOption
       label: `${name} (${id})`,
     });
   }
-  return Array.from(dedup.values()).sort(
+  return Array.from(dedup.values()).toSorted(
     (a, b) =>
       a.provider.localeCompare(b.provider) ||
       a.name.localeCompare(b.name) ||
@@ -88,8 +102,12 @@ function ensureCurrentModelOption(
   options: ModelSwitcherOption[],
   current: string | null,
 ): ModelSwitcherOption[] {
-  if (!current) return options;
-  if (options.some((entry) => entry.id === current)) return options;
+  if (!current) {
+    return options;
+  }
+  if (options.some((entry) => entry.id === current)) {
+    return options;
+  }
   return [
     {
       id: current,
@@ -102,17 +120,21 @@ function ensureCurrentModelOption(
 }
 
 export async function loadModelSwitcher(state: ModelSwitcherState) {
-  if (!state.client || !state.connected) return;
-  if (state.modelSwitcherLoading) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
+  if (state.modelSwitcherLoading) {
+    return;
+  }
   state.modelSwitcherLoading = true;
   state.modelSwitcherError = null;
   try {
     const [modelsRes, configRes] = await Promise.all([
-      state.client.request("models.list", {}),
-      state.client.request("config.get", {}),
+      state.client.request<ModelsListResponse>("models.list", {}),
+      state.client.request<ConfigSnapshot>("config.get", {}),
     ]);
-    const options = normalizeModelOptions(modelsRes as ModelsListResponse);
-    const configSnapshot = configRes as ConfigSnapshot;
+    const options = normalizeModelOptions(modelsRes);
+    const configSnapshot = configRes;
     const current = readPrimaryModel(configSnapshot.config ?? null);
     const optionsWithCurrent = ensureCurrentModelOption(options, current);
 
@@ -131,7 +153,9 @@ export async function loadModelSwitcher(state: ModelSwitcherState) {
 }
 
 export async function applyModelSwitcherSelection(state: ModelSwitcherState) {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
   const nextModel = state.modelSwitcherSelected.trim();
   if (!nextModel) {
     state.modelSwitcherError = "请选择模型后再应用。";
@@ -140,7 +164,7 @@ export async function applyModelSwitcherSelection(state: ModelSwitcherState) {
   state.modelSwitcherSaving = true;
   state.modelSwitcherError = null;
   try {
-    const snapshot = (await state.client.request("config.get", {})) as ConfigSnapshot;
+    const snapshot = await state.client.request<ConfigSnapshot>("config.get", {});
     if (!snapshot.hash) {
       state.modelSwitcherError = "配置哈希缺失，请刷新后重试。";
       return;

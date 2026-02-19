@@ -1,13 +1,12 @@
 import { html, nothing } from "lit";
 import { ref } from "lit/directives/ref.js";
-
 import type {
   ChatTimelineDensity,
   ChatTimelineEvent,
   ChatTimelineFilterState,
   ChatTimelineRunSummary,
-} from "../types";
-import { detectRunAlerts } from "../controllers/chat-observability";
+} from "../types.ts";
+import { detectRunAlerts } from "../controllers/chat-observability.ts";
 
 export type ChatTimelineProps = {
   events: ChatTimelineEvent[];
@@ -30,7 +29,9 @@ const DEFAULT_STREAMS = ["lifecycle", "assistant", "tool", "compaction", "error"
 function normalizeStreamMap(filters: ChatTimelineFilterState, streams: string[]) {
   const map = { ...filters.streams };
   for (const stream of streams) {
-    if (typeof map[stream] !== "boolean") map[stream] = true;
+    if (typeof map[stream] !== "boolean") {
+      map[stream] = true;
+    }
   }
   return map;
 }
@@ -44,16 +45,24 @@ function formatTime(ts: number) {
 }
 
 function formatDuration(ms?: number) {
-  if (typeof ms !== "number" || !Number.isFinite(ms)) return "-";
-  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (typeof ms !== "number" || !Number.isFinite(ms)) {
+    return "-";
+  }
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
   return `${(ms / 1000).toFixed(ms >= 10_000 ? 0 : 1)}s`;
 }
 
 function filterEvents(events: ChatTimelineEvent[], filters: ChatTimelineFilterState) {
   const runIdQuery = filters.runId.trim().toLowerCase();
   return events.filter((entry) => {
-    if (filters.streams[entry.stream] === false) return false;
-    if (!runIdQuery) return true;
+    if (!filters.streams[entry.stream]) {
+      return false;
+    }
+    if (!runIdQuery) {
+      return true;
+    }
     return entry.runId.toLowerCase().includes(runIdQuery);
   });
 }
@@ -62,23 +71,34 @@ function groupByRun(events: ChatTimelineEvent[]) {
   const byRun = new Map<string, ChatTimelineEvent[]>();
   for (const entry of events) {
     const list = byRun.get(entry.runId);
-    if (list) list.push(entry);
-    else byRun.set(entry.runId, [entry]);
+    if (list) {
+      list.push(entry);
+    } else {
+      byRun.set(entry.runId, [entry]);
+    }
   }
   return byRun;
 }
 
 function runStatusClass(status: ChatTimelineRunSummary["status"]) {
-  if (status === "success") return "success";
-  if (status === "error") return "error";
-  if (status === "aborted") return "aborted";
+  if (status === "success") {
+    return "success";
+  }
+  if (status === "error") {
+    return "error";
+  }
+  if (status === "aborted") {
+    return "aborted";
+  }
   return "running";
 }
 
 function showTimelineToast(button: HTMLButtonElement, message: string, kind: "success" | "error") {
   const panel = button.closest(".chat-timeline-panel");
-  if (!panel) return;
-  let toast = panel.querySelector(".chat-timeline-toast") as HTMLDivElement | null;
+  if (!panel) {
+    return;
+  }
+  let toast = panel.querySelector<HTMLDivElement>(".chat-timeline-toast");
   if (!toast) {
     toast = document.createElement("div");
     toast.className = "chat-timeline-toast";
@@ -88,7 +108,9 @@ function showTimelineToast(button: HTMLButtonElement, message: string, kind: "su
   toast.textContent = message;
   toast.dataset.show = "1";
   window.setTimeout(() => {
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
     toast.dataset.show = "0";
   }, 1_400);
 }
@@ -101,14 +123,18 @@ async function handleCopyTraceClick(
   event.preventDefault();
   event.stopPropagation();
   const button = event.currentTarget as HTMLButtonElement | null;
-  if (!button) return;
+  if (!button) {
+    return;
+  }
   const originalLabel = button.dataset.label || button.textContent?.trim() || "复制 Trace";
   button.dataset.label = originalLabel;
   button.dataset.state = "copying";
   button.textContent = "复制中...";
   try {
     const copied = (await onCopyTrace?.(runId)) !== false;
-    if (!copied) throw new Error("copy failed");
+    if (!copied) {
+      throw new Error("copy failed");
+    }
     button.dataset.state = "copied";
     button.textContent = "已复制";
     showTimelineToast(button, "Trace 已复制", "success");
@@ -140,7 +166,9 @@ export function renderChatTimeline(props: ChatTimelineProps) {
   const filteredEvents = filterEvents(props.events, normalizedFilters);
   const eventsByRun = groupByRun(filteredEvents);
   const runs = normalizedFilters.runId.trim()
-    ? props.runs.filter((run) => run.runId.toLowerCase().includes(normalizedFilters.runId.trim().toLowerCase()))
+    ? props.runs.filter((run) =>
+        run.runId.toLowerCase().includes(normalizedFilters.runId.trim().toLowerCase()),
+      )
     : props.runs;
 
   return html`
@@ -176,13 +204,13 @@ export function renderChatTimeline(props: ChatTimelineProps) {
           ${availableStreams.map(
             (stream) => html`
               <button
-                class="chat-timeline-stream ${normalizedFilters.streams[stream] !== false ? "active" : ""}"
+                class="chat-timeline-stream ${normalizedFilters.streams[stream] ? "active" : ""}"
                 @click=${() =>
                   props.onFiltersChange({
                     ...normalizedFilters,
                     streams: {
                       ...normalizedFilters.streams,
-                      [stream]: normalizedFilters.streams[stream] === false,
+                      [stream]: !normalizedFilters.streams[stream],
                     },
                   })}
               >
@@ -211,8 +239,9 @@ export function renderChatTimeline(props: ChatTimelineProps) {
 
       ${props.error ? html`<div class="callout danger">${props.error}</div>` : nothing}
       ${props.runsError ? html`<div class="callout danger">${props.runsError}</div>` : nothing}
-      ${!props.follow
-        ? html`
+      ${
+        !props.follow
+          ? html`
             <div class="callout info chat-timeline-panel__paused">
               自动跟随已暂停，滚动到最底或点击
               <button class="btn btn--sm" type="button" @click=${() => props.onFollowChange(true)}>
@@ -220,21 +249,26 @@ export function renderChatTimeline(props: ChatTimelineProps) {
               </button>
             </div>
           `
-        : nothing}
+          : nothing
+      }
 
       <div
         class="chat-timeline-list"
         ${ref((el: Element | undefined | null) => {
           const list = el as HTMLDivElement | null;
-          if (!list) return;
+          if (!list) {
+            return;
+          }
           if (props.density === "expanded") {
             queueMicrotask(() => {
               for (const details of list.querySelectorAll("details")) {
-                (details as HTMLDetailsElement).open = true;
+                details.open = true;
               }
             });
           }
-          if (!props.follow) return;
+          if (!props.follow) {
+            return;
+          }
           queueMicrotask(() => {
             list.scrollTop = list.scrollHeight;
           });
@@ -243,13 +277,25 @@ export function renderChatTimeline(props: ChatTimelineProps) {
           const target = event.currentTarget as HTMLDivElement;
           const remain = target.scrollHeight - target.scrollTop - target.clientHeight;
           const nearBottom = remain < 16;
-          if (nearBottom !== props.follow) props.onFollowChange(nearBottom);
+          if (nearBottom !== props.follow) {
+            props.onFollowChange(nearBottom);
+          }
         }}
       >
-        ${props.loading || props.runsLoading ? html`<div class="muted">正在加载时间线…</div>` : nothing}
-        ${runs.length === 0 && !props.loading && !props.runsLoading
-          ? html`<div class="muted">暂无时间线事件</div>`
-          : nothing}
+        ${
+          props.loading || props.runsLoading
+            ? html`
+                <div class="muted">正在加载时间线…</div>
+              `
+            : nothing
+        }
+        ${
+          runs.length === 0 && !props.loading && !props.runsLoading
+            ? html`
+                <div class="muted">暂无时间线事件</div>
+              `
+            : nothing
+        }
         ${runs.map((run) => {
           const runEvents = eventsByRun.get(run.runId) ?? [];
           const alerts = detectRunAlerts(run, runEvents);
@@ -277,11 +323,13 @@ export function renderChatTimeline(props: ChatTimelineProps) {
                   <span>Compaction: ${run.compactionCount}</span>
                   <span>Truncated: ${run.truncatedEvents}</span>
                 </div>
-                ${alerts.length > 0
-                  ? html`<div class="chat-timeline-run__alerts">
+                ${
+                  alerts.length > 0
+                    ? html`<div class="chat-timeline-run__alerts">
                       ${alerts.map((item) => html`<span class="chat-timeline-alert">${item}</span>`)}
                     </div>`
-                  : nothing}
+                    : nothing
+                }
                 <div class="chat-timeline-run__actions">
                   <button
                     class="btn btn--sm"
@@ -293,25 +341,34 @@ export function renderChatTimeline(props: ChatTimelineProps) {
                   </button>
                 </div>
                 <div class="chat-timeline-run__events">
-                  ${runEvents.length === 0
-                    ? html`<div class="muted">该 run 暂无事件明细</div>`
-                    : runEvents.map((entry) => {
-                        const phase = typeof entry.data.phase === "string" ? entry.data.phase : "";
-                        return html`
+                  ${
+                    runEvents.length === 0
+                      ? html`
+                          <div class="muted">该 run 暂无事件明细</div>
+                        `
+                      : runEvents.map((entry) => {
+                          const phase =
+                            typeof entry.data.phase === "string" ? entry.data.phase : "";
+                          return html`
                           <details class="chat-timeline-event">
                             <summary class="chat-timeline-event__summary">
                               <span class="chat-timeline-event__time">${formatTime(entry.ts)}</span>
                               <span class="chat-timeline-event__stream">${entry.stream}</span>
                               <span class="chat-timeline-event__phase">${phase || "-"}</span>
                               <span class="chat-timeline-event__seq">#${entry.seq}</span>
-                              ${entry.truncated
-                                ? html`<span class="chat-timeline-event__trunc">truncated</span>`
-                                : nothing}
+                              ${
+                                entry.truncated
+                                  ? html`
+                                      <span class="chat-timeline-event__trunc">truncated</span>
+                                    `
+                                  : nothing
+                              }
                             </summary>
                             <pre class="chat-timeline-event__data">${JSON.stringify(entry.data, null, 2)}</pre>
                           </details>
                         `;
-                      })}
+                        })
+                  }
                 </div>
               </div>
             </details>

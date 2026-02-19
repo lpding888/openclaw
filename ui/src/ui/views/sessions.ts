@@ -43,9 +43,13 @@ const VERBOSE_LEVELS = [
 const REASONING_LEVELS = ["", "off", "on", "stream"] as const;
 
 function normalizeProviderId(provider?: string | null): string {
-  if (!provider) return "";
+  if (!provider) {
+    return "";
+  }
   const normalized = provider.trim().toLowerCase();
-  if (normalized === "z.ai" || normalized === "z-ai") return "zai";
+  if (normalized === "z.ai" || normalized === "z-ai") {
+    return "zai";
+  }
   return normalized;
 }
 
@@ -81,15 +85,25 @@ function withCurrentLabeledOption(
 }
 
 function resolveThinkLevelDisplay(value: string, isBinary: boolean): string {
-  if (!isBinary) return value;
-  if (!value || value === "off") return value;
+  if (!isBinary) {
+    return value;
+  }
+  if (!value || value === "off") {
+    return value;
+  }
   return "on";
 }
 
 function resolveThinkLevelPatchValue(value: string, isBinary: boolean): string | null {
-  if (!value) return null;
-  if (!isBinary) return value;
-  if (value === "on") return "low";
+  if (!value) {
+    return null;
+  }
+  if (!isBinary) {
+    return value;
+  }
+  if (value === "on") {
+    return "low";
+  }
   return value;
 }
 
@@ -164,9 +178,11 @@ export function renderSessions(props: SessionsProps) {
         </label>
       </div>
 
-      ${props.error
-        ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>`
-        : nothing}
+      ${
+        props.error
+          ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>`
+          : nothing
+      }
 
       <div class="muted" style="margin-top: 12px;">
         ${props.result ? `存储: ${props.result.path}` : ""}
@@ -184,11 +200,15 @@ export function renderSessions(props: SessionsProps) {
           <div>推理</div>
           <div>操作</div>
         </div>
-        ${rows.length === 0
-          ? html`<div class="muted">未找到会话。</div>`
-          : rows.map((row) =>
-              renderRow(row, props.basePath, props.onPatch, props.onDelete, props.loading),
-            )}
+        ${
+          rows.length === 0
+            ? html`
+                <div class="muted">未找到会话。</div>
+              `
+            : rows.map((row) =>
+                renderRow(row, props.basePath, props.onPatch, props.onDelete, props.loading),
+              )
+        }
       </div>
     </section>
   `;

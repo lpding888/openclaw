@@ -1,6 +1,6 @@
-import type { GatewayBrowserClient } from "./gateway";
-import type { UiSettings } from "./storage";
-import type { ExecApprovalRequest } from "./controllers/exec-approval";
+import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
+import type { GatewayBrowserClient } from "./gateway.ts";
+import type { UiSettings } from "./storage.ts";
 
 export type ExecApprovalDecision = "allow-once" | "allow-always" | "deny";
 
@@ -16,7 +16,9 @@ export async function handleExecApprovalDecision(
   decision: ExecApprovalDecision,
 ) {
   const active = host.execApprovalQueue[0];
-  if (!active || !host.client || host.execApprovalBusy) return;
+  if (!active || !host.client || host.execApprovalBusy) {
+    return;
+  }
   host.execApprovalBusy = true;
   host.execApprovalError = null;
   try {
@@ -57,7 +59,9 @@ export function handleCloseSidebar(host: SidebarHost) {
     window.clearTimeout(host.sidebarCloseTimer);
   }
   host.sidebarCloseTimer = window.setTimeout(() => {
-    if (host.sidebarOpen) return;
+    if (host.sidebarOpen) {
+      return;
+    }
     host.sidebarContent = null;
     host.sidebarError = null;
     host.sidebarCloseTimer = null;
@@ -94,7 +98,9 @@ type PendingGatewayUrlHost = {
 
 export function acceptPendingGatewayUrl(host: PendingGatewayUrlHost) {
   const pending = host.pendingGatewayUrl;
-  if (!pending) return;
+  if (!pending) {
+    return;
+  }
   host.pendingGatewayUrl = null;
   host.applySettings({ ...host.settings, gatewayUrl: pending });
   host.connect();

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-
-import { generateUUID } from "./uuid";
+import { generateUUID } from "./uuid.ts";
 
 describe("generateUUID", () => {
   it("uses crypto.randomUUID when available", () => {

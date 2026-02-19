@@ -1,22 +1,26 @@
 import type { TemplateResult } from "lit";
-
-import type { AppViewState } from "./app-view-state";
-import { loadConfig, saveConfig, updateConfigFormValue, removeConfigFormValue } from "./controllers/config";
+import type { AppViewState } from "./app-view-state.ts";
 import {
-  loadExecApprovals,
-  removeExecApprovalsFormValue,
-  saveExecApprovals,
-  updateExecApprovalsFormValue,
-} from "./controllers/exec-approvals";
+  loadConfig,
+  saveConfig,
+  updateConfigFormValue,
+  removeConfigFormValue,
+} from "./controllers/config.ts";
 import {
   approveDevicePairing,
   loadDevices,
   rejectDevicePairing,
   revokeDeviceToken,
   rotateDeviceToken,
-} from "./controllers/devices";
-import { loadNodes } from "./controllers/nodes";
-import { renderNodes } from "./views/nodes";
+} from "./controllers/devices.ts";
+import {
+  loadExecApprovals,
+  removeExecApprovalsFormValue,
+  saveExecApprovals,
+  updateExecApprovalsFormValue,
+} from "./controllers/exec-approvals.ts";
+import { loadNodes } from "./controllers/nodes.ts";
+import { renderNodes } from "./views/nodes.ts";
 
 export function renderNodesTab(state: AppViewState): TemplateResult {
   return renderNodes({

@@ -40,18 +40,22 @@ export function renderSignalCard(params: {
         </div>
       </div>
 
-      ${signal?.lastError
-        ? html`<div class="callout danger" style="margin-top: 12px;">
+      ${
+        signal?.lastError
+          ? html`<div class="callout danger" style="margin-top: 12px;">
             ${signal.lastError}
           </div>`
-        : nothing}
+          : nothing
+      }
 
-      ${signal?.probe
-        ? html`<div class="callout" style="margin-top: 12px;">
+      ${
+        signal?.probe
+          ? html`<div class="callout" style="margin-top: 12px;">
             探测 ${signal.probe.ok ? "成功" : "失败"} ·
             ${signal.probe.status ?? ""} ${signal.probe.error ?? ""}
           </div>`
-        : nothing}
+          : nothing
+      }
 
       ${renderChannelConfigSection({ channelId: "signal", props })}
 

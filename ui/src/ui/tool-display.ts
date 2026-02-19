@@ -75,13 +75,14 @@ export function resolveToolDisplay(params: {
   const verb = normalizeVerb(actionSpec?.label ?? action);
 
   let detail: string | undefined;
-  if (key === "read") detail = resolveReadDetail(params.args);
+  if (key === "read") {
+    detail = resolveReadDetail(params.args);
+  }
   if (!detail && (key === "write" || key === "edit" || key === "attach")) {
     detail = resolveWriteDetail(params.args);
   }
 
-  const detailKeys =
-    actionSpec?.detailKeys ?? spec?.detailKeys ?? FALLBACK.detailKeys ?? [];
+  const detailKeys = actionSpec?.detailKeys ?? spec?.detailKeys ?? FALLBACK.detailKeys ?? [];
   if (!detail && detailKeys.length > 0) {
     detail = resolveDetailFromKeys(params.args, detailKeys, {
       mode: "first",
@@ -109,9 +110,15 @@ export function resolveToolDisplay(params: {
 
 export function formatToolDetail(display: ToolDisplay): string | undefined {
   const parts: string[] = [];
-  if (display.verb) parts.push(display.verb);
-  if (display.detail) parts.push(display.detail);
-  if (parts.length === 0) return undefined;
+  if (display.verb) {
+    parts.push(display.verb);
+  }
+  if (display.detail) {
+    parts.push(display.detail);
+  }
+  if (parts.length === 0) {
+    return undefined;
+  }
   return parts.join(" · ");
 }
 

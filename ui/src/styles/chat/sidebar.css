@@ -100,7 +100,10 @@
   color: var(--text);
   cursor: pointer;
   font-size: 12px;
-  transition: box-shadow 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
+  transition:
+    box-shadow 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out;
 }
 
 .chat-sidebar-tab.active {

@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-
-import {
-  appendChatTimelineEvent,
-  loadChatTimeline,
-} from "./chat-timeline";
-import type { ChatTimelineEvent } from "../types";
+import type { ChatTimelineEvent } from "../types.ts";
+import { appendChatTimelineEvent, loadChatTimeline } from "./chat-timeline.ts";
 
 type TimelineState = {
   client: { request: (method: string, params: unknown) => Promise<unknown> } | null;

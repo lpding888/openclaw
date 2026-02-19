@@ -4,22 +4,38 @@ import { stripReasoningTagsFromText } from "../../../src/shared/text/reasoning-t
 
 export { formatRelativeTimestamp, formatDurationHuman };
 
+export function formatAgo(ms?: number | null): string {
+  if (typeof ms !== "number" || !Number.isFinite(ms)) {
+    return "无";
+  }
+  return formatRelativeTimestamp(ms);
+}
+
 export function formatMs(ms?: number | null): string {
-  if (!ms && ms !== 0) return "无";
+  if (!ms && ms !== 0) {
+    return "无";
+  }
   return new Date(ms).toLocaleString("zh-CN");
 }
 
 export function formatList(values?: Array<string | null | undefined>): string {
-  if (!values || values.length === 0) return "无";
+  if (!values || values.length === 0) {
+    return "无";
+  }
   return values.filter((v): v is string => Boolean(v && v.trim())).join(", ");
 }
 
 export function clampText(value: string, max = 120): string {
-  if (value.length <= max) return value;
+  if (value.length <= max) {
+    return value;
+  }
   return `${value.slice(0, Math.max(0, max - 1))}…`;
 }
 
-export function truncateText(value: string, max: number): {
+export function truncateText(
+  value: string,
+  max: number,
+): {
   text: string;
   truncated: boolean;
   total: number;
