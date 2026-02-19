@@ -9,6 +9,7 @@
 **用途**: 在 CI 或本地非交互场景下自动从上游分支合并到同步分支。
 
 **使用方法**:
+
 ```bash
 ./scripts/merge-helpers/sync-upstream-branch.sh \
   --target-branch main \
@@ -18,6 +19,7 @@
 ```
 
 **功能**:
+
 - ✅ 自动配置/更新 `upstream` remote
 - ✅ 自动创建同步分支并执行合并
 - ✅ 输出 `changed/conflict` 状态（可供 GitHub Actions 使用）
@@ -27,11 +29,13 @@
 **用途**: 提供交互式的逐步引导，帮助完成整个合并流程。
 
 **使用方法**:
+
 ```bash
 ./scripts/merge-helpers/merge-wizard.sh
 ```
 
 **功能**:
+
 - ✅ 自动运行预检查
 - ✅ 创建备份分支
 - ✅ 配置上游远程
@@ -49,11 +53,13 @@
 **用途**: 在开始合并前检查环境和仓库状态。
 
 **使用方法**:
+
 ```bash
 ./scripts/merge-helpers/pre-merge-check.sh
 ```
 
 **检查项**:
+
 - Git 仓库状态
 - 工作区是否干净
 - upstream 远程配置
@@ -64,6 +70,7 @@
 - 关键文件完整性
 
 **退出码**:
+
 - `0`: 检查通过
 - `1`: 发现错误，需要修复
 
@@ -74,6 +81,7 @@
 **用途**: 在合并产生冲突时，自动分类冲突文件并提供处理建议。
 
 **使用方法**:
+
 ```bash
 # 在合并产生冲突后运行
 git merge upstream/main
@@ -81,6 +89,7 @@ git merge upstream/main
 ```
 
 **功能**:
+
 - 将冲突文件分为三类:
   - **保留本地**: 完全本地化的文件（如 README.md）
   - **采用上游**: 核心功能代码（如 src/infra/）
@@ -89,6 +98,7 @@ git merge upstream/main
 - 显示剩余需手动处理的文件
 
 **分类规则**:
+
 ```
 保留本地:
   - README.md, FEISHU_NPM_READY.md
@@ -117,17 +127,20 @@ git merge upstream/main
 **用途**: 自动同步上游版本号并添加 `-cn.N` 后缀。
 
 **使用方法**:
+
 ```bash
 ./scripts/merge-helpers/sync-version.sh
 ```
 
 **功能**:
+
 - 读取上游最新版本号
 - 计算下一个中文版本号
 - 更新 package.json
 - 可选创建 git commit 和 tag
 
 **版本格式**:
+
 ```
 上游版本: 2026.1.30
 当前版本: 2026.1.24-cn.3
@@ -214,6 +227,7 @@ pnpm test
 ### 问题: pre-merge-check.sh 报错 "upstream 未配置"
 
 **解决**:
+
 ```bash
 git remote add upstream https://github.com/openclaw/openclaw
 git fetch upstream
@@ -224,6 +238,7 @@ git fetch upstream
 **原因**: 可能合并没有冲突，或者冲突已经解决。
 
 **检查**:
+
 ```bash
 git status
 git diff --name-only --diff-filter=U
@@ -232,6 +247,7 @@ git diff --name-only --diff-filter=U
 ### 问题: sync-version.sh 报错 "需要 jq"
 
 **解决**:
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install jq
@@ -246,6 +262,7 @@ jq --version
 ### 问题: 合并后测试失败
 
 **步骤**:
+
 1. 检查构建错误: `pnpm build 2>&1 | tee build.log`
 2. 查看具体测试失败: `pnpm test -- --reporter=verbose`
 3. 对比上游的依赖变化: `git diff upstream/main..HEAD package.json`

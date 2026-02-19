@@ -85,23 +85,49 @@ fi
 
 declare -a suites
 if [[ "${RUN_ALL}" -eq 1 ]]; then
-  mapfile -t suites < <(find src/gateway -maxdepth 1 -name "*.e2e.test.ts" | LC_ALL=C sort)
+  while IFS= read -r suite; do
+    suites+=("${suite}")
+  done < <(find src/gateway -maxdepth 1 -name "*.e2e.test.ts" | LC_ALL=C sort)
 else
   suites=(
     "src/gateway/server.auth.e2e.test.ts"
-    "src/gateway/server.context.integrity.e2e.test.ts"
-    "src/gateway/server.overload.e2e.test.ts"
-    "src/gateway/server.node.invoke.lifecycle.e2e.test.ts"
-    "src/gateway/server.node.invoke.recovery.e2e.test.ts"
+    "src/gateway/server.reload.e2e.test.ts"
+    "src/gateway/server.channels.e2e.test.ts"
+    "src/gateway/server.health.e2e.test.ts"
   )
 fi
 
 echo "==> Running ${#suites[@]} gateway e2e suite(s)"
+declare -a missing_suites=()
+declare -a failed_suites=()
+
 for suite in "${suites[@]}"; do
+  if [[ ! -f "${suite}" ]]; then
+    echo "==> Skipping missing suite: ${suite}"
+    missing_suites+=("${suite}")
+    continue
+  fi
   echo "==> ${suite}"
-  run_pnpm vitest run --config vitest.e2e.config.ts "${suite}" \
+  if ! run_pnpm vitest run --config vitest.e2e.config.ts "${suite}" \
     --hookTimeout "${HOOK_TIMEOUT_MS}" \
-    --testTimeout "${TEST_TIMEOUT_MS}"
+    --testTimeout "${TEST_TIMEOUT_MS}"; then
+    failed_suites+=("${suite}")
+  fi
 done
+
+if [[ "${#missing_suites[@]}" -gt 0 ]]; then
+  echo "==> Skipped missing suite(s):"
+  for suite in "${missing_suites[@]}"; do
+    echo "  - ${suite}"
+  done
+fi
+
+if [[ "${#failed_suites[@]}" -gt 0 ]]; then
+  echo "==> Failed suite(s):"
+  for suite in "${failed_suites[@]}"; do
+    echo "  - ${suite}"
+  done
+  exit 1
+fi
 
 echo "==> Gateway one-click tests passed"

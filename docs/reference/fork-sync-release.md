@@ -5,12 +5,14 @@
 ## 一次性配置
 
 1. 在仓库 `Settings -> Secrets and variables -> Actions` 配置 `Secrets`:
+
 - `NPM_TOKEN`（必需，用于 npm 发布）
 - `DOCKERHUB_USERNAME`（可选，用于 Docker 发布）
 - `DOCKERHUB_TOKEN`（可选，用于 Docker 发布）
 - `DOCKERHUB_IMAGE_NAME`（可选，格式 `yourname/openclaw-cn`）
 
 2. 配置 `Variables`:
+
 - `NPM_PACKAGE_NAME`（建议，例：`@yourname/openclaw-cn`）
 - `UPSTREAM_REPO`（可选，默认 `openclaw/openclaw`）
 
@@ -39,11 +41,13 @@
 仓库已有两个发布工作流：
 
 1. `.github/workflows/npm-publish.yml`
+
 - 触发条件：推送 `v*` 标签
 - 自动根据 fork 适配包名和仓库链接
 - 若你设置了 `NPM_PACKAGE_NAME`，优先使用它
 
 2. `.github/workflows/docker-build-multiarch.yml`
+
 - 触发条件：推送 `v*` 标签
 - 默认镜像名为 `${github.repository_owner}/openclaw-cn`
 - 也可用 `DOCKERHUB_IMAGE_NAME` 覆盖
