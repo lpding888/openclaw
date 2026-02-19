@@ -173,6 +173,48 @@ export const ModelsListResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ModelsDefaultGetParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const ModelsDefaultGetResultSchema = Type.Object(
+  {
+    primary: Type.Union([NonEmptyString, Type.Null()]),
+    fallbacks: Type.Array(NonEmptyString),
+    configHash: NonEmptyString,
+    sourcePath: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const ModelsDefaultSetParamsSchema = Type.Object(
+  {
+    primary: NonEmptyString,
+    baseHash: NonEmptyString,
+    fallbacks: Type.Optional(Type.Array(NonEmptyString)),
+    allowUnknown: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const ModelsDefaultSetResultSchema = Type.Object(
+  {
+    ok: Type.Literal(true),
+    primary: NonEmptyString,
+    fallbacks: Type.Array(NonEmptyString),
+    configHash: NonEmptyString,
+    sourcePath: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const ModelsDefaultChangedEventSchema = Type.Object(
+  {
+    primary: NonEmptyString,
+    fallbacks: Type.Array(NonEmptyString),
+    updatedAt: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
 export const SkillsStatusParamsSchema = Type.Object(
   {
     agentId: Type.Optional(NonEmptyString),

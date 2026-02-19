@@ -33,6 +33,8 @@ const BASE_METHODS = [
   "talk.config",
   "talk.mode",
   "models.list",
+  "models.default.get",
+  "models.default.set",
   "agents.list",
   "agents.create",
   "agents.update",
@@ -117,4 +119,5 @@ export const GATEWAY_EVENTS = [
   "voicewake.changed",
   "exec.approval.requested",
   "exec.approval.resolved",
+  "models.default.changed",
 ];

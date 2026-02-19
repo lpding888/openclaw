@@ -128,6 +128,10 @@ import {
   LogsTailParamsSchema,
   type LogsTailResult,
   LogsTailResultSchema,
+  type ModelsDefaultGetParams,
+  ModelsDefaultGetParamsSchema,
+  type ModelsDefaultSetParams,
+  ModelsDefaultSetParamsSchema,
   type ModelsListParams,
   ModelsListParamsSchema,
   type NodeDescribeParams,
@@ -311,6 +315,12 @@ export const validateChannelsStatusParams = ajv.compile<ChannelsStatusParams>(
 export const validateChannelsLogoutParams = ajv.compile<ChannelsLogoutParams>(
   ChannelsLogoutParamsSchema,
 );
+export const validateModelsDefaultGetParams = ajv.compile<ModelsDefaultGetParams>(
+  ModelsDefaultGetParamsSchema,
+);
+export const validateModelsDefaultSetParams = ajv.compile<ModelsDefaultSetParams>(
+  ModelsDefaultSetParamsSchema,
+);
 export const validateModelsListParams = ajv.compile<ModelsListParams>(ModelsListParamsSchema);
 export const validateSkillsStatusParams = ajv.compile<SkillsStatusParams>(SkillsStatusParamsSchema);
 export const validateSkillsBinsParams = ajv.compile<SkillsBinsParams>(SkillsBinsParamsSchema);
@@ -474,6 +484,8 @@ export {
   AgentsFilesSetResultSchema,
   AgentsListParamsSchema,
   AgentsListResultSchema,
+  ModelsDefaultGetParamsSchema,
+  ModelsDefaultSetParamsSchema,
   ModelsListParamsSchema,
   SkillsStatusParamsSchema,
   SkillsInstallParamsSchema,
@@ -563,6 +575,8 @@ export type {
   AgentsFilesSetResult,
   AgentsListParams,
   AgentsListResult,
+  ModelsDefaultGetParams,
+  ModelsDefaultSetParams,
   SkillsStatusParams,
   SkillsBinsParams,
   SkillsBinsResult,
