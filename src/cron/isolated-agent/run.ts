@@ -368,7 +368,7 @@ export async function runCronIsolatedAgentTurn(params: {
   const deliveryPlan = resolveCronDeliveryPlan(params.job);
   const deliveryRequested = deliveryPlan.requested;
   const cronOriginSessionKey =
-    params.job.sessionKey?.trim() ||
+    params.sessionKey?.trim() ||
     resolveAgentMainSessionKey({
       cfg: params.cfg,
       agentId,
