@@ -138,6 +138,17 @@ export type AppViewState = {
   modelSwitcherSelected: string;
   modelSwitcherOptions: ModelSwitcherOption[];
   modelSwitcherError: string | null;
+  modelSwitcherStatus: string | null;
+  modelSwitcherCompatMode: boolean;
+  modelSwitcherConfigHash: string | null;
+  modelSwitcherFallbacks: string[];
+  modelCenterPrimary: string;
+  modelCenterFallbacksText: string;
+  modelCenterAllowCustom: boolean;
+  modelCenterSaving: boolean;
+  modelCenterError: string | null;
+  modelCenterStatus: string | null;
+  modelCenterQuery: string;
   channelsLoading: boolean;
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;

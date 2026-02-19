@@ -235,6 +235,17 @@ export class OpenClawApp extends LitElement {
   @state() modelSwitcherSelected = "";
   @state() modelSwitcherOptions: ModelSwitcherOption[] = [];
   @state() modelSwitcherError: string | null = null;
+  @state() modelSwitcherStatus: string | null = null;
+  @state() modelSwitcherCompatMode = false;
+  @state() modelSwitcherConfigHash: string | null = null;
+  @state() modelSwitcherFallbacks: string[] = [];
+  @state() modelCenterPrimary = "";
+  @state() modelCenterFallbacksText = "";
+  @state() modelCenterAllowCustom = false;
+  @state() modelCenterSaving = false;
+  @state() modelCenterError: string | null = null;
+  @state() modelCenterStatus: string | null = null;
+  @state() modelCenterQuery = "";
 
   @state() channelsLoading = false;
   @state() channelsSnapshot: ChannelsStatusSnapshot | null = null;

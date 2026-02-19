@@ -10,7 +10,7 @@ import { syncUrlWithSessionKey } from "./app-settings.ts";
 import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability.ts";
 import { loadChatTimeline } from "./controllers/chat-timeline.ts";
 import { loadChatHistory } from "./controllers/chat.ts";
-import { applyModelSwitcherSelection, loadModelSwitcher } from "./controllers/model-switcher.ts";
+import { applyModelSwitcherSelection } from "./controllers/model-switcher.ts";
 import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
 
@@ -468,17 +468,20 @@ export function renderTopbarModelSwitcher(state: AppViewState) {
   const disabled = !state.connected || state.modelSwitcherLoading || state.modelSwitcherSaving;
   const hasOptions = state.modelSwitcherOptions.length > 0;
   const selected = state.modelSwitcherSelected;
-  const showApply =
-    Boolean(selected) &&
-    !state.modelSwitcherSaving &&
-    selected !== (state.modelSwitcherCurrent ?? "");
   const hint = state.modelSwitcherSaving
     ? "应用中..."
     : state.modelSwitcherLoading
       ? "加载中..."
-      : state.modelSwitcherCurrent
-        ? `当前：${state.modelSwitcherCurrent}`
-        : "未设置";
+      : state.modelSwitcherError
+        ? state.modelSwitcherError
+        : state.modelSwitcherStatus
+          ? state.modelSwitcherStatus
+          : state.modelSwitcherCurrent
+            ? `当前：${state.modelSwitcherCurrent}`
+            : "未设置";
+  const hintClass = state.modelSwitcherError ? "topbar-model__hint is-error" : "topbar-model__hint";
+
+  const configPath = pathForTab("config", state.basePath);
 
   return html`
     <div class="topbar-model" title="快速切换默认模型">
@@ -488,7 +491,8 @@ export function renderTopbarModelSwitcher(state: AppViewState) {
         .value=${selected}
         ?disabled=${disabled || !hasOptions}
         @change=${(event: Event) => {
-          state.modelSwitcherSelected = (event.target as HTMLSelectElement).value;
+          const next = (event.target as HTMLSelectElement).value;
+          void applyModelSwitcherSelection(state, next);
         }}
       >
         ${
@@ -503,26 +507,31 @@ export function renderTopbarModelSwitcher(state: AppViewState) {
       </select>
       <button
         class="btn btn--sm"
-        ?disabled=${state.modelSwitcherLoading || state.modelSwitcherSaving || !state.connected}
-        @click=${() => {
-          void loadModelSwitcher(state);
-        }}
+        ?disabled=${!state.connected}
+        @click=${() => state.setTab("config")}
       >
-        刷新
+        模型中心
       </button>
-      <button
-        class="btn btn--sm primary"
-        ?disabled=${!showApply}
-        @click=${() => {
-          void applyModelSwitcherSelection(state);
-        }}
-      >
-        应用
-      </button>
-      <span class="topbar-model__hint">${hint}</span>
+      <a class="topbar-model__link" href=${configPath} @click=${(event: MouseEvent) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        state.setTab("config");
+      }}>配置</a>
+      <span class=${hintClass}>${hint}</span>
       ${
-        state.modelSwitcherError
-          ? html`<span class="topbar-model__error" title=${state.modelSwitcherError}>!</span>`
+        state.modelSwitcherCompatMode
+          ? html`
+              <span class="topbar-model__compat" title="旧网关兼容模式">兼容</span>
+            `
           : nothing
       }
     </div>

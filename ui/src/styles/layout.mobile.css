@@ -98,6 +98,7 @@
   .topbar-model {
     width: 100%;
     order: 2;
+    flex-wrap: wrap;
   }
 
   .topbar-model__label {
@@ -115,7 +116,9 @@
   }
 
   .topbar-model__hint {
-    display: none;
+    display: inline-flex;
+    width: 100%;
+    max-width: none;
   }
 
   /* Nav */
