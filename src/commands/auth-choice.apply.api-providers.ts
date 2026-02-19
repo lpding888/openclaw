@@ -6,6 +6,7 @@ import {
   validateApiKeyInput,
 } from "./auth-choice.api-key.js";
 import { resolveApiProviderAuthChoice } from "./auth-choice.api-provider-alias.js";
+import { createAuthChoiceAgentModelNoter } from "./auth-choice.apply-helpers.js";
 import { handleAsiaApiProviders } from "./auth-choice.apply.api-providers.asia.js";
 import { handleGatewayApiProviders } from "./auth-choice.apply.api-providers.gateways.js";
 import { handleOpenModelApiProviders } from "./auth-choice.apply.api-providers.open-models.js";
@@ -17,16 +18,7 @@ export async function applyAuthChoiceApiProviders(
 ): Promise<ApplyAuthChoiceResult | null> {
   let nextConfig = params.config;
   let agentModelOverride: string | undefined;
-
-  const noteAgentModel = async (model: string) => {
-    if (!params.agentId) {
-      return;
-    }
-    await params.prompter.note(
-      `Default model set to ${model} for agent "${params.agentId}".`,
-      "Model configured",
-    );
-  };
+  const noteAgentModel = createAuthChoiceAgentModelNoter(params);
 
   const authChoice = resolveApiProviderAuthChoice(params.authChoice, params.opts?.tokenProvider);
 
