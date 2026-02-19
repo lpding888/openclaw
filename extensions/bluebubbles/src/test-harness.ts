@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, vi } from "vitest";
 
+type BlueBubblesProbeMock = {
+  (): boolean | null;
+  mockReset: () => unknown;
+  mockReturnValue: (value: boolean | null) => unknown;
+};
+
+type BlueBubblesProbeMockModule = {
+  getCachedBlueBubblesPrivateApiStatus: BlueBubblesProbeMock;
+};
+
 export function resolveBlueBubblesAccountFromConfig(params: {
   cfg?: { channels?: { bluebubbles?: Record<string, unknown> } };
   accountId?: string;
@@ -19,9 +29,9 @@ export function createBlueBubblesAccountsMockModule() {
   };
 }
 
-export function createBlueBubblesProbeMockModule() {
+export function createBlueBubblesProbeMockModule(): BlueBubblesProbeMockModule {
   return {
-    getCachedBlueBubblesPrivateApiStatus: vi.fn().mockReturnValue(null),
+    getCachedBlueBubblesPrivateApiStatus: vi.fn().mockReturnValue(null) as BlueBubblesProbeMock,
   };
 }
 
