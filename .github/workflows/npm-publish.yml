@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "22.12.0"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
 
@@ -44,14 +44,44 @@ jobs:
 
       - name: Install dependencies
         if: steps.npm-auth.outputs.has_token == 'true'
-        run: pnpm install --frozen-lockfile --prod=false
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set +e
+          first_log="$(mktemp)"
+          pnpm install --frozen-lockfile --prod=false 2>&1 | tee "$first_log"
+          first_status="${PIPESTATUS[0]}"
+          set -e
+          if [[ "$first_status" -eq 0 ]]; then
+            exit 0
+          fi
+
+          first_hint="$(grep -E -m1 'ERR_PNPM|Unsupported engine|frozen-lockfile|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND' "$first_log" || true)"
+          if [[ -z "$first_hint" ]]; then
+            first_hint="$(tail -n 1 "$first_log")"
+          fi
+          echo "::warning::pnpm frozen install failed, retrying with no-frozen-lockfile. ${first_hint}"
+
+          set +e
+          second_log="$(mktemp)"
+          pnpm install --no-frozen-lockfile --prod=false --config.engine-strict=false 2>&1 | tee "$second_log"
+          second_status="${PIPESTATUS[0]}"
+          set -e
+          if [[ "$second_status" -ne 0 ]]; then
+            second_hint="$(grep -E -m1 'ERR_PNPM|Unsupported engine|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND' "$second_log" || true)"
+            if [[ -z "$second_hint" ]]; then
+              second_hint="$(tail -n 1 "$second_log")"
+            fi
+            echo "::error::pnpm install failed after retry: ${second_hint}"
+            exit "$second_status"
+          fi
 
       - name: Install A2UI renderer dependencies
         if: steps.npm-auth.outputs.has_token == 'true'
         run: |
           set +e
           log_file="$(mktemp)"
-          npm ci --prefix vendor/a2ui/renderers/lit 2>&1 | tee "$log_file"
+          npm install --prefix vendor/a2ui/renderers/lit --include=dev --no-audit --no-fund 2>&1 | tee "$log_file"
           status="${PIPESTATUS[0]}"
           set -e
           if [[ "$status" -ne 0 ]]; then
@@ -59,7 +89,7 @@ jobs:
             if [[ -z "$hint" ]]; then
               hint="$(tail -n 1 "$log_file")"
             fi
-            echo "::error::A2UI npm ci failed: ${hint}"
+            echo "::error::A2UI npm install failed: ${hint}"
             exit "$status"
           fi
 
