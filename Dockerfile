@@ -21,6 +21,14 @@ COPY ui/package.json ./ui/package.json
 COPY patches ./patches
 COPY scripts ./scripts
 
+# Some transitive deps resolve to git@github.com:* URLs.
+# CI/container builders don't have SSH keys, so force HTTPS fetches.
+RUN git config --global --unset-all url."https://github.com/".insteadOf || true \
+  && git config --global --add url."https://github.com/".insteadOf "git@github.com:" \
+  && git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/" \
+  && git config --global --add url."https://github.com/".insteadOf "git+ssh://git@github.com/" \
+  && git config --global --add url."https://github.com/".insteadOf "https://git@github.com/"
+
 RUN pnpm install --frozen-lockfile
 
 COPY . .
