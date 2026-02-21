@@ -42,7 +42,30 @@ jobs:
             echo "has_token=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Prepare package metadata for this repo
+      - name: Install dependencies
+        if: steps.npm-auth.outputs.has_token == 'true'
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm install --frozen-lockfile; then
+              exit 0
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "::error::pnpm install failed after ${attempt} attempts."
+              exit 1
+            fi
+            echo "::warning::pnpm install failed on attempt ${attempt}; retrying..."
+            sleep 5
+          done
+
+      - name: Build
+        if: steps.npm-auth.outputs.has_token == 'true'
+        run: pnpm build
+
+      - name: Build UI
+        if: steps.npm-auth.outputs.has_token == 'true'
+        run: pnpm ui:build
+
+      - name: Prepare package metadata for publish
         if: steps.npm-auth.outputs.has_token == 'true'
         env:
           NPM_PACKAGE_NAME: ${{ vars.NPM_PACKAGE_NAME || '' }}
@@ -70,29 +93,6 @@ jobs:
           console.log(`Publish package: ${pkg.name}`);
           console.log(`Repository URL: ${pkg.repository?.url ?? "n/a"}`);
           EOF
-
-      - name: Install dependencies
-        if: steps.npm-auth.outputs.has_token == 'true'
-        run: |
-          for attempt in 1 2 3; do
-            if pnpm install --frozen-lockfile; then
-              exit 0
-            fi
-            if [[ "$attempt" -eq 3 ]]; then
-              echo "::error::pnpm install failed after ${attempt} attempts."
-              exit 1
-            fi
-            echo "::warning::pnpm install failed on attempt ${attempt}; retrying..."
-            sleep 5
-          done
-
-      - name: Build
-        if: steps.npm-auth.outputs.has_token == 'true'
-        run: pnpm build
-
-      - name: Build UI
-        if: steps.npm-auth.outputs.has_token == 'true'
-        run: pnpm ui:build
 
       - name: Determine npm tag
         id: npm-tag
