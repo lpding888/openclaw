@@ -26,10 +26,10 @@ Options:
 
 Examples:
   # Install latest
-  curl -fsSL https://github.com/<owner>/<repo>/releases/latest/download/install-openclaw-cn.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/scripts/install-openclaw-cn.sh | bash
 
   # Update in place (skip wizard)
-  curl -fsSL https://github.com/<owner>/<repo>/releases/latest/download/install-openclaw-cn.sh | bash -s -- --no-onboard --restart-gateway
+  curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/scripts/install-openclaw-cn.sh | bash -s -- --no-onboard --restart-gateway
 EOF
 }
 
