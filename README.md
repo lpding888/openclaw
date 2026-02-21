@@ -57,6 +57,21 @@ npm install -g openclaw-cn@latest
 pnpm add -g openclaw-cn@latest
 ```
 
+### 一条命令安装/更新（给他人使用）
+
+> 推荐直接使用 Release 的 latest 下载地址（每次新 tag 后会自动指向最新版安装脚本）。
+
+```bash
+# 首次安装（默认会进入 onboarding）
+curl -fsSL https://github.com/jiulingyun/openclaw-cn/releases/latest/download/install-openclaw-cn.sh | bash
+```
+
+```bash
+# 更新到最新（跳过 onboarding，安装后重启网关）
+curl -fsSL https://github.com/jiulingyun/openclaw-cn/releases/latest/download/install-openclaw-cn.sh | \
+  bash -s -- --no-onboard --restart-gateway
+```
+
 ### 从源码构建
 
 ```bash

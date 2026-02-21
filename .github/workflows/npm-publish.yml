@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -185,3 +185,39 @@ jobs:
           exit "${status}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-installer-script:
+    runs-on: ubuntu-latest
+    needs: [publish]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve release metadata
+        id: release-meta
+        run: |
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          version="$(node -p "require('./package.json').version")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure GitHub release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.release-meta.outputs.tag }}"
+          title="openclaw-cn ${{ steps.release-meta.outputs.version }}"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            echo "::notice::Release ${tag} already exists."
+          else
+            gh release create "${tag}" --title "${title}" --notes "Automated release for ${tag}."
+          fi
+
+      - name: Upload installer script asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.release-meta.outputs.tag }}"
+          gh release upload "${tag}" "scripts/install-openclaw-cn.sh#install-openclaw-cn.sh" --clobber
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/install-openclaw-cn.sh"
+          echo "Installer URL: ${url}" >> "$GITHUB_STEP_SUMMARY"
