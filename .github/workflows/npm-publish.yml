@@ -47,32 +47,39 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          strip_ansi() {
+            sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g'
+          }
+
           set +e
           first_log="$(mktemp)"
-          pnpm install --frozen-lockfile --prod=false 2>&1 | tee "$first_log"
+          pnpm install --frozen-lockfile --prod=false --reporter append-only 2>&1 | tee "$first_log"
           first_status="${PIPESTATUS[0]}"
           set -e
           if [[ "$first_status" -eq 0 ]]; then
             exit 0
           fi
 
-          first_hint="$(grep -E -m1 'ERR_PNPM|Unsupported engine|frozen-lockfile|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND' "$first_log" || true)"
+          first_hint="$(strip_ansi < "$first_log" | grep -E -m1 'ERR_PNPM|Unsupported engine|frozen-lockfile|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND|minimum release age|published too recently' || true)"
           if [[ -z "$first_hint" ]]; then
-            first_hint="$(tail -n 1 "$first_log")"
+            first_hint="$(strip_ansi < "$first_log" | tail -n 1)"
           fi
           echo "::warning::pnpm frozen install failed, retrying with no-frozen-lockfile. ${first_hint}"
 
           set +e
           second_log="$(mktemp)"
-          pnpm install --no-frozen-lockfile --prod=false --config.engine-strict=false 2>&1 | tee "$second_log"
+          pnpm install --no-frozen-lockfile --prod=false --config.engine-strict=false --reporter append-only 2>&1 | tee "$second_log"
           second_status="${PIPESTATUS[0]}"
           set -e
           if [[ "$second_status" -ne 0 ]]; then
-            second_hint="$(grep -E -m1 'ERR_PNPM|Unsupported engine|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND' "$second_log" || true)"
+            second_hint="$(strip_ansi < "$second_log" | grep -E -m1 'ERR_PNPM|Unsupported engine|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND|minimum release age|published too recently' || true)"
             if [[ -z "$second_hint" ]]; then
-              second_hint="$(tail -n 1 "$second_log")"
+              second_hint="$(strip_ansi < "$second_log" | tail -n 1)"
             fi
             echo "::error::pnpm install failed after retry: ${second_hint}"
+            strip_ansi < "$second_log" | tail -n 20 | while IFS= read -r line; do
+              [[ -n "${line}" ]] && echo "::error::pnpm install tail: ${line}"
+            done
             exit "$second_status"
           fi
 
