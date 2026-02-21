@@ -131,10 +131,11 @@ if (action === "install") {
   run(runner.cmd, [...runner.argsPrefix, "install", ...rest]);
 } else {
   if (!depsInstalled(action === "test" ? "test" : "build")) {
-    const installEnv =
-      action === "build" ? { ...process.env, NODE_ENV: "production" } : process.env;
-    const installArgs = action === "build" ? ["install", "--prod"] : ["install"];
-    runSync(runner.cmd, [...runner.argsPrefix, ...installArgs], installEnv);
+    // Build requires devDependencies (e.g. vite). Installing with --prod can
+    // make fallback builds fail on CI environments that don't resolve workspace
+    // hoisted deps the same way across platforms.
+    const installArgs = action === "build" ? ["install", "--prod=false"] : ["install"];
+    runSync(runner.cmd, [...runner.argsPrefix, ...installArgs], process.env);
   }
   run(runner.cmd, [...runner.argsPrefix, "run", script, ...rest]);
 }
