@@ -102,7 +102,12 @@ export async function loadOrCreateDeviceIdentity(): Promise<DeviceIdentity> {
     privateKey: identity.privateKey,
     createdAtMs: Date.now(),
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+  } catch {
+    // Storage can be unavailable in strict privacy/browser policies.
+    // Keep identity in-memory for this session instead of failing connect.
+  }
   return identity;
 }
 

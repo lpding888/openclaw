@@ -401,7 +401,12 @@ export class OpenClawApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
+    try {
+      handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
+    } catch (err) {
+      console.error("[control-ui] startup failed:", err);
+      this.lastError = err instanceof Error ? err.message : String(err);
+    }
   }
 
   protected firstUpdated() {

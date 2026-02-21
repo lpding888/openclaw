@@ -180,7 +180,12 @@ export function connectGateway(host: GatewayHost) {
   });
   host.client = client;
   previousClient?.stop();
-  client.start();
+  try {
+    client.start();
+  } catch (err) {
+    host.connected = false;
+    host.lastError = err instanceof Error ? err.message : String(err);
+  }
 }
 
 export function handleGatewayEvent(host: GatewayHost, evt: GatewayEventFrame) {

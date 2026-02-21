@@ -94,7 +94,18 @@ export class GatewayBrowserClient {
     if (this.closed) {
       return;
     }
-    const ws = new WebSocket(this.opts.url);
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(this.opts.url);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      this.opts.onClose?.({
+        code: CONNECT_FAILED_CLOSE_CODE,
+        reason: `connect init failed: ${reason}`,
+      });
+      this.scheduleReconnect();
+      return;
+    }
     this.ws = ws;
     ws.addEventListener("open", () => this.queueConnect());
     ws.addEventListener("message", (ev) => this.handleMessage(String(ev.data ?? "")));
@@ -252,7 +263,12 @@ export class GatewayBrowserClient {
         const nonce = payload && typeof payload.nonce === "string" ? payload.nonce : null;
         if (nonce) {
           this.connectNonce = nonce;
-          void this.sendConnect();
+          // A pre-challenge connect attempt may already be in-flight.
+          // Reset connectSent so we can resend with nonce and satisfy challenge-based auth.
+          this.connectSent = false;
+          void this.sendConnect().catch(() => {
+            this.ws?.close(CONNECT_FAILED_CLOSE_CODE, "connect failed");
+          });
         }
         return;
       }
@@ -307,7 +323,9 @@ export class GatewayBrowserClient {
       window.clearTimeout(this.connectTimer);
     }
     this.connectTimer = window.setTimeout(() => {
-      void this.sendConnect();
+      void this.sendConnect().catch(() => {
+        this.ws?.close(CONNECT_FAILED_CLOSE_CODE, "connect failed");
+      });
     }, 750);
   }
 }

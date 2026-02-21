@@ -36,6 +36,23 @@ function normalizeStreamMap(filters: ChatTimelineFilterState, streams: string[])
   return map;
 }
 
+function isSameStreamMap(
+  current: ChatTimelineFilterState["streams"],
+  next: ChatTimelineFilterState["streams"],
+) {
+  const currentKeys = Object.keys(current);
+  const nextKeys = Object.keys(next);
+  if (currentKeys.length !== nextKeys.length) {
+    return false;
+  }
+  for (const key of nextKeys) {
+    if (current[key] !== next[key]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
     hour: "2-digit",
@@ -155,11 +172,14 @@ export function renderChatTimeline(props: ChatTimelineProps) {
     new Set([...DEFAULT_STREAMS, ...props.events.map((entry) => entry.stream)]),
   );
   const streamMap = normalizeStreamMap(props.filters, availableStreams);
-  const normalizedFilters: ChatTimelineFilterState = {
-    ...props.filters,
-    streams: streamMap,
-  };
-  if (normalizedFilters !== props.filters) {
+  const streamMapChanged = !isSameStreamMap(props.filters.streams, streamMap);
+  const normalizedFilters: ChatTimelineFilterState = streamMapChanged
+    ? {
+        ...props.filters,
+        streams: streamMap,
+      }
+    : props.filters;
+  if (streamMapChanged) {
     queueMicrotask(() => props.onFiltersChange(normalizedFilters));
   }
 
