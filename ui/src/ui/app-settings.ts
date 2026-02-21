@@ -93,6 +93,7 @@ export function applySettingsFromUrl(host: SettingsHost) {
   const passwordRaw = params.get("password") ?? hashParams.get("password");
   const sessionRaw = params.get("session") ?? hashParams.get("session");
   const gatewayUrlRaw = params.get("gatewayUrl") ?? hashParams.get("gatewayUrl");
+  const resetUiRaw = params.get("resetUi") ?? hashParams.get("resetUi");
   let shouldCleanUrl = false;
 
   if (tokenRaw != null) {
@@ -131,6 +132,12 @@ export function applySettingsFromUrl(host: SettingsHost) {
     }
     params.delete("gatewayUrl");
     hashParams.delete("gatewayUrl");
+    shouldCleanUrl = true;
+  }
+
+  if (resetUiRaw != null) {
+    params.delete("resetUi");
+    hashParams.delete("resetUi");
     shouldCleanUrl = true;
   }
 

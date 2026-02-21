@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap '' HUP
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
@@ -138,8 +139,8 @@ launch_gateway() {
     return 0
   fi
 
-  log "==> 启动网关并打开控制台"
-  bash "${ROOT_DIR}/scripts/gateway-launcher.sh" start
+  log "==> 启动网关并打开控制台（强制切换到本地构建）"
+  GATEWAY_FORCE_RESTART=1 bash "${ROOT_DIR}/scripts/gateway-launcher.sh" start
 }
 
 main() {

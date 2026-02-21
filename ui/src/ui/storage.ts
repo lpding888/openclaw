@@ -1,4 +1,10 @@
 const KEY = "openclaw.control.settings.v1";
+const LEGACY_KEY = "clawdbot.control.settings.v1";
+const DEVICE_AUTH_KEY = "openclaw.device.auth.v1";
+const LEGACY_DEVICE_AUTH_KEY = "clawdbot.device.auth.v1";
+const DEVICE_IDENTITY_KEY = "openclaw-device-identity-v1";
+const LEGACY_DEVICE_IDENTITY_KEY = "clawdbot-device-identity-v1";
+const MAX_SETTINGS_JSON_CHARS = 200_000;
 
 import { isSupportedLocale } from "../i18n/index.ts";
 import type { ThemeMode } from "./theme.ts";
@@ -16,6 +22,67 @@ export type UiSettings = {
   navGroupsCollapsed: Record<string, boolean>; // Which nav groups are collapsed
   locale?: string;
 };
+
+function normalizeGatewayUrl(raw: unknown, fallback: string): string {
+  if (typeof raw !== "string") {
+    return fallback;
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "http:") {
+      parsed.protocol = "ws:";
+    } else if (parsed.protocol === "https:") {
+      parsed.protocol = "wss:";
+    }
+    if (parsed.protocol !== "ws:" && parsed.protocol !== "wss:") {
+      return fallback;
+    }
+    return parsed.toString();
+  } catch {
+    // Keep backward compatibility for host:port style values.
+    if (/^[a-z0-9.-]+:\d+$/i.test(trimmed)) {
+      return `ws://${trimmed}`;
+    }
+    return fallback;
+  }
+}
+
+function shouldResetUiStateFromUrl(): boolean {
+  if (typeof location === "undefined") {
+    return false;
+  }
+  try {
+    const params = new URLSearchParams(location.search);
+    const hash = new URLSearchParams(location.hash.startsWith("#") ? location.hash.slice(1) : "");
+    const raw = params.get("resetUi") ?? hash.get("resetUi");
+    if (!raw) {
+      return false;
+    }
+    const normalized = raw.trim().toLowerCase();
+    return (
+      normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function resetUiStorage() {
+  try {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(LEGACY_KEY);
+    localStorage.removeItem(DEVICE_AUTH_KEY);
+    localStorage.removeItem(LEGACY_DEVICE_AUTH_KEY);
+    localStorage.removeItem(DEVICE_IDENTITY_KEY);
+    localStorage.removeItem(LEGACY_DEVICE_IDENTITY_KEY);
+  } catch {
+    // best-effort
+  }
+}
 
 export function loadSettings(): UiSettings {
   const defaultUrl = (() => {
@@ -36,17 +103,24 @@ export function loadSettings(): UiSettings {
     navGroupsCollapsed: {},
   };
 
+  if (shouldResetUiStateFromUrl()) {
+    resetUiStorage();
+    return defaults;
+  }
+
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (!raw) {
+      return defaults;
+    }
+    if (raw.length > MAX_SETTINGS_JSON_CHARS) {
+      // Corrupted / oversized cache should not block control UI startup.
+      resetUiStorage();
       return defaults;
     }
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
     return {
-      gatewayUrl:
-        typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
-          ? parsed.gatewayUrl.trim()
-          : defaults.gatewayUrl,
+      gatewayUrl: normalizeGatewayUrl(parsed.gatewayUrl, defaults.gatewayUrl),
       token: typeof parsed.token === "string" ? parsed.token : defaults.token,
       sessionKey:
         typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()
@@ -87,5 +161,9 @@ export function loadSettings(): UiSettings {
 }
 
 export function saveSettings(next: UiSettings) {
-  localStorage.setItem(KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    // Privacy mode / storage quota should not break UI rendering.
+  }
 }

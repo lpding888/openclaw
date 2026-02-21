@@ -1,5 +1,4 @@
 /* Note: Avoid Google Fonts imports so the UI works well behind CN firewalls/offline. */
-
 :root {
   /* Background - Warmer dark with depth */
   --bg: #12141a;

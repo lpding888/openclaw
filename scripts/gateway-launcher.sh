@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap '' HUP
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
@@ -9,6 +10,7 @@ if [[ -z "${PORT}" ]]; then
   PORT="18789"
 fi
 LOG_FILE="${GATEWAY_LAUNCH_LOG:-/tmp/openclaw-gateway.log}"
+FORCE_RESTART="${GATEWAY_FORCE_RESTART:-0}"
 ACTION="${1:-menu}"
 
 if [[ -n "${PNPM_HOME:-}" ]]; then
@@ -128,7 +130,19 @@ bootstrap_local_gateway_config() {
 }
 
 launch_gateway_process() {
-  nohup node dist/entry.js gateway run --force >"${LOG_FILE}" 2>&1 &
+  # Keep gateway alive after this launcher exits.
+  # `gateway run` may fork a child process; running in a new session avoids shell hangups.
+  if command -v setsid >/dev/null 2>&1; then
+    setsid node dist/entry.js gateway run --force >"${LOG_FILE}" 2>&1 < /dev/null &
+  elif command -v perl >/dev/null 2>&1; then
+    # macOS often lacks `setsid`; use POSIX::setsid via perl to detach reliably.
+    nohup perl -MPOSIX=setsid -e 'setsid() or die "setsid failed: $!"; exec @ARGV' \
+      node dist/entry.js gateway run --force >"${LOG_FILE}" 2>&1 < /dev/null &
+    disown "$!" 2>/dev/null || true
+  else
+    nohup node dist/entry.js gateway run --force >"${LOG_FILE}" 2>&1 < /dev/null &
+    disown "$!" 2>/dev/null || true
+  fi
   LAUNCHED_GATEWAY_PID=$!
   echo "==> Gateway PID: ${LAUNCHED_GATEWAY_PID}"
 }
@@ -137,12 +151,16 @@ start_gateway() {
   if is_gateway_running; then
     local status
     status="$(probe_control_ui_status)"
-    if [[ "${status}" == "200" || "${status}" == "304" || "${status}" == "302" ]]; then
+    if [[ "${FORCE_RESTART}" == "1" ]]; then
+      echo "==> Force restart enabled; replacing existing listener on :${PORT}"
+      stop_listeners_on_port
+    elif [[ "${status}" == "200" || "${status}" == "304" || "${status}" == "302" ]]; then
       echo "==> Gateway already running on :${PORT}"
       return 0
+    else
+      echo "==> Existing listener on :${PORT} returned HTTP ${status}; restarting with local gateway"
+      stop_listeners_on_port
     fi
-    echo "==> Existing listener on :${PORT} returned HTTP ${status}; restarting with local gateway"
-    stop_listeners_on_port
   else
     echo "==> Starting gateway on :${PORT}"
   fi
