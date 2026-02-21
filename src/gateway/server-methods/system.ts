@@ -1,14 +1,6 @@
-import type { GatewayRequestHandlers } from "./types.js";
-import { loadConfig } from "../../config/config.js";
 import { resolveMainSessionKeyFromConfig } from "../../config/sessions.js";
 import { getLastHeartbeatEvent } from "../../infra/heartbeat-events.js";
 import { setHeartbeatsEnabled } from "../../infra/heartbeat-runner.js";
-import {
-  formatDoctorNonInteractiveHint,
-  type RestartSentinelPayload,
-  writeRestartSentinel,
-} from "../../infra/restart-sentinel.js";
-import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
 import { enqueueSystemEvent, isSystemEventContextChanged } from "../../infra/system-events.js";
 import { listSystemPresence, updateSystemPresence } from "../../infra/system-presence.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
@@ -18,62 +10,6 @@ import type { GatewayRequestHandlers } from "./types.js";
 export const systemHandlers: GatewayRequestHandlers = {
   "last-heartbeat": ({ respond }) => {
     respond(true, getLastHeartbeatEvent(), undefined);
-  },
-  "gateway.restart": async ({ params, respond }) => {
-    const cfg = loadConfig();
-    if (cfg.commands?.restart !== true) {
-      respond(
-        false,
-        undefined,
-        errorShape(
-          ErrorCodes.INVALID_REQUEST,
-          "gateway.restart is disabled. Set commands.restart=true to enable.",
-        ),
-      );
-      return;
-    }
-
-    const delayMsRaw = (params as { delayMs?: unknown }).delayMs;
-    const delayMs =
-      typeof delayMsRaw === "number" && Number.isFinite(delayMsRaw)
-        ? Math.max(0, Math.floor(delayMsRaw))
-        : undefined;
-    const reason =
-      typeof (params as { reason?: unknown }).reason === "string"
-        ? (params as { reason?: string }).reason?.trim().slice(0, 200) || undefined
-        : undefined;
-    const note =
-      typeof (params as { note?: unknown }).note === "string"
-        ? (params as { note?: string }).note?.trim() || undefined
-        : undefined;
-    const sessionKey =
-      typeof (params as { sessionKey?: unknown }).sessionKey === "string"
-        ? (params as { sessionKey?: string }).sessionKey?.trim() || undefined
-        : undefined;
-
-    const payload: RestartSentinelPayload = {
-      kind: "restart",
-      status: "ok",
-      ts: Date.now(),
-      sessionKey,
-      message: note ?? reason ?? null,
-      doctorHint: formatDoctorNonInteractiveHint(),
-      stats: {
-        mode: "gateway.restart",
-        reason,
-      },
-    };
-    try {
-      await writeRestartSentinel(payload);
-    } catch {
-      // best-effort: sentinel is a nice UX but shouldn't block the restart.
-    }
-
-    const scheduled = scheduleGatewaySigusr1Restart({
-      delayMs,
-      reason,
-    });
-    respond(true, { ok: true, restart: scheduled }, undefined);
   },
   "set-heartbeats": ({ params, respond }) => {
     const enabled = params.enabled;
