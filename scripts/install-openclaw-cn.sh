@@ -97,6 +97,21 @@ detect_cli_command() {
   return 1
 }
 
+run_onboard() {
+  local cli_cmd="$1"
+  if [[ -t 0 && -t 1 ]]; then
+    "${cli_cmd}" onboard --install-daemon
+    return
+  fi
+  if [[ -r /dev/tty && -w /dev/tty ]]; then
+    # Support `curl ... | bash` by binding interactive prompts to the terminal.
+    "${cli_cmd}" onboard --install-daemon < /dev/tty > /dev/tty 2>&1
+    return
+  fi
+  echo "Skipping onboarding: no interactive TTY available." >&2
+  echo "Run manually: ${cli_cmd} onboard --install-daemon" >&2
+}
+
 main() {
   need_bin npm
   ensure_node_version
@@ -116,7 +131,7 @@ main() {
 
   if [[ "${RUN_ONBOARD}" -eq 1 ]]; then
     echo "==> Running onboarding wizard"
-    "${cli_cmd}" onboard --install-daemon
+    run_onboard "${cli_cmd}"
   fi
 
   if [[ "${RESTART_GATEWAY}" -eq 1 ]]; then
