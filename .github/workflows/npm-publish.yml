@@ -46,7 +46,7 @@ jobs:
         id: deps
         if: steps.npm-auth.outputs.has_token == 'true'
         continue-on-error: true
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prod=false
 
       - name: Build
         id: build_main
