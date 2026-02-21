@@ -56,10 +56,12 @@ function resolveRunner() {
 }
 
 function run(cmd, args) {
+  const needsShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(cmd);
   const child = spawn(cmd, args, {
     cwd: uiDir,
     stdio: "inherit",
     env: process.env,
+    shell: needsShell,
   });
   child.on("exit", (code, signal) => {
     if (signal) {
@@ -70,10 +72,12 @@ function run(cmd, args) {
 }
 
 function runSync(cmd, args, envOverride) {
+  const needsShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(cmd);
   const result = spawnSync(cmd, args, {
     cwd: uiDir,
     stdio: "inherit",
     env: envOverride ?? process.env,
+    shell: needsShell,
   });
   if (result.signal) {
     process.exit(1);
