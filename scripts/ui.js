@@ -58,13 +58,55 @@ function resolveRunner() {
   return null;
 }
 
-function run(cmd, args) {
-  const needsShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(cmd);
-  const child = spawn(cmd, args, {
+export function shouldUseShellForCommand(cmd, platform = process.platform) {
+  if (platform !== "win32") {
+    return false;
+  }
+  const extension = path.extname(cmd).toLowerCase();
+  return WINDOWS_SHELL_EXTENSIONS.has(extension);
+}
+
+export function assertSafeWindowsShellArgs(args, platform = process.platform) {
+  if (platform !== "win32") {
+    return;
+  }
+  const unsafeArg = args.find((arg) => WINDOWS_UNSAFE_SHELL_ARG_PATTERN.test(arg));
+  if (!unsafeArg) {
+    return;
+  }
+  // SECURITY: `shell: true` routes through cmd.exe; reject risky metacharacters
+  // in forwarded args to prevent shell control-flow/env-expansion injection.
+  throw new Error(
+    `Unsafe Windows shell argument: ${unsafeArg}. Remove shell metacharacters (" & | < > ^ % !).`,
+  );
+}
+
+function createSpawnOptions(cmd, args, envOverride) {
+  const useShell = shouldUseShellForCommand(cmd);
+  if (useShell) {
+    assertSafeWindowsShellArgs(args);
+  }
+  return {
     cwd: uiDir,
     stdio: "inherit",
-    env: process.env,
-    shell: needsShell,
+    env: envOverride ?? process.env,
+    ...(useShell ? { shell: true } : {}),
+  };
+}
+
+function run(cmd, args) {
+  let child;
+  try {
+    child = spawn(cmd, args, createSpawnOptions(cmd, args));
+  } catch (err) {
+    console.error(`Failed to launch ${cmd}:`, err);
+    process.exit(1);
+    return;
+  }
+
+  child.on("error", (err) => {
+    console.error(`Failed to launch ${cmd}:`, err);
+    process.exit(1);
   });
   child.on("exit", (code) => {
     if (code !== 0) {
@@ -74,13 +116,14 @@ function run(cmd, args) {
 }
 
 function runSync(cmd, args, envOverride) {
-  const needsShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(cmd);
-  const result = spawnSync(cmd, args, {
-    cwd: uiDir,
-    stdio: "inherit",
-    env: envOverride ?? process.env,
-    shell: needsShell,
-  });
+  let result;
+  try {
+    result = spawnSync(cmd, args, createSpawnOptions(cmd, args, envOverride));
+  } catch (err) {
+    console.error(`Failed to launch ${cmd}:`, err);
+    process.exit(1);
+    return;
+  }
   if (result.signal) {
     process.exit(1);
   }
@@ -141,13 +184,10 @@ export function main(argv = process.argv.slice(2)) {
   }
 
   if (action === "install") {
-    run(runner.cmd, ["install", ...rest]);
+    run(runner.cmd, [...runner.argsPrefix, "install", ...rest]);
     return;
   }
 
-if (action === "install") {
-  run(runner.cmd, [...runner.argsPrefix, "install", ...rest]);
-} else {
   if (!depsInstalled(action === "test" ? "test" : "build")) {
     // Build requires devDependencies (e.g. vite). Installing with --prod can
     // make fallback builds fail on CI environments that don't resolve workspace
@@ -155,6 +195,7 @@ if (action === "install") {
     const installArgs = action === "build" ? ["install", "--prod=false"] : ["install"];
     runSync(runner.cmd, [...runner.argsPrefix, ...installArgs], process.env);
   }
+
   run(runner.cmd, [...runner.argsPrefix, "run", script, ...rest]);
 }
 
