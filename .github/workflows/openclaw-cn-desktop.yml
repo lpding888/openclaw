@@ -117,7 +117,23 @@ jobs:
 
       - name: Build Control UI (dist/control-ui)
         shell: bash
-        run: node scripts/ui.js build
+        run: |
+          set +e
+          log_file="$(mktemp)"
+          node scripts/ui.js build 2>&1 | tee "$log_file"
+          status="${PIPESTATUS[0]}"
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            hint="$(grep -E -m1 'ERR_|Error:|error\\b|vite|Cannot find|ENOENT|EACCES|EEXIST|EPERM' "$log_file" || true)"
+            if [[ -z "$hint" ]]; then
+              hint="$(tail -n 1 "$log_file")"
+            fi
+            echo "::error::UI build failed: ${hint}"
+            tail -n 20 "$log_file" | while IFS= read -r line; do
+              [[ -n "$line" ]] && echo "::error::ui-build tail: $line"
+            done
+            exit "$status"
+          fi
 
       - name: Install Linux packaging deps
         if: runner.os == 'Linux'
