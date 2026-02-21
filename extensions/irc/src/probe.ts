@@ -1,4 +1,3 @@
-import type { CoreConfig, IrcProbe } from "./types.js";
 import { resolveIrcAccount } from "./accounts.js";
 import { connectIrcClient } from "./client.js";
 import { buildIrcConnectOptions } from "./connect-options.js";

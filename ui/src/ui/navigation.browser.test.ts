@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ClawdbotApp } from "./app.ts";
 import "../styles.css";
+import { mountApp as mountTestApp, registerAppMountHooks } from "./test-helpers/app-mount.ts";
 
 const originalConnectDescriptor = Object.getOwnPropertyDescriptor(ClawdbotApp.prototype, "connect");
 

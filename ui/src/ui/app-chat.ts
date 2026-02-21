@@ -9,7 +9,9 @@ import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-o
 import { loadChatTimeline } from "./controllers/chat-timeline.ts";
 import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat.ts";
 import { loadSessions } from "./controllers/sessions.ts";
+import type { GatewayHelloOk } from "./gateway.ts";
 import { normalizeBasePath } from "./navigation.ts";
+import type { ChatAttachment, ChatQueueItem } from "./ui-types.ts";
 import { generateUUID } from "./uuid.ts";
 
 type ChatHost = {

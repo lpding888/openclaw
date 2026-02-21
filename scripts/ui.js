@@ -9,6 +9,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 const uiDir = path.join(repoRoot, "ui");
 
+const WINDOWS_SHELL_EXTENSIONS = new Set([".cmd", ".bat", ".com"]);
+const WINDOWS_UNSAFE_SHELL_ARG_PATTERN = /[\r\n"&|<>^%!]/;
+
 function usage() {
   // keep this tiny; it's invoked from npm scripts too
   process.stderr.write("Usage: node scripts/ui.js <install|dev|build|test> [...args]\n");
@@ -63,11 +66,10 @@ function run(cmd, args) {
     env: process.env,
     shell: needsShell,
   });
-  child.on("exit", (code, signal) => {
-    if (signal) {
-      process.exit(1);
+  child.on("exit", (code) => {
+    if (code !== 0) {
+      process.exit(code ?? 1);
     }
-    process.exit(code ?? 1);
   });
 }
 
@@ -103,33 +105,45 @@ function depsInstalled(kind) {
   }
 }
 
-const [, , action, ...rest] = process.argv;
-if (!action) {
-  usage();
-  process.exit(2);
+function resolveScriptAction(action) {
+  if (action === "install") {
+    return null;
+  }
+  if (action === "dev") {
+    return "dev";
+  }
+  if (action === "build") {
+    return "build";
+  }
+  if (action === "test") {
+    return "test";
+  }
+  return null;
 }
 
-const runner = resolveRunner();
-if (!runner) {
-  process.stderr.write("Missing UI runner: install pnpm, then retry.\n");
-  process.exit(1);
-}
+export function main(argv = process.argv.slice(2)) {
+  const [action, ...rest] = argv;
+  if (!action) {
+    usage();
+    process.exit(2);
+  }
 
-const script =
-  action === "install"
-    ? null
-    : action === "dev"
-      ? "dev"
-      : action === "build"
-        ? "build"
-        : action === "test"
-          ? "test"
-          : null;
+  const runner = resolveRunner();
+  if (!runner) {
+    process.stderr.write("Missing UI runner: install pnpm, then retry.\n");
+    process.exit(1);
+  }
 
-if (action !== "install" && !script) {
-  usage();
-  process.exit(2);
-}
+  const script = resolveScriptAction(action);
+  if (action !== "install" && !script) {
+    usage();
+    process.exit(2);
+  }
+
+  if (action === "install") {
+    run(runner.cmd, ["install", ...rest]);
+    return;
+  }
 
 if (action === "install") {
   run(runner.cmd, [...runner.argsPrefix, "install", ...rest]);
@@ -142,4 +156,13 @@ if (action === "install") {
     runSync(runner.cmd, [...runner.argsPrefix, ...installArgs], process.env);
   }
   run(runner.cmd, [...runner.argsPrefix, "run", script, ...rest]);
+}
+
+const isDirectExecution = (() => {
+  const entry = process.argv[1];
+  return Boolean(entry && path.resolve(entry) === fileURLToPath(import.meta.url));
+})();
+
+if (isDirectExecution) {
+  main();
 }

@@ -13,6 +13,9 @@ import { loadChatHistory } from "./controllers/chat.ts";
 import { applyModelSwitcherSelection } from "./controllers/model-switcher.ts";
 import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
+import type { ThemeTransitionContext } from "./theme-transition.ts";
+import type { ThemeMode } from "./theme.ts";
+import type { SessionsListResult } from "./types.ts";
 
 type SessionDefaultsSnapshot = {
   mainSessionKey?: string;
@@ -382,11 +385,19 @@ export function resolveSessionDisplayName(
   const displayName = row?.displayName?.trim() || "";
   const { prefix, fallbackName } = parseSessionKey(key);
 
+  const applyTypedPrefix = (name: string): string => {
+    if (!prefix) {
+      return name;
+    }
+    const prefixPattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\s*`, "i");
+    return prefixPattern.test(name) ? name : `${prefix} ${name}`;
+  };
+
   if (label && label !== key) {
-    return prefix ? `${prefix} ${label}` : label;
+    return applyTypedPrefix(label);
   }
   if (displayName && displayName !== key) {
-    return prefix ? `${prefix} ${displayName}` : displayName;
+    return applyTypedPrefix(displayName);
   }
   return fallbackName;
 }

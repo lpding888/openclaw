@@ -1,4 +1,3 @@
-import type { ApplyAuthChoiceParams, ApplyAuthChoiceResult } from "./auth-choice.apply.js";
 import { resolveEnvApiKey } from "../agents/model-auth.js";
 import { upsertSharedEnvVar } from "../infra/env-file.js";
 import {
@@ -117,9 +116,11 @@ export async function applyAuthChoiceOpenAI(
       return { config: nextConfig, agentModelOverride };
     }
     if (creds) {
-      await writeOAuthCredentials("openai-codex", creds, params.agentDir);
+      const profileId = await writeOAuthCredentials("openai-codex", creds, params.agentDir, {
+        syncSiblingAgents: true,
+      });
       nextConfig = applyAuthProfileConfig(nextConfig, {
-        profileId: "openai-codex:default",
+        profileId,
         provider: "openai-codex",
         mode: "oauth",
       });

@@ -1,5 +1,11 @@
 import fs from "node:fs";
+import { loadConfig } from "../../config/config.js";
+import {
+  resolveSessionFilePath,
+  resolveSessionFilePathOptions,
+} from "../../config/sessions/paths.js";
 import type { SessionEntry, SessionSystemPromptReport } from "../../config/sessions/types.js";
+import { loadProviderUsageSummary } from "../../infra/provider-usage.js";
 import type {
   CostUsageSummary,
   SessionCostSummary,
@@ -104,6 +110,8 @@ export const usageHandlers: GatewayRequestHandlers = {
       startDate: params?.startDate,
       endDate: params?.endDate,
       days: params?.days,
+      mode: params?.mode,
+      utcOffset: params?.utcOffset,
     });
     const summary = await loadCostUsageSummaryCached({ startMs, endMs, config });
     respond(true, summary, undefined);
@@ -126,6 +134,8 @@ export const usageHandlers: GatewayRequestHandlers = {
     const { startMs, endMs } = parseDateRange({
       startDate: p.startDate,
       endDate: p.endDate,
+      mode: p.mode,
+      utcOffset: p.utcOffset,
     });
     const limit = typeof p.limit === "number" && Number.isFinite(p.limit) ? p.limit : 50;
     const includeContextWeight = p.includeContextWeight ?? false;
@@ -146,12 +156,7 @@ export const usageHandlers: GatewayRequestHandlers = {
 
       // Prefer the store entry when available, even if the caller provides a discovered key
       // (`agent:<id>:<sessionId>`) for a session that now has a canonical store key.
-      const storeBySessionId = new Map<string, { key: string; entry: SessionEntry }>();
-      for (const [key, entry] of Object.entries(store)) {
-        if (entry?.sessionId) {
-          storeBySessionId.set(entry.sessionId, { key, entry });
-        }
-      }
+      const storeBySessionId = buildStoreBySessionId(store);
 
       const storeMatch = store[specificKey]
         ? { key: specificKey, entry: store[specificKey] }
@@ -202,12 +207,7 @@ export const usageHandlers: GatewayRequestHandlers = {
       });
 
       // Build a map of sessionId -> store entry for quick lookup
-      const storeBySessionId = new Map<string, { key: string; entry: SessionEntry }>();
-      for (const [key, entry] of Object.entries(store)) {
-        if (entry?.sessionId) {
-          storeBySessionId.set(entry.sessionId, { key, entry });
-        }
-      }
+      const storeBySessionId = buildStoreBySessionId(store);
 
       for (const discovered of discoveredSessions) {
         const storeMatch = storeBySessionId.get(discovered.sessionId);

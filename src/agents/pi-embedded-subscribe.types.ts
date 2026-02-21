@@ -3,6 +3,7 @@ import type { ReasoningLevel, VerboseLevel } from "../auto-reply/thinking.js";
 import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { HookRunner } from "../plugins/hooks.js";
 import type { BlockReplyChunking } from "./pi-embedded-block-chunker.js";
+import type { BlockReplyPayload } from "./pi-embedded-payloads.js";
 
 export type ToolResultFormat = "markdown" | "plain";
 

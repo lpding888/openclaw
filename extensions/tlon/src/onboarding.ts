@@ -7,6 +7,7 @@ import {
   type ChannelOnboardingAdapter,
   type WizardPrompter,
 } from "openclaw/plugin-sdk";
+import { buildTlonAccountFields } from "./account-fields.js";
 import type { TlonResolvedAccount } from "./types.js";
 import { buildTlonAccountFields } from "./account-fields.js";
 import { listTlonAccountIds, resolveTlonAccount } from "./types.js";

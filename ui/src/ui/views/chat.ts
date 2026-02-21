@@ -29,6 +29,16 @@ export type CompactionIndicatorStatus = {
   completedAt: number | null;
 };
 
+export type FallbackIndicatorStatus = {
+  phase?: "active" | "cleared";
+  selected: string;
+  active: string;
+  previous?: string;
+  reason?: string;
+  attempts: string[];
+  occurredAt: number;
+};
+
 export type ChatProps = {
   sessionKey: string;
   onSessionKeyChange: (next: string) => void;
@@ -38,6 +48,7 @@ export type ChatProps = {
   sending: boolean;
   canAbort?: boolean;
   compactionStatus?: CompactionIndicatorStatus | null;
+  fallbackStatus?: FallbackIndicatorStatus | null;
   messages: unknown[];
   toolMessages: unknown[];
   stream: string | null;
@@ -194,6 +205,7 @@ export function renderChat(props: ChatProps) {
           : nothing
       }
 
+      ${renderFallbackIndicator(props.fallbackStatus)}
       ${renderCompactionIndicator(props.compactionStatus)}
 
       ${

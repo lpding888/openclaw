@@ -1,5 +1,4 @@
 import { html, nothing } from "lit";
-import type { AppViewState } from "./app-view-state.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { renderMainContent } from "./app-render-content.ts";
 import {
@@ -115,7 +114,7 @@ export function renderApp(state: AppViewState) {
                 }}
                 aria-expanded=${!isGroupCollapsed}
               >
-                <span class="nav-label__text">${group.label}</span>
+                <span class="nav-label__text">${t(`nav.${group.label}`)}</span>
                 <span class="nav-label__chevron">${isGroupCollapsed ? "+" : "−"}</span>
               </button>
               <div class="nav-group__items">${group.tabs.map((tab) => renderTab(state, tab))}</div>
@@ -141,6 +140,19 @@ export function renderApp(state: AppViewState) {
         </div>
       </aside>
       <main class="content ${isChat ? "content--chat" : ""}">
+        ${
+          state.updateAvailable
+            ? html`<div class="update-banner callout danger" role="alert">
+              <strong>Update available:</strong> v${state.updateAvailable.latestVersion}
+              (running v${state.updateAvailable.currentVersion}).
+              <button
+                class="btn btn--sm update-banner__btn"
+                ?disabled=${state.updateRunning || !state.connected}
+                @click=${() => runUpdate(state)}
+              >${state.updateRunning ? "Updating…" : "Update now"}</button>
+            </div>`
+            : nothing
+        }
         <section class="content-header">
           <div>
             <div class="page-title">${titleForTab(state.tab)}</div>

@@ -3,6 +3,7 @@ const DEVICE_AUTH_KEY = "clawdbot.device.auth.v1";
 const DEVICE_IDENTITY_KEY = "clawdbot-device-identity-v1";
 const MAX_SETTINGS_JSON_CHARS = 200_000;
 
+import { isSupportedLocale } from "../i18n/index.ts";
 import type { ThemeMode } from "./theme.ts";
 import type {
   ChatObservabilityPin,

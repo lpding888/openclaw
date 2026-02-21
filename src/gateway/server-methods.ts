@@ -1,4 +1,10 @@
-import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-methods/types.js";
+import { formatControlPlaneActor, resolveControlPlaneActor } from "./control-plane-audit.js";
+import { consumeControlPlaneWriteBudget } from "./control-plane-rate-limit.js";
+import {
+  ADMIN_SCOPE,
+  authorizeOperatorScopesForMethod,
+  isNodeRoleMethod,
+} from "./method-scopes.js";
 import { ErrorCodes, errorShape } from "./protocol/index.js";
 import { agentHandlers } from "./server-methods/agent.js";
 import { agentsHandlers } from "./server-methods/agents.js";
@@ -14,12 +20,14 @@ import { healthHandlers } from "./server-methods/health.js";
 import { logsHandlers } from "./server-methods/logs.js";
 import { modelsHandlers } from "./server-methods/models.js";
 import { nodeHandlers } from "./server-methods/nodes.js";
+import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
 import { skillsHandlers } from "./server-methods/skills.js";
 import { systemHandlers } from "./server-methods/system.js";
 import { talkHandlers } from "./server-methods/talk.js";
 import { ttsHandlers } from "./server-methods/tts.js";
+import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-methods/types.js";
 import { updateHandlers } from "./server-methods/update.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
@@ -101,9 +109,12 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
   if (!client?.connect) {
     return null;
   }
+  if (method === "health") {
+    return null;
+  }
   const role = client.connect.role ?? "operator";
   const scopes = client.connect.scopes ?? [];
-  if (NODE_ROLE_METHODS.has(method)) {
+  if (isNodeRoleMethod(method)) {
     if (role === "node") {
       return null;
     }
@@ -118,8 +129,9 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
   if (scopes.includes(ADMIN_SCOPE)) {
     return null;
   }
-  if (APPROVAL_METHODS.has(method) && !scopes.includes(APPROVALS_SCOPE)) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.approvals");
+  const scopeAuth = authorizeOperatorScopesForMethod(method, scopes);
+  if (!scopeAuth.allowed) {
+    return errorShape(ErrorCodes.INVALID_REQUEST, `missing scope: ${scopeAuth.missingScope}`);
   }
   if (PAIRING_METHODS.has(method) && !scopes.includes(PAIRING_SCOPE)) {
     return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.pairing");
@@ -191,6 +203,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...systemHandlers,
   ...updateHandlers,
   ...nodeHandlers,
+  ...pushHandlers,
   ...sendHandlers,
   ...usageHandlers,
   ...agentHandlers,
@@ -206,6 +219,32 @@ export async function handleGatewayRequest(
   if (authError) {
     respond(false, undefined, authError);
     return;
+  }
+  if (CONTROL_PLANE_WRITE_METHODS.has(req.method)) {
+    const budget = consumeControlPlaneWriteBudget({ client });
+    if (!budget.allowed) {
+      const actor = resolveControlPlaneActor(client);
+      context.logGateway.warn(
+        `control-plane write rate-limited method=${req.method} ${formatControlPlaneActor(actor)} retryAfterMs=${budget.retryAfterMs} key=${budget.key}`,
+      );
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          `rate limit exceeded for ${req.method}; retry after ${Math.ceil(budget.retryAfterMs / 1000)}s`,
+          {
+            retryable: true,
+            retryAfterMs: budget.retryAfterMs,
+            details: {
+              method: req.method,
+              limit: "3 per 60s",
+            },
+          },
+        ),
+      );
+      return;
+    }
   }
   const handler = opts.extraHandlers?.[req.method] ?? coreGatewayHandlers[req.method];
   if (!handler) {

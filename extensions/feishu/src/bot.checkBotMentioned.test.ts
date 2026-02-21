@@ -5,6 +5,7 @@ import { parseFeishuMessageEvent } from "./bot.js";
 function makeEvent(
   chatType: "p2p" | "group",
   mentions?: Array<{ key: string; name: string; id: { open_id?: string } }>,
+  text = "hello",
 ) {
   return {
     sender: {
@@ -15,7 +16,7 @@ function makeEvent(
       chat_id: "oc_chat1",
       chat_type: chatType,
       message_type: "text",
-      content: JSON.stringify({ text: "hello" }),
+      content: JSON.stringify({ text }),
       mentions,
     },
   };

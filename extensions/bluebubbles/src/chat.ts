@@ -1,4 +1,3 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import crypto from "node:crypto";
 import path from "node:path";
 import { resolveBlueBubblesServerAccount } from "./account-resolve.js";

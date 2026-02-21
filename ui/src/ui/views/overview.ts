@@ -1,8 +1,9 @@
 import { html } from "lit";
-import type { GatewayHelloOk } from "../gateway.ts";
-import type { UiSettings } from "../storage.ts";
+import { t, i18n, type Locale } from "../../i18n/index.ts";
 import { formatRelativeTimestamp, formatDurationHuman } from "../format.ts";
+import type { GatewayHelloOk } from "../gateway.ts";
 import { formatNextRun } from "../presenter.ts";
+import type { UiSettings } from "../storage.ts";
 
 export type OverviewProps = {
   connected: boolean;
@@ -35,10 +36,13 @@ export function renderOverview(props: OverviewProps) {
         authMode?: "none" | "token" | "password" | "trusted-proxy";
       }
     | undefined;
-  const uptime = snapshot?.uptimeMs ? formatDurationHuman(snapshot.uptimeMs) : "n/a";
-  const tick = snapshot?.policy?.tickIntervalMs ? `${snapshot.policy.tickIntervalMs}ms` : "n/a";
+  const uptime = snapshot?.uptimeMs ? formatDurationHuman(snapshot.uptimeMs) : t("common.na");
+  const tick = snapshot?.policy?.tickIntervalMs
+    ? `${snapshot.policy.tickIntervalMs}ms`
+    : t("common.na");
   const authMode = snapshot?.authMode;
   const isTrustedProxy = authMode === "trusted-proxy";
+
   const authHint = (() => {
     if (props.connected || !props.lastError) {
       return null;
@@ -88,6 +92,7 @@ export function renderOverview(props: OverviewProps) {
       </div>
     `;
   })();
+
   const insecureContextHint = (() => {
     if (props.connected || !props.lastError) {
       return null;
@@ -131,6 +136,8 @@ export function renderOverview(props: OverviewProps) {
     `;
   })();
 
+  const currentLocale = i18n.getLocale();
+
   return html`
     <section class="grid grid-cols-2">
       <div class="card">
@@ -138,7 +145,7 @@ export function renderOverview(props: OverviewProps) {
         <div class="card-sub">仪表板连接位置以及身份验证方式。</div>
         <div class="form-grid" style="margin-top: 16px;">
           <label class="field">
-            <span>WebSocket URL</span>
+            <span>${t("overview.access.wsUrl")}</span>
             <input
               .value=${props.settings.gatewayUrl}
               @input=${(e: Event) => {
@@ -153,7 +160,7 @@ export function renderOverview(props: OverviewProps) {
               ? ""
               : html`
                 <label class="field">
-                  <span>Gateway Token</span>
+                  <span>${t("overview.access.token")}</span>
                   <input
                     .value=${props.settings.token}
                     @input=${(e: Event) => {
@@ -164,7 +171,7 @@ export function renderOverview(props: OverviewProps) {
                   />
                 </label>
                 <label class="field">
-                  <span>Password (not stored)</span>
+                  <span>${t("overview.access.password")}</span>
                   <input
                     type="password"
                     .value=${props.password}
@@ -187,11 +194,29 @@ export function renderOverview(props: OverviewProps) {
               }}
             />
           </label>
+          <label class="field">
+            <span>${t("overview.access.language")}</span>
+            <select
+              .value=${currentLocale}
+              @change=${(e: Event) => {
+                const v = (e.target as HTMLSelectElement).value as Locale;
+                void i18n.setLocale(v);
+                props.onSettingsChange({ ...props.settings, locale: v });
+              }}
+            >
+              <option value="en">${t("languages.en")}</option>
+              <option value="zh-CN">${t("languages.zhCN")}</option>
+              <option value="zh-TW">${t("languages.zhTW")}</option>
+              <option value="pt-BR">${t("languages.ptBR")}</option>
+            </select>
+          </label>
         </div>
         <div class="row" style="margin-top: 14px;">
-          <button class="btn" @click=${() => props.onConnect()}>Connect</button>
-          <button class="btn" @click=${() => props.onRefresh()}>Refresh</button>
-          <span class="muted">${isTrustedProxy ? "Authenticated via trusted proxy." : "Click Connect to apply connection changes."}</span>
+          <button class="btn" @click=${() => props.onConnect()}>${t("common.connect")}</button>
+          <button class="btn" @click=${() => props.onRefresh()}>${t("common.refresh")}</button>
+          <span class="muted">${
+            isTrustedProxy ? t("overview.access.trustedProxy") : t("overview.access.connectHint")
+          }</span>
         </div>
       </div>
 
@@ -216,7 +241,7 @@ export function renderOverview(props: OverviewProps) {
           <div class="stat">
             <div class="stat-label">上次通道刷新</div>
             <div class="stat-value">
-              ${props.lastChannelsRefresh ? formatRelativeTimestamp(props.lastChannelsRefresh) : "n/a"}
+              ${props.lastChannelsRefresh ? formatRelativeTimestamp(props.lastChannelsRefresh) : t("common.na")}
             </div>
           </div>
         </div>
