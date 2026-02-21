@@ -43,30 +43,20 @@ jobs:
           fi
 
       - name: Install dependencies
-        id: deps
         if: steps.npm-auth.outputs.has_token == 'true'
-        continue-on-error: true
         run: pnpm install --frozen-lockfile --prod=false
 
+      - name: Install A2UI renderer dependencies
+        if: steps.npm-auth.outputs.has_token == 'true'
+        run: npm ci --prefix vendor/a2ui/renderers/lit
+
       - name: Build
-        id: build_main
-        if: steps.npm-auth.outputs.has_token == 'true' && steps.deps.conclusion == 'success'
-        continue-on-error: true
+        if: steps.npm-auth.outputs.has_token == 'true'
         run: pnpm build
 
       - name: Build UI
-        id: build_ui
-        if: steps.npm-auth.outputs.has_token == 'true' && steps.deps.conclusion == 'success'
-        continue-on-error: true
+        if: steps.npm-auth.outputs.has_token == 'true'
         run: pnpm ui:build
-
-      - name: Warn when install/build is skipped
-        if: steps.npm-auth.outputs.has_token == 'true' && steps.deps.conclusion != 'success'
-        run: echo "::warning::pnpm install failed; continuing publish with repository artifacts."
-
-      - name: Warn when build fails
-        if: steps.npm-auth.outputs.has_token == 'true' && (steps.build_main.conclusion == 'failure' || steps.build_ui.conclusion == 'failure')
-        run: echo "::warning::Build failed; continuing publish with repository artifacts."
 
       - name: Verify publish artifacts
         if: steps.npm-auth.outputs.has_token == 'true'
