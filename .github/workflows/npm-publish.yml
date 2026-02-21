@@ -48,7 +48,20 @@ jobs:
 
       - name: Install A2UI renderer dependencies
         if: steps.npm-auth.outputs.has_token == 'true'
-        run: npm ci --prefix vendor/a2ui/renderers/lit
+        run: |
+          set +e
+          log_file="$(mktemp)"
+          npm ci --prefix vendor/a2ui/renderers/lit 2>&1 | tee "$log_file"
+          status="${PIPESTATUS[0]}"
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            hint="$(grep -E -m1 'npm ERR!|ERR!|E[0-9]{3}|No matching|not found|ENOENT|EACCES|authentication|401|403|ETIMEDOUT|ECONN|ENOTFOUND' "$log_file" || true)"
+            if [[ -z "$hint" ]]; then
+              hint="$(tail -n 1 "$log_file")"
+            fi
+            echo "::error::A2UI npm ci failed: ${hint}"
+            exit "$status"
+          fi
 
       - name: Build
         if: steps.npm-auth.outputs.has_token == 'true'
