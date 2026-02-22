@@ -10,6 +10,7 @@ SKIP_INSTALL=0
 SKIP_BUILD=0
 NO_LAUNCH=0
 FORCE_NO_FROZEN=0
+APPLY_STABILITY_DEFAULTS=1
 
 if [[ -n "${PNPM_HOME:-}" ]]; then
   export PATH="${PNPM_HOME}:${PATH}"
@@ -27,6 +28,8 @@ Options:
   --skip-build        Skip pnpm build
   --no-launch         Skip gateway launch after install
   --no-frozen         Use non-frozen lockfile install directly
+  --skip-stability-defaults
+                     Skip applying anti-stall runtime defaults
   -h, --help          Show this help
 USAGE
 }
@@ -47,6 +50,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-frozen)
       FORCE_NO_FROZEN=1
+      shift
+      ;;
+    --skip-stability-defaults)
+      APPLY_STABILITY_DEFAULTS=0
       shift
       ;;
     -h|--help)
@@ -100,6 +107,39 @@ ensure_pnpm() {
 
 run_pnpm() {
   "${PNPM_CMD[@]}" "$@"
+}
+
+config_get_local() {
+  node dist/entry.js config get "$1" 2>/dev/null | tr -d '\r' || true
+}
+
+apply_stability_defaults() {
+  if [[ "${APPLY_STABILITY_DEFAULTS}" -ne 1 ]]; then
+    log "==> 跳过稳定性默认配置"
+    return 0
+  fi
+
+  log "==> 写入稳定性默认配置（防卡死）"
+  local dm_scope=""
+  local reset_by_type=""
+  local compaction_mode=""
+
+  dm_scope="$(config_get_local session.dmScope)"
+  if [[ -z "${dm_scope}" || "${dm_scope}" == "main" || "${dm_scope}" == Config\ path\ not\ found:* ]]; then
+    node dist/entry.js config set session.dmScope per-channel-peer >/dev/null 2>&1 || true
+  fi
+
+  reset_by_type="$(config_get_local session.resetByType)"
+  if [[ -z "${reset_by_type}" || "${reset_by_type}" == Config\ path\ not\ found:* ]]; then
+    node dist/entry.js config set --json session.resetByType \
+      '{dm:{mode:"idle",idleMinutes:90},group:{mode:"idle",idleMinutes:720},thread:{mode:"idle",idleMinutes:240}}' \
+      >/dev/null 2>&1 || true
+  fi
+
+  compaction_mode="$(config_get_local agents.defaults.compaction.mode)"
+  if [[ -z "${compaction_mode}" || "${compaction_mode}" == "safeguard" || "${compaction_mode}" == Config\ path\ not\ found:* ]]; then
+    node dist/entry.js config set agents.defaults.compaction.mode default >/dev/null 2>&1 || true
+  fi
 }
 
 install_deps() {
@@ -159,6 +199,7 @@ main() {
 
     install_deps
     build_project
+    apply_stability_defaults
     launch_gateway
 
     log "========================================"
