@@ -3,31 +3,27 @@ import type { CompactionStatus, FallbackStatus } from "./app-tool-stream.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
-import type { ModelSwitcherOption } from "./controllers/model-switcher.ts";
 import type { SkillMessage } from "./controllers/skills.ts";
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import type { UiSettings } from "./storage.ts";
 import type { ThemeTransitionContext } from "./theme-transition.ts";
-import type { ThemeMode } from "./theme.ts";
+import type { ResolvedTheme, ThemeMode } from "./theme.ts";
 import type {
   AgentsListResult,
   AgentsFilesListResult,
   AgentIdentityResult,
-  ChatFeedbackDraft,
-  ChatFeedbackItem,
-  ChatTimelineEvent,
-  ChatTimelineFilterState,
-  ChatTimelineRunSummary,
+  AttentionItem,
   ChannelsStatusSnapshot,
   ConfigSnapshot,
   ConfigUiHints,
   CronJob,
   CronRunLogEntry,
   CronStatus,
-  HealthSnapshot,
+  HealthSummary,
   LogEntry,
   LogLevel,
+  ModelCatalogEntry,
   NostrProfile,
   PresenceEntry,
   SessionsUsageResult,
@@ -49,18 +45,14 @@ export type AppViewState = {
   basePath: string;
   connected: boolean;
   theme: ThemeMode;
-  themeResolved: "light" | "dark";
+  themeResolved: ResolvedTheme;
+  themeOrder: ThemeMode[];
   hello: GatewayHelloOk | null;
   lastError: string | null;
-  lastErrorCode: string | null;
   eventLog: EventLogEntry[];
   assistantName: string;
   assistantAvatar: string | null;
   assistantAgentId: string | null;
-  commandCenterOpen: boolean;
-  commandCenterQuery: string;
-  commandCenterSelectedIndex: number;
-  commandCenterNotice: string | null;
   sessionKey: string;
   chatLoading: boolean;
   chatSending: boolean;
@@ -76,29 +68,11 @@ export type AppViewState = {
   chatAvatarUrl: string | null;
   chatThinkingLevel: string | null;
   chatQueue: ChatQueueItem[];
-  chatTimelineEvents: ChatTimelineEvent[];
-  chatTimelineLoading: boolean;
-  chatTimelineError: string | null;
-  chatTimelineServerSupported: boolean;
-  chatTimelineFollow: boolean;
-  chatTimelineFilters: ChatTimelineFilterState;
-  chatTimelineRuns: ChatTimelineRunSummary[];
-  chatTimelineRunsLoading: boolean;
-  chatTimelineRunsError: string | null;
-  chatTimelineRunsServerSupported: boolean;
-  chatFeedbackItems: ChatFeedbackItem[];
-  chatFeedbackLoading: boolean;
-  chatFeedbackError: string | null;
-  chatFeedbackServerSupported: boolean;
-  chatFeedbackDrafts: Record<string, ChatFeedbackDraft>;
-  chatFeedbackSubmitting: Record<string, boolean>;
-  chatFeedbackSubmitErrors: Record<string, string | null>;
   chatManualRefreshInFlight: boolean;
   nodesLoading: boolean;
   nodes: Array<Record<string, unknown>>;
   chatNewMessagesBelow: boolean;
   sidebarOpen: boolean;
-  sidebarTab: "timeline" | "tool" | "insights";
   sidebarContent: string | null;
   sidebarError: string | null;
   splitRatio: number;
@@ -138,23 +112,6 @@ export type AppViewState = {
   configSearchQuery: string;
   configActiveSection: string | null;
   configActiveSubsection: string | null;
-  modelSwitcherLoading: boolean;
-  modelSwitcherSaving: boolean;
-  modelSwitcherCurrent: string | null;
-  modelSwitcherSelected: string;
-  modelSwitcherOptions: ModelSwitcherOption[];
-  modelSwitcherError: string | null;
-  modelSwitcherStatus: string | null;
-  modelSwitcherCompatMode: boolean;
-  modelSwitcherConfigHash: string | null;
-  modelSwitcherFallbacks: string[];
-  modelCenterPrimary: string;
-  modelCenterFallbacksText: string;
-  modelCenterAllowCustom: boolean;
-  modelCenterSaving: boolean;
-  modelCenterError: string | null;
-  modelCenterStatus: string | null;
-  modelCenterQuery: string;
   channelsLoading: boolean;
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
@@ -196,6 +153,12 @@ export type AppViewState = {
   sessionsFilterLimit: string;
   sessionsIncludeGlobal: boolean;
   sessionsIncludeUnknown: boolean;
+  sessionsSearchQuery: string;
+  sessionsSortColumn: "key" | "kind" | "updated" | "tokens";
+  sessionsSortDir: "asc" | "desc";
+  sessionsPage: number;
+  sessionsPageSize: number;
+  sessionsActionsOpenKey: string | null;
   usageLoading: boolean;
   usageResult: SessionsUsageResult | null;
   usageCostSummary: CostUsageSummary | null;
@@ -244,13 +207,15 @@ export type AppViewState = {
   skillsError: string | null;
   skillsFilter: string;
   skillEdits: Record<string, string>;
-  skillEnvEdits: Record<string, Record<string, string>>;
   skillMessages: Record<string, SkillMessage>;
   skillsBusyKey: string | null;
+  healthLoading: boolean;
+  healthResult: HealthSummary | null;
+  healthError: string | null;
   debugLoading: boolean;
   debugStatus: StatusSummary | null;
-  debugHealth: HealthSnapshot | null;
-  debugModels: unknown[];
+  debugHealth: HealthSummary | null;
+  debugModels: ModelCatalogEntry[];
   debugHeartbeat: unknown;
   debugCallMethod: string;
   debugCallParams: string;
@@ -270,6 +235,14 @@ export type AppViewState = {
   logsMaxBytes: number;
   logsAtBottom: boolean;
   updateAvailable: import("./types.js").UpdateAvailable | null;
+  // Overview dashboard state
+  attentionItems: AttentionItem[];
+  paletteOpen: boolean;
+  paletteQuery: string;
+  paletteActiveIndex: number;
+  streamMode: boolean;
+  overviewLogLines: string[];
+  overviewLogCursor: number;
   client: GatewayBrowserClient | null;
   refreshSessionsAfterChat: Set<string>;
   connect: () => void;
@@ -332,6 +305,5 @@ export type AppViewState = {
   handleLogsScroll: (event: Event) => void;
   handleOpenSidebar: (content: string) => void;
   handleCloseSidebar: () => void;
-  handleSetSidebarTab: (tab: "timeline" | "tool" | "insights") => void;
   handleSplitRatioChange: (ratio: number) => void;
 };
