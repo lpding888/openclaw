@@ -1,6 +1,8 @@
 import { html, nothing } from "lit";
 import type { SkillMessageMap } from "../controllers/skills.ts";
 import { clampText } from "../format.ts";
+import type { SkillStatusEntry, SkillStatusReport } from "../types.ts";
+import { groupSkills } from "./skills-grouping.ts";
 import {
   computeSkillMissing,
   computeSkillReasons,
@@ -13,84 +15,47 @@ export type SkillsProps = {
   error: string | null;
   filter: string;
   edits: Record<string, string>;
-  envEdits: Record<string, Record<string, string>>;
   busyKey: string | null;
   messages: SkillMessageMap;
   onFilterChange: (next: string) => void;
   onRefresh: () => void;
   onToggle: (skillKey: string, enabled: boolean) => void;
   onEdit: (skillKey: string, value: string) => void;
-  onEditEnv: (skillKey: string, envKey: string, value: string) => void;
   onSaveKey: (skillKey: string) => void;
-  onSaveEnv: (skillKey: string, envKey: string) => void;
   onInstall: (skillKey: string, name: string, installId: string) => void;
 };
-
-function translateSource(source: string): string {
-  const translations: Record<string, string> = {
-    "clawdbot-bundled": "内置",
-    "clawdbot-workspace": "工作区",
-    "clawdbot-managed": "已管理",
-    "clawdbot-extra": "额外",
-  };
-  return translations[source] ?? source;
-}
-
-function resolveArchitectAliases(raw: string): string[] {
-  const normalized = raw.trim().toLowerCase();
-  if (!normalized) {
-    return [];
-  }
-  if (!["架构", "架构师", "architect", "architecture"].includes(normalized)) {
-    return [];
-  }
-  return ["architect", "architecture", "design", "workflow", "skill-creator", "skill-installer"];
-}
 
 export function renderSkills(props: SkillsProps) {
   const skills = props.report?.skills ?? [];
   const filter = props.filter.trim().toLowerCase();
-  const architectAliases = resolveArchitectAliases(props.filter);
   const filtered = filter
-    ? skills.filter((skill) => {
-        const haystack = [
-          skill.name,
-          skill.description,
-          skill.source,
-          skill.skillKey,
-          skill.filePath,
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (architectAliases.length > 0) {
-          return architectAliases.some((term) => haystack.includes(term));
-        }
-        return haystack.includes(filter);
-      })
+    ? skills.filter((skill) =>
+        [skill.name, skill.description, skill.source].join(" ").toLowerCase().includes(filter),
+      )
     : skills;
+  const groups = groupSkills(filtered);
 
   return html`
     <section class="card">
-      <div class="row" style="justify-content: space-between;">
-        <div>
-          <div class="card-title">技能</div>
-          <div class="card-sub">捆绑、管理和工作区技能。</div>
-        </div>
-        <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-          ${props.loading ? "加载中…" : "刷新"}
-        </button>
-      </div>
-
-      <div class="filters" style="margin-top: 14px;">
-        <label class="field" style="flex: 1;">
-          <span>过滤器</span>
+      <div class="filters" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <a
+          class="btn"
+          href="https://clawhub.com"
+          target="_blank"
+          rel="noreferrer"
+          title="Browse skills on ClawHub"
+        >Browse Skills Store</a>
+        <label class="field" style="flex: 1; min-width: 180px;">
           <input
             .value=${props.filter}
             @input=${(e: Event) => props.onFilterChange((e.target as HTMLInputElement).value)}
-            placeholder="搜索技能"
+            placeholder="Search skills"
           />
         </label>
-        <div class="muted">显示${filtered.length}项</div>
+        <div class="muted">${filtered.length} shown</div>
+        <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
+          ${props.loading ? "Loading…" : "Refresh"}
+        </button>
       </div>
 
       ${
@@ -102,11 +67,24 @@ export function renderSkills(props: SkillsProps) {
       ${
         filtered.length === 0
           ? html`
-              <div class="muted" style="margin-top: 16px">未找到技能。</div>
+              <div class="muted" style="margin-top: 16px">No skills found.</div>
             `
           : html`
-            <div class="list" style="margin-top: 16px;">
-              ${filtered.map((skill) => renderSkill(skill, props))}
+            <div class="agent-skills-groups" style="margin-top: 16px;">
+              ${groups.map((group) => {
+                const collapsedByDefault = group.id === "workspace" || group.id === "built-in";
+                return html`
+                  <details class="agent-skills-group" ?open=${!collapsedByDefault}>
+                    <summary class="agent-skills-header">
+                      <span>${group.label}</span>
+                      <span class="muted">${group.skills.length}</span>
+                    </summary>
+                    <div class="list skills-grid">
+                      ${group.skills.map((skill) => renderSkill(skill, props))}
+                    </div>
+                  </details>
+                `;
+              })}
             </div>
           `
       }
@@ -120,36 +98,13 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
   const message = props.messages[skill.skillKey] ?? null;
   const canInstall = skill.install.length > 0 && skill.missing.bins.length > 0;
   const showBundledBadge = Boolean(skill.bundled && skill.source !== "openclaw-bundled");
-  const isGeminiSkill = skill.primaryEnv === "GEMINI_API_KEY";
-  const configuredGeminiBaseUrl = isGeminiSkill ? (skill.uiEnv?.GEMINI_BASE_URL ?? "") : "";
-  const draftGeminiBaseUrl = isGeminiSkill
-    ? props.envEdits[skill.skillKey]?.GEMINI_BASE_URL
-    : undefined;
-  // Treat empty-string drafts as meaningful so users can clear values.
-  const geminiBaseUrl =
-    draftGeminiBaseUrl === undefined ? configuredGeminiBaseUrl : draftGeminiBaseUrl;
   const missing = computeSkillMissing(skill);
   const reasons = computeSkillReasons(skill);
   return html`
     <div class="list-item">
       <div class="list-main">
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <div class="list-title">
-            ${skill.emoji ? `${skill.emoji} ` : ""}${skill.name}
-          </div>
-          <div class="chip-row">
-            <span class="chip">${translateSource(skill.source)}</span>
-            <span class="chip ${skill.eligible ? "chip-ok" : "chip-warn"}>
-              ${skill.eligible ? "符合条件" : "被阻止"}
-            </span>
-            ${
-              skill.disabled
-                ? html`
-                    <span class="chip chip-warn">已禁用</span>
-                  `
-                : nothing
-            }
-          </div>
+        <div class="list-title">
+          ${skill.emoji ? `${skill.emoji} ` : ""}${skill.name}
         </div>
         <div class="list-sub">${clampText(skill.description, 140)}</div>
         ${renderSkillStatusChips({ skill, showBundledBadge })}
@@ -165,8 +120,8 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
         ${
           reasons.length > 0
             ? html`
-              <div class="muted" style="margin-top: 6px; font-size: 11px;">
-                原因: ${reasons.join(", ")}
+              <div class="muted" style="margin-top: 6px;">
+                Reason: ${reasons.join(", ")}
               </div>
             `
             : nothing
@@ -179,7 +134,7 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
             ?disabled=${busy}
             @click=${() => props.onToggle(skill.skillKey, skill.disabled)}
           >
-            ${skill.disabled ? "启用" : "禁用"}
+            ${skill.disabled ? "Enable" : "Disable"}
           </button>
           ${
             canInstall
@@ -188,7 +143,7 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
                 ?disabled=${busy}
                 @click=${() => props.onInstall(skill.skillKey, skill.name, skill.install[0].id)}
               >
-                ${busy ? "安装中…" : skill.install[0].label}
+                ${busy ? "Installing…" : skill.install[0].label}
               </button>`
               : nothing
           }
@@ -211,7 +166,7 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
           skill.primaryEnv
             ? html`
               <div class="field" style="margin-top: 10px;">
-                <span>API密钥</span>
+                <span>API key</span>
                 <input
                   type="password"
                   .value=${apiKey}
@@ -225,39 +180,8 @@ function renderSkill(skill: SkillStatusEntry, props: SkillsProps) {
                 ?disabled=${busy}
                 @click=${() => props.onSaveKey(skill.skillKey)}
               >
-                保存密钥
+                Save key
               </button>
-            `
-            : nothing
-        }
-        ${
-          isGeminiSkill
-            ? html`
-              <div class="field" style="margin-top: 10px;">
-                <span>Gemini base URL (proxy)</span>
-                <input
-                  type="text"
-                  .value=${geminiBaseUrl}
-                  @input=${(e: Event) =>
-                    props.onEditEnv(
-                      skill.skillKey,
-                      "GEMINI_BASE_URL",
-                      (e.target as HTMLInputElement).value,
-                    )}
-                  placeholder="https://your-gemini-proxy.example.com"
-                />
-              </div>
-              <button
-                class="btn"
-                style="margin-top: 8px;"
-                ?disabled=${busy}
-                @click=${() => props.onSaveEnv(skill.skillKey, "GEMINI_BASE_URL")}
-              >
-                Save base URL
-              </button>
-              <div class="muted" style="margin-top: 6px;">
-                Optional. Leave blank to use the default Gemini endpoint.
-              </div>
             `
             : nothing
         }

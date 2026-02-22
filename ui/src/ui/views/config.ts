@@ -1,8 +1,8 @@
 import { html, nothing } from "lit";
+import { icons } from "../icons.ts";
 import type { ConfigUiHints } from "../types.ts";
 import { hintForPath, humanize, schemaType, type JsonSchema } from "./config-form.shared.ts";
 import { analyzeConfigSchema, renderConfigForm, SECTION_META } from "./config-form.ts";
-import { getTagFilters, replaceTagFilters } from "./config-search.ts";
 
 export type ConfigProps = {
   raw: string;
@@ -23,6 +23,7 @@ export type ConfigProps = {
   searchQuery: string;
   activeSection: string | null;
   activeSubsection: string | null;
+  streamMode: boolean;
   onRawChange: (next: string) => void;
   onFormModeChange: (mode: "form" | "raw") => void;
   onFormPatch: (path: Array<string | number>, value: unknown) => void;
@@ -33,25 +34,8 @@ export type ConfigProps = {
   onSave: () => void;
   onApply: () => void;
   onUpdate: () => void;
+  version: string;
 };
-
-const TAG_SEARCH_PRESETS = [
-  "security",
-  "auth",
-  "network",
-  "access",
-  "privacy",
-  "observability",
-  "performance",
-  "reliability",
-  "storage",
-  "models",
-  "media",
-  "automation",
-  "channels",
-  "tools",
-  "advanced",
-] as const;
 
 // SVG Icons for sidebar (Lucide-style)
 const sidebarIcons = {
@@ -281,21 +265,87 @@ const sidebarIcons = {
   `,
 };
 
-// Section definitions
-const SECTIONS: Array<{ key: string; label: string }> = [
-  { key: "env", label: "环境" },
-  { key: "update", label: "更新" },
-  { key: "agents", label: "代理" },
-  { key: "auth", label: "身份验证" },
-  { key: "channels", label: "通道" },
-  { key: "messages", label: "消息" },
-  { key: "commands", label: "命令" },
-  { key: "hooks", label: "钩子" },
-  { key: "skills", label: "技能" },
-  { key: "tools", label: "工具" },
-  { key: "gateway", label: "网关" },
-  { key: "wizard", label: "设置向导" },
+// Categorised section definitions
+type SectionCategory = {
+  id: string;
+  label: string;
+  sections: Array<{ key: string; label: string }>;
+};
+
+const SECTION_CATEGORIES: SectionCategory[] = [
+  {
+    id: "core",
+    label: "Core",
+    sections: [
+      { key: "env", label: "Environment" },
+      { key: "auth", label: "Authentication" },
+      { key: "update", label: "Updates" },
+      { key: "meta", label: "Meta" },
+      { key: "logging", label: "Logging" },
+    ],
+  },
+  {
+    id: "ai",
+    label: "AI & Agents",
+    sections: [
+      { key: "agents", label: "Agents" },
+      { key: "models", label: "Models" },
+      { key: "skills", label: "Skills" },
+      { key: "tools", label: "Tools" },
+      { key: "memory", label: "Memory" },
+      { key: "session", label: "Session" },
+    ],
+  },
+  {
+    id: "communication",
+    label: "Communication",
+    sections: [
+      { key: "channels", label: "Channels" },
+      { key: "messages", label: "Messages" },
+      { key: "broadcast", label: "Broadcast" },
+      { key: "talk", label: "Talk" },
+      { key: "audio", label: "Audio" },
+    ],
+  },
+  {
+    id: "automation",
+    label: "Automation",
+    sections: [
+      { key: "commands", label: "Commands" },
+      { key: "hooks", label: "Hooks" },
+      { key: "bindings", label: "Bindings" },
+      { key: "cron", label: "Cron" },
+      { key: "approvals", label: "Approvals" },
+      { key: "plugins", label: "Plugins" },
+    ],
+  },
+  {
+    id: "infrastructure",
+    label: "Infrastructure",
+    sections: [
+      { key: "gateway", label: "Gateway" },
+      { key: "web", label: "Web" },
+      { key: "browser", label: "Browser" },
+      { key: "nodeHost", label: "NodeHost" },
+      { key: "canvasHost", label: "CanvasHost" },
+      { key: "discovery", label: "Discovery" },
+      { key: "media", label: "Media" },
+    ],
+  },
+  {
+    id: "appearance",
+    label: "Appearance & Setup",
+    sections: [
+      { key: "ui", label: "UI" },
+      { key: "wizard", label: "Setup Wizard" },
+    ],
+  },
 ];
+
+// Flat lookup: all categorised keys
+const CATEGORISED_KEYS = new Set(SECTION_CATEGORIES.flatMap((c) => c.sections.map((s) => s.key)));
+
+const collapsedCategories = new Set<string>();
 
 type SubsectionEntry = {
   key: string;
@@ -402,22 +452,66 @@ function truncateValue(value: unknown, maxLen = 40): string {
   return str.slice(0, maxLen - 3) + "...";
 }
 
+const SENSITIVE_KEY_RE = /token|password|secret|api.?key/i;
+const SENSITIVE_KEY_WHITELIST_RE =
+  /maxtokens|maxoutputtokens|maxinputtokens|maxcompletiontokens|contexttokens|totaltokens|tokencount|tokenlimit|tokenbudget|passwordfile/i;
+
+function countSensitiveValues(formValue: Record<string, unknown> | null): number {
+  if (!formValue) {
+    return 0;
+  }
+  let count = 0;
+  function walk(obj: unknown, key?: string) {
+    if (obj == null) {
+      return;
+    }
+    if (typeof obj === "object" && !Array.isArray(obj)) {
+      for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+        walk(v, k);
+      }
+    } else if (Array.isArray(obj)) {
+      for (const item of obj) {
+        walk(item);
+      }
+    } else if (
+      key &&
+      typeof obj === "string" &&
+      SENSITIVE_KEY_RE.test(key) &&
+      !SENSITIVE_KEY_WHITELIST_RE.test(key)
+    ) {
+      if (obj.trim() && !/^\$\{[^}]*\}$/.test(obj.trim())) {
+        count++;
+      }
+    }
+  }
+  walk(formValue);
+  return count;
+}
+
+let rawRevealed = false;
+let sidebarCollapsed = false;
+let validityDismissed = false;
+
 export function renderConfig(props: ConfigProps) {
   const validity = props.valid == null ? "unknown" : props.valid ? "valid" : "invalid";
   const analysis = analyzeConfigSchema(props.schema);
   const formUnsafe = analysis.schema ? analysis.unsupportedPaths.length > 0 : false;
 
-  // Get available sections from schema
+  // Build categorised nav from schema — only include sections that exist in the schema
   const schemaProps = analysis.schema?.properties ?? {};
-  const availableSections = SECTIONS.filter((s) => s.key in schemaProps);
 
-  // Add any sections in schema but not in our list
-  const knownKeys = new Set(SECTIONS.map((s) => s.key));
+  const visibleCategories = SECTION_CATEGORIES.map((cat) => ({
+    ...cat,
+    sections: cat.sections.filter((s) => s.key in schemaProps),
+  })).filter((cat) => cat.sections.length > 0);
+
+  // Catch any schema keys not in our categories
   const extraSections = Object.keys(schemaProps)
-    .filter((k) => !knownKeys.has(k))
+    .filter((k) => !CATEGORISED_KEYS.has(k))
     .map((k) => ({ key: k, label: k.charAt(0).toUpperCase() + k.slice(1) }));
 
-  const allSections = [...availableSections, ...extraSections];
+  const otherCategory: SectionCategory | null =
+    extraSections.length > 0 ? { id: "other", label: "Other", sections: extraSections } : null;
 
   const activeSectionSchema =
     props.activeSection && analysis.schema && schemaType(analysis.schema) === "object"
@@ -462,104 +556,74 @@ export function renderConfig(props: ConfigProps) {
     hasChanges &&
     (props.formMode === "raw" ? true : canSaveForm);
   const canUpdate = props.connected && !props.applying && !props.updating;
-  const selectedTags = new Set(getTagFilters(props.searchQuery));
 
   return html`
-    <div class="config-layout">
+    <div class="config-layout ${sidebarCollapsed ? "config-layout--sidebar-collapsed" : ""}">
       <!-- Sidebar -->
       <aside class="config-sidebar">
         <div class="config-sidebar__header">
-          <div class="config-sidebar__title">设置</div>
-          <span class="pill pill--sm ${validity === "valid" ? "pill--ok" : validity === "invalid" ? "pill--danger" : ""}">${validity}</span>
-        </div>
-
-        <!-- Search -->
-        <div class="config-search">
-          <div class="config-search__input-row">
-            <svg
-              class="config-search__icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+          <div class="config-sidebar__title">Settings</div>
+          <div class="config-sidebar__header-right">
+            <button
+              class="config-sidebar__collapse-btn"
+              title="${sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}"
+              @click=${(e: Event) => {
+                sidebarCollapsed = !sidebarCollapsed;
+                const layout = (e.currentTarget as HTMLElement).closest(".config-layout");
+                if (layout) {
+                  layout.classList.toggle("config-layout--sidebar-collapsed", sidebarCollapsed);
+                }
+              }}
             >
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="M21 21l-4.35-4.35"></path>
-            </svg>
-            <input
-              type="text"
-              class="config-search__input"
-              placeholder="Search settings..."
-              .value=${props.searchQuery}
-              @input=${(e: Event) => props.onSearchChange((e.target as HTMLInputElement).value)}
-            />
-            ${
-              props.searchQuery
-                ? html`
-                  <button
-                    class="config-search__clear"
-                    @click=${() => props.onSearchChange("")}
-                  >
-                    ×
-                  </button>
-                `
-                : nothing
-            }
-          </div>
-          <div class="config-search__hint">
-            <span class="config-search__hint-label" id="config-tag-filter-label">Tag filters:</span>
-            <details class="config-search__tag-picker">
-              <summary class="config-search__tag-trigger" aria-labelledby="config-tag-filter-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 ${
-                  selectedTags.size === 0
+                  sidebarCollapsed
                     ? html`
-                        <span class="config-search__tag-placeholder">Add tags</span>
+                        <polyline points="9 18 15 12 9 6"></polyline>
                       `
                     : html`
-                        <div class="config-search__tag-chips">
-                          ${Array.from(selectedTags)
-                            .slice(0, 2)
-                            .map(
-                              (tag) =>
-                                html`<span class="config-search__tag-chip">tag:${tag}</span>`,
-                            )}
-                          ${
-                            selectedTags.size > 2
-                              ? html`
-                                  <span class="config-search__tag-chip config-search__tag-chip--count"
-                                    >+${selectedTags.size - 2}</span
-                                  >
-                                `
-                              : nothing
-                          }
-                        </div>
+                        <polyline points="15 18 9 12 15 6"></polyline>
                       `
                 }
-                <span class="config-search__tag-caret" aria-hidden="true">▾</span>
-              </summary>
-              <div class="config-search__tag-menu">
-                ${TAG_SEARCH_PRESETS.map((tag) => {
-                  const active = selectedTags.has(tag);
-                  return html`
-                    <button
-                      type="button"
-                      class="config-search__tag-option ${active ? "active" : ""}"
-                      data-tag="${tag}"
-                      aria-pressed=${active ? "true" : "false"}
-                      @click=${() => {
-                        const nextTags = active
-                          ? Array.from(selectedTags).filter((value) => value !== tag)
-                          : [...selectedTags, tag];
-                        props.onSearchChange(replaceTagFilters(props.searchQuery, nextTags));
-                      }}
-                    >
-                      tag:${tag}
-                    </button>
-                  `;
-                })}
-              </div>
-            </details>
+              </svg>
+            </button>
           </div>
+        </div>
+
+        ${
+          props.formMode === "form"
+            ? html`
+        <!-- Search -->
+        <div class="config-search">
+          <svg
+            class="config-search__icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input
+            type="text"
+            class="config-search__input"
+            placeholder="Search settings..."
+            .value=${props.searchQuery}
+            @input=${(e: Event) => props.onSearchChange((e.target as HTMLInputElement).value)}
+          />
+          ${
+            props.searchQuery
+              ? html`
+                <button
+                  class="config-search__clear"
+                  @click=${() => props.onSearchChange("")}
+                >
+                  ×
+                </button>
+              `
+              : nothing
+          }
         </div>
 
         <!-- Section nav -->
@@ -569,20 +633,64 @@ export function renderConfig(props: ConfigProps) {
             @click=${() => props.onSectionChange(null)}
           >
             <span class="config-nav__icon">${sidebarIcons.all}</span>
-            <span class="config-nav__label">所有设置</span>
+            <span class="config-nav__label">All Settings</span>
           </button>
-          ${allSections.map(
-            (section) => html`
-            <button
-              class="config-nav__item ${props.activeSection === section.key ? "active" : ""}"
-              @click=${() => props.onSectionChange(section.key)}
-            >
-              <span class="config-nav__icon">${getSectionIcon(section.key)}</span>
-              <span class="config-nav__label">${section.label}</span>
-            </button>
-          `,
+          ${[...visibleCategories, ...(otherCategory ? [otherCategory] : [])].map(
+            (cat) => html`
+              <div class="config-nav__category ${collapsedCategories.has(cat.id) ? "collapsed" : ""}">
+                <button
+                  class="config-nav__category-header"
+                  @click=${(e: Event) => {
+                    if (collapsedCategories.has(cat.id)) {
+                      collapsedCategories.delete(cat.id);
+                    } else {
+                      collapsedCategories.add(cat.id);
+                    }
+                    const group = (e.currentTarget as HTMLElement).closest(".config-nav__category");
+                    group?.classList.toggle("collapsed", collapsedCategories.has(cat.id));
+                  }}
+                >
+                  <svg class="config-nav__category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  <span>${cat.label}</span>
+                </button>
+                <div class="config-nav__category-items">
+                  ${cat.sections.map(
+                    (section) => html`
+                      <button
+                        class="config-nav__item ${props.activeSection === section.key ? "active" : ""}"
+                        @click=${() => props.onSectionChange(section.key)}
+                      >
+                        <span class="config-nav__icon"
+                          >${getSectionIcon(section.key)}</span
+                        >
+                        <span class="config-nav__label">${section.label}</span>
+                      </button>
+                    `,
+                  )}
+                </div>
+              </div>
+            `,
           )}
         </nav>
+        `
+            : nothing
+        }
+
+        ${
+          props.version
+            ? html`
+            <div class="config-sidebar__version" title=${`v${props.version}`}>
+              ${
+                sidebarCollapsed
+                  ? html`<span class="config-sidebar__version-text">${props.version.replace(/^\d{4}\./, "")}</span>`
+                  : html`<span class="config-sidebar__version-text">v${props.version}</span>`
+              }
+            </div>
+          `
+            : nothing
+        }
 
         <!-- Mode toggle at bottom -->
         <div class="config-sidebar__footer">
@@ -592,13 +700,13 @@ export function renderConfig(props: ConfigProps) {
               ?disabled=${props.schemaLoading || !props.schema}
               @click=${() => props.onFormModeChange("form")}
             >
-              表单
+              Form
             </button>
             <button
               class="config-mode-toggle__btn ${props.formMode === "raw" ? "active" : ""}"
               @click=${() => props.onFormModeChange("raw")}
             >
-              原始
+              Raw
             </button>
           </div>
         </div>
@@ -612,89 +720,164 @@ export function renderConfig(props: ConfigProps) {
             ${
               hasChanges
                 ? html`
-              <span class="config-changes-badge">${props.formMode === "raw" ? "未保存的更改" : `${diff.length} 个未保存的更改`}</span>
-            `
+                  <span class="config-changes-badge"
+                    >${
+                      props.formMode === "raw"
+                        ? "Unsaved changes"
+                        : `${diff.length} unsaved change${diff.length !== 1 ? "s" : ""}`
+                    }</span
+                  >
+                `
                 : html`
-                    <span class="config-status muted">无更改</span>
+                    <span class="config-status muted">No changes</span>
                   `
             }
           </div>
           <div class="config-actions__right">
-            <button class="btn btn--sm" ?disabled=${props.loading} @click=${props.onReload}>
-              ${props.loading ? "加载中…" : "重新加载"}
+            <button
+              class="btn btn--sm"
+              ?disabled=${props.loading}
+              @click=${props.onReload}
+            >
+              ${props.loading ? "Loading…" : "Reload"}
             </button>
             <button
               class="btn btn--sm primary"
               ?disabled=${!canSave}
               @click=${props.onSave}
             >
-              ${props.saving ? "保存中…" : "保存"}
+              ${props.saving ? "Saving…" : "Save"}
             </button>
             <button
               class="btn btn--sm"
               ?disabled=${!canApply}
               @click=${props.onApply}
             >
-              ${props.applying ? "应用中…" : "应用"}
+              ${props.applying ? "Applying…" : "Apply"}
             </button>
             <button
               class="btn btn--sm"
               ?disabled=${!canUpdate}
               @click=${props.onUpdate}
             >
-              ${props.updating ? "更新中…" : "更新"}
+              ${props.updating ? "Updating…" : "Update"}
             </button>
           </div>
         </div>
 
-        <!-- Diff panel (form mode only - raw mode doesn't have granular diff) -->
         ${
-          hasChanges && props.formMode === "form"
+          validity === "invalid" && !validityDismissed
             ? html`
-          <details class="config-diff">
-            <summary class="config-diff__summary">
-              <span>查看 ${diff.length} 个待处理的更改</span>
-              <svg class="config-diff__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </summary>
-            <div class="config-diff__content">
-              ${diff.map(
-                (change) => html`
-                <div class="config-diff__item">
-                  <div class="config-diff__path">${change.path}</div>
-                  <div class="config-diff__values">
-                    <span class="config-diff__from">${truncateValue(change.from)}</span>
-                    <span class="config-diff__arrow">→</span>
-                    <span class="config-diff__to">${truncateValue(change.to)}</span>
-                  </div>
-                </div>
-              `,
-              )}
-            </div>
-          </details>
-        `
-            : nothing
-        }
-
-        ${
-          activeSectionMeta && props.formMode === "form"
-            ? html`
-              <div class="config-section-hero">
-                <div class="config-section-hero__icon">${getSectionIcon(props.activeSection ?? "")}</div>
-                <div class="config-section-hero__text">
-                  <div class="config-section-hero__title">${activeSectionMeta.label}</div>
-                  ${
-                    activeSectionMeta.description
-                      ? html`<div class="config-section-hero__desc">${activeSectionMeta.description}</div>`
-                      : nothing
-                  }
-                </div>
+              <div class="config-validity-warning">
+                <svg class="config-validity-warning__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span class="config-validity-warning__text">Your configuration is invalid. Some settings may not work as expected.</span>
+                <button
+                  class="btn btn--sm"
+                  @click=${() => {
+                    validityDismissed = true;
+                    props.onRawChange(props.raw);
+                  }}
+                >Don't remind again</button>
               </div>
             `
             : nothing
         }
 
+        <!-- Diff panel (form mode only - raw mode doesn't have granular diff) -->
+        ${
+          hasChanges && props.formMode === "form"
+            ? html`
+              <details class="config-diff">
+                <summary class="config-diff__summary">
+                  <span
+                    >View ${diff.length} pending
+                    change${diff.length !== 1 ? "s" : ""}</span
+                  >
+                  <svg
+                    class="config-diff__chevron"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </summary>
+                <div class="config-diff__content">
+                  ${diff.map(
+                    (change) => html`
+                      <div class="config-diff__item">
+                        <div class="config-diff__path">${change.path}</div>
+                        <div class="config-diff__values">
+                          <span class="config-diff__from"
+                            >${truncateValue(change.from)}</span
+                          >
+                          <span class="config-diff__arrow">→</span>
+                          <span class="config-diff__to"
+                            >${truncateValue(change.to)}</span
+                          >
+                        </div>
+                      </div>
+                    `,
+                  )}
+                </div>
+              </details>
+            `
+            : nothing
+        }
+        ${
+          activeSectionMeta && props.formMode === "form"
+            ? html`
+              <div class="config-section-hero">
+                <div class="config-section-hero__icon">
+                  ${getSectionIcon(props.activeSection ?? "")}
+                </div>
+                <div class="config-section-hero__text">
+                  <div class="config-section-hero__title">
+                    ${activeSectionMeta.label}
+                  </div>
+                  ${
+                    activeSectionMeta.description
+                      ? html`<div class="config-section-hero__desc">
+                        ${activeSectionMeta.description}
+                      </div>`
+                      : nothing
+                  }
+                </div>
+                ${
+                  props.activeSection === "env"
+                    ? html`
+                      <button
+                        class="config-env-peek-btn"
+                        title="Toggle value visibility"
+                        @click=${(e: Event) => {
+                          const btn = e.currentTarget as HTMLElement;
+                          const content = btn
+                            .closest(".config-main")
+                            ?.querySelector(".config-content");
+                          if (content) {
+                            content.classList.toggle("config-env-values--visible");
+                          }
+                          btn.classList.toggle("config-env-peek-btn--active");
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Peek
+                      </button>
+                    `
+                    : nothing
+                }
+              </div>
+            `
+            : nothing
+        }
         ${
           allowSubnav
             ? html`
@@ -703,7 +886,7 @@ export function renderConfig(props: ConfigProps) {
                   class="config-subnav__item ${effectiveSubsection === null ? "active" : ""}"
                   @click=${() => props.onSubsectionChange(ALL_SUBSECTION)}
                 >
-                  全部
+                  All
                 </button>
                 ${subsections.map(
                   (entry) => html`
@@ -724,7 +907,7 @@ export function renderConfig(props: ConfigProps) {
         }
 
         <!-- Form content -->
-        <div class="config-content">
+        <div class="config-content ${props.activeSection === "env" ? "config-env-values--blurred" : ""}">
           ${
             props.formMode === "form"
               ? html`
@@ -733,7 +916,7 @@ export function renderConfig(props: ConfigProps) {
                     ? html`
                         <div class="config-loading">
                           <div class="config-loading__spinner"></div>
-                          <span>正在加载模式…</span>
+                          <span>Loading schema…</span>
                         </div>
                       `
                     : renderConfigForm({
@@ -752,29 +935,58 @@ export function renderConfig(props: ConfigProps) {
                   formUnsafe
                     ? html`
                         <div class="callout danger" style="margin-top: 12px">
-                          表单视图无法安全编辑某些字段。 使用原始模式以避免丢失配置项。
+                          Form view can't safely edit some fields. Use Raw to avoid losing config entries.
                         </div>
                       `
                     : nothing
                 }
               `
-              : html`
-                <label class="field config-raw-field">
-                  <span>原始JSON5</span>
-                  <textarea
-                    .value=${props.raw}
-                    @input=${(e: Event) =>
-                      props.onRawChange((e.target as HTMLTextAreaElement).value)}
-                  ></textarea>
-                </label>
-              `
+              : (() => {
+                  const sensitiveCount = countSensitiveValues(props.formValue);
+                  const blurred = sensitiveCount > 0 && (props.streamMode || !rawRevealed);
+                  return html`
+                    <label class="field config-raw-field">
+                      <span style="display:flex;align-items:center;gap:8px;">
+                        Raw JSON5
+                        ${
+                          sensitiveCount > 0
+                            ? html`
+                              <span class="pill pill--sm">${sensitiveCount} secret${sensitiveCount === 1 ? "" : "s"} ${blurred ? "redacted" : "visible"}</span>
+                              <button
+                                class="btn btn--icon ${blurred ? "" : "active"}"
+                                style="width:28px;height:28px;padding:0;"
+                                title=${blurred ? "Reveal sensitive values" : "Hide sensitive values"}
+                                aria-label="Toggle raw config redaction"
+                                aria-pressed=${!blurred}
+                                @click=${() => {
+                                  rawRevealed = !rawRevealed;
+                                  props.onRawChange(props.raw);
+                                }}
+                              >
+                                ${blurred ? icons.eyeOff : icons.eye}
+                              </button>
+                            `
+                            : nothing
+                        }
+                      </span>
+                      <textarea
+                        class="${blurred ? "config-raw-redacted" : ""}"
+                        .value=${props.raw}
+                        @input=${(e: Event) =>
+                          props.onRawChange((e.target as HTMLTextAreaElement).value)}
+                      ></textarea>
+                    </label>
+                  `;
+                })()
           }
         </div>
 
         ${
           props.issues.length > 0
             ? html`<div class="callout danger" style="margin-top: 12px;">
-              <pre class="code-block">${JSON.stringify(props.issues, null, 2)}</pre>
+              <pre class="code-block">
+${JSON.stringify(props.issues, null, 2)}</pre
+              >
             </div>`
             : nothing
         }

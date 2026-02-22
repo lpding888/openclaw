@@ -1,6 +1,5 @@
 import { html, nothing } from "lit";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
-import { renderMainContent } from "./app-render-content.ts";
 import {
   applyConfig,
   loadConfig,
@@ -86,23 +85,6 @@ export function renderApp(state: AppViewState) {
   const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
   const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
   const basePath = normalizeBasePath(state.basePath ?? "");
-
-  const snapshot = state.hello?.snapshot as
-    | {
-        server?: {
-          authMode?: unknown;
-          allowInsecureControlUi?: unknown;
-        };
-      }
-    | undefined;
-  const serverAuthMode =
-    snapshot?.server?.authMode === "token" || snapshot?.server?.authMode === "password"
-      ? snapshot.server.authMode
-      : null;
-  const serverAllowInsecureAuth =
-    typeof snapshot?.server?.allowInsecureControlUi === "boolean"
-      ? snapshot.server.allowInsecureControlUi
-      : null;
 
   return html`
     <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
@@ -913,6 +895,9 @@ export function renderApp(state: AppViewState) {
                 onSave: () => saveConfig(state),
                 onApply: () => applyConfig(state),
                 onUpdate: () => runUpdate(state),
+                version:
+                  (state.hello?.snapshot as { server?: { version?: string } } | undefined)?.server
+                    ?.version ?? "",
               })
             : nothing
         }
