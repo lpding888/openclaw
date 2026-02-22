@@ -5,6 +5,7 @@ PACKAGE_NAME="${OPENCLAW_PACKAGE_NAME:-openclaw-cn}"
 TARGET_VERSION="${OPENCLAW_VERSION:-latest}"
 RUN_ONBOARD=1
 RESTART_GATEWAY=0
+APPLY_STABILITY_DEFAULTS=1
 
 CLI_CANDIDATES=(
   "${OPENCLAW_CLI_PRIMARY:-openclaw-cn}"
@@ -22,6 +23,8 @@ Options:
   --version <ver>       npm version or dist-tag (default: latest)
   --no-onboard          Skip onboarding wizard
   --restart-gateway     Restart gateway after install/update
+  --skip-stability-defaults
+                         Skip applying anti-stall runtime defaults
   -h, --help            Show this help
 
 Examples:
@@ -49,6 +52,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --restart-gateway)
       RESTART_GATEWAY=1
+      shift
+      ;;
+    --skip-stability-defaults)
+      APPLY_STABILITY_DEFAULTS=0
       shift
       ;;
     -h|--help)
@@ -97,6 +104,49 @@ detect_cli_command() {
   return 1
 }
 
+config_get() {
+  local cli_cmd="$1"
+  local path="$2"
+  "${cli_cmd}" config get "${path}" 2>/dev/null | tr -d '\r' || true
+}
+
+config_set() {
+  local cli_cmd="$1"
+  local path="$2"
+  local value="$3"
+  "${cli_cmd}" config set "${path}" "${value}" >/dev/null 2>&1 || true
+}
+
+config_set_json() {
+  local cli_cmd="$1"
+  local path="$2"
+  local value="$3"
+  "${cli_cmd}" config set --json "${path}" "${value}" >/dev/null 2>&1 || true
+}
+
+apply_stability_defaults() {
+  local cli_cmd="$1"
+  local dm_scope=""
+  local reset_by_type=""
+  local compaction_mode=""
+
+  dm_scope="$(config_get "${cli_cmd}" session.dmScope)"
+  if [[ -z "${dm_scope}" || "${dm_scope}" == "main" || "${dm_scope}" == Config\ path\ not\ found:* ]]; then
+    config_set "${cli_cmd}" session.dmScope per-channel-peer
+  fi
+
+  reset_by_type="$(config_get "${cli_cmd}" session.resetByType)"
+  if [[ -z "${reset_by_type}" || "${reset_by_type}" == Config\ path\ not\ found:* ]]; then
+    config_set_json "${cli_cmd}" session.resetByType \
+      '{dm:{mode:"idle",idleMinutes:90},group:{mode:"idle",idleMinutes:720},thread:{mode:"idle",idleMinutes:240}}'
+  fi
+
+  compaction_mode="$(config_get "${cli_cmd}" agents.defaults.compaction.mode)"
+  if [[ -z "${compaction_mode}" || "${compaction_mode}" == "safeguard" || "${compaction_mode}" == Config\ path\ not\ found:* ]]; then
+    config_set "${cli_cmd}" agents.defaults.compaction.mode default
+  fi
+}
+
 run_onboard() {
   local cli_cmd="$1"
   if [[ -t 0 && -t 1 ]]; then
@@ -127,6 +177,11 @@ main() {
     echo "Installed ${spec}, but CLI command is not in PATH yet." >&2
     echo "Open a new terminal and run the command manually." >&2
     exit 0
+  fi
+
+  if [[ "${APPLY_STABILITY_DEFAULTS}" -eq 1 ]]; then
+    echo "==> Applying stability defaults"
+    apply_stability_defaults "${cli_cmd}"
   fi
 
   if [[ "${RUN_ONBOARD}" -eq 1 ]]; then
