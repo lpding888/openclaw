@@ -1,20 +1,20 @@
-import type { ClawdbotApp } from "./app.ts";
-import type { GatewayHelloOk } from "./gateway.ts";
-import type { ChatAttachment, ChatQueueItem } from "./ui-types.ts";
 import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
 import { scheduleChatScroll } from "./app-scroll.ts";
 import { setLastActiveSessionKey } from "./app-settings.ts";
 import { resetToolStream } from "./app-tool-stream.ts";
-import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability.ts";
-import { loadChatTimeline } from "./controllers/chat-timeline.ts";
+import type { OpenClawApp } from "./app.ts";
+import { executeSlashCommand } from "./chat/slash-command-executor.ts";
+import { parseSlashCommand } from "./chat/slash-commands.ts";
 import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat.ts";
 import { loadSessions } from "./controllers/sessions.ts";
-import type { GatewayHelloOk } from "./gateway.ts";
+import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import { normalizeBasePath } from "./navigation.ts";
 import type { ChatAttachment, ChatQueueItem } from "./ui-types.ts";
 import { generateUUID } from "./uuid.ts";
 
-type ChatHost = {
+export type ChatHost = {
+  client: GatewayBrowserClient | null;
+  chatMessages: unknown[];
   connected: boolean;
   chatMessage: string;
   chatAttachments: ChatAttachment[];
@@ -25,19 +25,12 @@ type ChatHost = {
   basePath: string;
   hello: GatewayHelloOk | null;
   chatAvatarUrl: string | null;
-  chatTimelineEvents: import("./types.ts").ChatTimelineEvent[];
-  chatTimelineLoading: boolean;
-  chatTimelineError: string | null;
-  chatTimelineServerSupported: boolean;
-  chatTimelineRuns: import("./types.ts").ChatTimelineRunSummary[];
-  chatTimelineRunsLoading: boolean;
-  chatTimelineRunsError: string | null;
-  chatTimelineRunsServerSupported: boolean;
-  chatFeedbackItems: import("./types.ts").ChatFeedbackItem[];
-  chatFeedbackLoading: boolean;
-  chatFeedbackError: string | null;
-  chatFeedbackServerSupported: boolean;
+  refreshSessionsAfterChat: Set<string>;
+  /** Callback for slash-command side effects that need app-level access. */
+  onSlashAction?: (action: string) => void;
 };
+
+export const CHAT_SESSIONS_ACTIVE_MINUTES = 120;
 
 export function isChatBusy(host: ChatHost) {
   return host.chatSending || Boolean(host.chatRunId);
@@ -61,15 +54,32 @@ export function isChatStopCommand(text: string) {
   );
 }
 
+function isChatResetCommand(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return false;
+  }
+  const normalized = trimmed.toLowerCase();
+  if (normalized === "/new" || normalized === "/reset") {
+    return true;
+  }
+  return normalized.startsWith("/new ") || normalized.startsWith("/reset ");
+}
+
 export async function handleAbortChat(host: ChatHost) {
   if (!host.connected) {
     return;
   }
   host.chatMessage = "";
-  await abortChatRun(host as unknown as ClawdbotApp);
+  await abortChatRun(host as unknown as OpenClawApp);
 }
 
-function enqueueChatMessage(host: ChatHost, text: string, attachments?: ChatAttachment[]) {
+function enqueueChatMessage(
+  host: ChatHost,
+  text: string,
+  attachments?: ChatAttachment[],
+  refreshSessions?: boolean,
+) {
   const trimmed = text.trim();
   const hasAttachments = Boolean(attachments && attachments.length > 0);
   if (!trimmed && !hasAttachments) {
@@ -82,6 +92,7 @@ function enqueueChatMessage(host: ChatHost, text: string, attachments?: ChatAtta
       text: trimmed,
       createdAt: Date.now(),
       attachments: hasAttachments ? attachments?.map((att) => ({ ...att })) : undefined,
+      refreshSessions,
     },
   ];
 }
@@ -95,10 +106,12 @@ async function sendChatMessageNow(
     attachments?: ChatAttachment[];
     previousAttachments?: ChatAttachment[];
     restoreAttachments?: boolean;
+    refreshSessions?: boolean;
   },
 ) {
   resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
-  const ok = await sendChatMessage(host as unknown as ClawdbotApp, message, opts?.attachments);
+  const runId = await sendChatMessage(host as unknown as OpenClawApp, message, opts?.attachments);
+  const ok = Boolean(runId);
   if (!ok && opts?.previousDraft != null) {
     host.chatMessage = opts.previousDraft;
   }
@@ -121,6 +134,9 @@ async function sendChatMessageNow(
   if (ok && !host.chatRunId) {
     void flushChatQueue(host);
   }
+  if (ok && opts?.refreshSessions && runId) {
+    host.refreshSessionsAfterChat.add(runId);
+  }
   return ok;
 }
 
@@ -133,7 +149,10 @@ async function flushChatQueue(host: ChatHost) {
     return;
   }
   host.chatQueue = rest;
-  const ok = await sendChatMessageNow(host, next.text, { attachments: next.attachments });
+  const ok = await sendChatMessageNow(host, next.text, {
+    attachments: next.attachments,
+    refreshSessions: next.refreshSessions,
+  });
   if (!ok) {
     host.chatQueue = [next, ...host.chatQueue];
   }
@@ -157,7 +176,6 @@ export async function handleSendChat(
   const attachmentsToSend = messageOverride == null ? attachments : [];
   const hasAttachments = attachmentsToSend.length > 0;
 
-  // Allow sending with just attachments (no message text required)
   if (!message && !hasAttachments) {
     return;
   }
@@ -167,14 +185,25 @@ export async function handleSendChat(
     return;
   }
 
+  // Intercept local slash commands (/status, /model, /compact, etc.)
+  const parsed = parseSlashCommand(message);
+  if (parsed?.command.executeLocal) {
+    if (messageOverride == null) {
+      host.chatMessage = "";
+      host.chatAttachments = [];
+    }
+    await dispatchSlashCommand(host, parsed.command.name, parsed.args);
+    return;
+  }
+
+  const refreshSessions = isChatResetCommand(message);
   if (messageOverride == null) {
     host.chatMessage = "";
-    // Clear attachments when sending
     host.chatAttachments = [];
   }
 
   if (isChatBusy(host)) {
-    enqueueChatMessage(host, message, attachmentsToSend);
+    enqueueChatMessage(host, message, attachmentsToSend, refreshSessions);
     return;
   }
 
@@ -184,16 +213,69 @@ export async function handleSendChat(
     attachments: hasAttachments ? attachmentsToSend : undefined,
     previousAttachments: messageOverride == null ? attachments : undefined,
     restoreAttachments: Boolean(messageOverride && opts?.restoreDraft),
+    refreshSessions,
   });
+}
+
+// ── Slash Command Dispatch ──
+
+async function dispatchSlashCommand(host: ChatHost, name: string, args: string) {
+  switch (name) {
+    case "stop":
+      await handleAbortChat(host);
+      return;
+    case "new":
+      await sendChatMessageNow(host, "/new", { refreshSessions: true });
+      return;
+    case "reset":
+      await sendChatMessageNow(host, "/reset", { refreshSessions: true });
+      return;
+    case "clear":
+      host.chatMessages = [];
+      scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0]);
+      return;
+    case "focus":
+      host.onSlashAction?.("toggle-focus");
+      return;
+    case "export":
+      host.onSlashAction?.("export");
+      return;
+  }
+
+  if (!host.client) {
+    return;
+  }
+
+  const result = await executeSlashCommand(host.client, host.sessionKey, name, args);
+
+  if (result.content) {
+    injectCommandResult(host, result.content);
+  }
+
+  if (result.action === "refresh") {
+    await refreshChat(host);
+  }
+
+  scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0]);
+}
+
+function injectCommandResult(host: ChatHost, content: string) {
+  host.chatMessages = [
+    ...host.chatMessages,
+    {
+      role: "system",
+      content,
+      timestamp: Date.now(),
+    },
+  ];
 }
 
 export async function refreshChat(host: ChatHost, opts?: { scheduleScroll?: boolean }) {
   await Promise.all([
-    loadChatHistory(host as unknown as ClawdbotApp),
-    loadChatTimeline(host as unknown as Parameters<typeof loadChatTimeline>[0]),
-    loadChatTimelineRuns(host as unknown as Parameters<typeof loadChatTimelineRuns>[0]),
-    loadChatFeedbackList(host as unknown as Parameters<typeof loadChatFeedbackList>[0]),
-    loadSessions(host as unknown as ClawdbotApp),
+    loadChatHistory(host as unknown as OpenClawApp),
+    loadSessions(host as unknown as OpenClawApp, {
+      activeMinutes: CHAT_SESSIONS_ACTIVE_MINUTES,
+    }),
     refreshChatAvatar(host),
   ]);
   if (opts?.scheduleScroll !== false) {

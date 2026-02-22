@@ -1,16 +1,11 @@
 import { html, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import type { AppViewState } from "./app-view-state.ts";
-import type { OpenClawApp } from "./app.ts";
-import type { ThemeTransitionContext } from "./theme-transition.ts";
-import type { ThemeMode } from "./theme.ts";
-import type { SessionsListResult } from "./types.ts";
+import { t } from "../i18n/index.ts";
 import { refreshChat } from "./app-chat.ts";
 import { syncUrlWithSessionKey } from "./app-settings.ts";
-import { loadChatFeedbackList, loadChatTimelineRuns } from "./controllers/chat-observability.ts";
-import { loadChatTimeline } from "./controllers/chat-timeline.ts";
-import { loadChatHistory } from "./controllers/chat.ts";
-import { applyModelSwitcherSelection } from "./controllers/model-switcher.ts";
+import type { AppViewState } from "./app-view-state.ts";
+import { OpenClawApp } from "./app.ts";
+import { ChatState, loadChatHistory } from "./controllers/chat.ts";
 import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
 import type { ThemeTransitionContext } from "./theme-transition.ts";
@@ -54,10 +49,12 @@ function resetChatStateForSessionSwitch(state: AppViewState, sessionKey: string)
 
 export function renderTab(state: AppViewState, tab: Tab) {
   const href = pathForTab(tab, state.basePath);
+  const isActive = state.tab === tab;
+  const collapsed = state.settings.navCollapsed;
   return html`
     <a
       href=${href}
-      class="nav-item ${state.tab === tab ? "active" : ""}"
+      class="nav-item ${isActive ? "nav-item--active" : ""}"
       @click=${(event: MouseEvent) => {
         if (
           event.defaultPrevented ||
@@ -82,18 +79,64 @@ export function renderTab(state: AppViewState, tab: Tab) {
       title=${titleForTab(tab)}
     >
       <span class="nav-item__icon" aria-hidden="true">${icons[iconForTab(tab)]}</span>
-      <span class="nav-item__text">${titleForTab(tab)}</span>
+      ${!collapsed ? html`<span class="nav-item__text">${titleForTab(tab)}</span>` : nothing}
     </a>
   `;
 }
 
+export function renderChatSessionSelect(state: AppViewState) {
+  const mainSessionKey = resolveMainSessionKey(state.hello, state.sessionsResult);
+  const sessionOptions = resolveSessionOptions(
+    state.sessionKey,
+    state.sessionsResult,
+    mainSessionKey,
+  );
+  return html`
+    <label class="field chat-controls__session">
+      <select
+        .value=${state.sessionKey}
+        ?disabled=${!state.connected}
+        @change=${(e: Event) => {
+          const next = (e.target as HTMLSelectElement).value;
+          state.sessionKey = next;
+          state.chatMessage = "";
+          state.chatStream = null;
+          (state as unknown as OpenClawApp).chatStreamStartedAt = null;
+          state.chatRunId = null;
+          (state as unknown as OpenClawApp).resetToolStream();
+          (state as unknown as OpenClawApp).resetChatScroll();
+          state.applySettings({
+            ...state.settings,
+            sessionKey: next,
+            lastActiveSessionKey: next,
+          });
+          void state.loadAssistantIdentity();
+          syncUrlWithSessionKey(
+            state as unknown as Parameters<typeof syncUrlWithSessionKey>[0],
+            next,
+            true,
+          );
+          void loadChatHistory(state as unknown as ChatState);
+        }}
+      >
+        ${repeat(
+          sessionOptions,
+          (entry) => entry.key,
+          (entry) =>
+            html`<option value=${entry.key} title=${entry.key}>
+              ${entry.displayName ?? entry.key}
+            </option>`,
+        )}
+      </select>
+    </label>
+  `;
+}
+
 export function renderChatControls(state: AppViewState) {
-  const sessionOptions = resolveSessionOptions(state.sessionKey, state.sessionsResult);
   const disableThinkingToggle = state.onboarding;
   const disableFocusToggle = state.onboarding;
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const focusActive = state.onboarding ? true : state.settings.chatFocusMode;
-  // Refresh icon
   const refreshIcon = html`
     <svg
       width="18"
@@ -129,55 +172,6 @@ export function renderChatControls(state: AppViewState) {
   `;
   return html`
     <div class="chat-controls">
-      <label class="field chat-controls__session">
-        <select
-          .value=${state.sessionKey}
-          ?disabled=${!state.connected}
-          @change=${(e: Event) => {
-            const next = (e.target as HTMLSelectElement).value;
-            state.sessionKey = next;
-            state.chatMessage = "";
-            state.chatStream = null;
-            state.chatStreamStartedAt = null;
-            state.chatRunId = null;
-            state.chatTimelineEvents = [];
-            state.chatTimelineError = null;
-            state.chatTimelineFollow = true;
-            state.chatTimelineFilters = { runId: "", streams: {} };
-            state.chatTimelineRuns = [];
-            state.chatTimelineRunsError = null;
-            state.chatFeedbackItems = [];
-            state.chatFeedbackError = null;
-            state.chatFeedbackDrafts = {};
-            state.chatFeedbackSubmitting = {};
-            state.chatFeedbackSubmitErrors = {};
-            state.sidebarOpen = true;
-            state.sidebarTab = state.settings.chatObservabilityPin;
-            state.resetToolStream();
-            state.resetChatScroll();
-            state.applySettings({
-              ...state.settings,
-              sessionKey: next,
-              lastActiveSessionKey: next,
-            });
-            void state.loadAssistantIdentity();
-            syncUrlWithSessionKey(state, next, true);
-            void loadChatHistory(state);
-            void loadChatTimeline(state);
-            void loadChatTimelineRuns(state);
-            void loadChatFeedbackList(state);
-          }}
-        >
-          ${repeat(
-            sessionOptions,
-            (entry) => entry.key,
-            (entry) =>
-              html`<option value=${entry.key} title=${entry.key}>
-                ${entry.displayName ?? entry.key}
-              </option>`,
-          )}
-        </select>
-      </label>
       <button
         class="btn btn--sm btn--icon"
         ?disabled=${state.chatLoading || !state.connected}
@@ -199,7 +193,7 @@ export function renderChatControls(state: AppViewState) {
             });
           }
         }}
-        title="刷新聊天记录"
+        title=${t("chat.refreshTitle")}
       >
         ${refreshIcon}
       </button>
@@ -217,24 +211,9 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${showThinking}
-        title=${disableThinkingToggle ? "在引导期间禁用" : "切换助手思考/工作输出"}
+        title=${disableThinkingToggle ? t("chat.onboardingDisabled") : t("chat.thinkingToggle")}
       >
         ${icons.brain}
-      </button>
-      <button
-        class="btn btn--sm btn--icon btn--icon-labeled ${state.sidebarOpen ? "active" : ""}"
-        @click=${() => {
-          if (state.sidebarOpen) {
-            state.handleCloseSidebar();
-            return;
-          }
-          state.handleSetSidebarTab("timeline");
-        }}
-        aria-pressed=${state.sidebarOpen}
-        title=${state.sidebarOpen ? "隐藏右侧面板" : "显示右侧面板"}
-      >
-        ${icons.barChart}
-        <span>实时过程</span>
       </button>
       <button
         class="btn btn--sm btn--icon ${focusActive ? "active" : ""}"
@@ -249,57 +228,31 @@ export function renderChatControls(state: AppViewState) {
           });
         }}
         aria-pressed=${focusActive}
-        title=${disableFocusToggle ? "在引导期间禁用" : "切换焦点模式（隐藏侧边栏和页面头部）"}
+        title=${disableFocusToggle ? t("chat.onboardingDisabled") : t("chat.focusToggle")}
       >
         ${focusIcon}
       </button>
-      <label class="field chat-controls__session" title="发送键偏好">
-        <select
-          .value=${state.settings.sendOnEnter ? "enter" : "ctrl"}
-          @change=${(e: Event) => {
-            const v = (e.target as HTMLSelectElement).value;
-            state.applySettings({
-              ...state.settings,
-              sendOnEnter: v === "enter",
-            });
-          }}
-        >
-          <option value="enter">回车发送</option>
-          <option value="ctrl">Ctrl/⌘+回车发送</option>
-        </select>
-      </label>
-      <label class="field chat-controls__session" title="视觉预设">
-        <select
-          .value=${state.settings.uiVisualPreset}
-          @change=${(e: Event) => {
-            const value = (e.target as HTMLSelectElement).value;
-            state.applySettings({
-              ...state.settings,
-              uiVisualPreset: value === "neo-v1" ? "neo-v1" : "neo-v2",
-            });
-          }}
-        >
-          <option value="neo-v2">拟物 V2</option>
-          <option value="neo-v1">拟物 V1</option>
-        </select>
-      </label>
-      <label class="field chat-controls__session" title="动效强度">
-        <select
-          .value=${state.settings.uiMotionLevel}
-          @change=${(e: Event) => {
-            const value = (e.target as HTMLSelectElement).value;
-            state.applySettings({
-              ...state.settings,
-              uiMotionLevel: value === "reduced" ? "reduced" : "full",
-            });
-          }}
-        >
-          <option value="full">动效完整</option>
-          <option value="reduced">动效简化</option>
-        </select>
-      </label>
     </div>
   `;
+}
+
+function resolveMainSessionKey(
+  hello: AppViewState["hello"],
+  sessions: SessionsListResult | null,
+): string | null {
+  const snapshot = hello?.snapshot as { sessionDefaults?: SessionDefaultsSnapshot } | undefined;
+  const mainSessionKey = snapshot?.sessionDefaults?.mainSessionKey?.trim();
+  if (mainSessionKey) {
+    return mainSessionKey;
+  }
+  const mainKey = snapshot?.sessionDefaults?.mainKey?.trim();
+  if (mainKey) {
+    return mainKey;
+  }
+  if (sessions?.sessions?.some((row) => row.key === "main")) {
+    return "main";
+  }
+  return null;
 }
 
 /* ── Channel display labels ────────────────────────────── */
@@ -402,22 +355,44 @@ export function resolveSessionDisplayName(
   return fallbackName;
 }
 
-function resolveSessionOptions(sessionKey: string, sessions: SessionsListResult | null) {
+function resolveSessionOptions(
+  sessionKey: string,
+  sessions: SessionsListResult | null,
+  mainSessionKey?: string | null,
+) {
   const seen = new Set<string>();
   const options: Array<{ key: string; displayName?: string }> = [];
 
+  const resolvedMain = mainSessionKey && sessions?.sessions?.find((s) => s.key === mainSessionKey);
   const resolvedCurrent = sessions?.sessions?.find((s) => s.key === sessionKey);
 
-  // Add current session key first
-  seen.add(sessionKey);
-  options.push({ key: sessionKey, displayName: resolvedCurrent?.displayName });
+  // Add main session key first
+  if (mainSessionKey) {
+    seen.add(mainSessionKey);
+    options.push({
+      key: mainSessionKey,
+      displayName: resolveSessionDisplayName(mainSessionKey, resolvedMain || undefined),
+    });
+  }
+
+  // Add current session key next
+  if (!seen.has(sessionKey)) {
+    seen.add(sessionKey);
+    options.push({
+      key: sessionKey,
+      displayName: resolveSessionDisplayName(sessionKey, resolvedCurrent),
+    });
+  }
 
   // Add sessions from the result
   if (sessions?.sessions) {
     for (const s of sessions.sessions) {
       if (!seen.has(s.key)) {
         seen.add(s.key);
-        options.push({ key: s.key, displayName: s.displayName });
+        options.push({
+          key: s.key,
+          displayName: resolveSessionDisplayName(s.key, s),
+        });
       }
     }
   }
@@ -425,162 +400,201 @@ function resolveSessionOptions(sessionKey: string, sessions: SessionsListResult 
   return options;
 }
 
-const THEME_ORDER: ThemeMode[] = ["system", "light", "dark"];
+type ThemeOption = { id: ThemeMode; label: string; icon: string };
+const THEME_OPTIONS: ThemeOption[] = [
+  { id: "dark", label: "Claw", icon: "🦀" },
+  { id: "light", label: "Light", icon: "☀️" },
+  { id: "openknot", label: "Knot", icon: "🪢" },
+  { id: "fieldmanual", label: "Field", icon: "🏕️" },
+  { id: "clawdash", label: "Chrome", icon: "💎" },
+];
+
+function currentThemeIcon(theme: ThemeMode): string {
+  return THEME_OPTIONS.find((o) => o.id === theme)?.icon ?? "🎨";
+}
 
 export function renderThemeToggle(state: AppViewState) {
-  const index = Math.max(0, THEME_ORDER.indexOf(state.theme));
-  const applyTheme = (next: ThemeMode) => (event: MouseEvent) => {
-    const element = event.currentTarget as HTMLElement;
-    const context: ThemeTransitionContext = { element };
-    if (event.clientX || event.clientY) {
-      context.pointerClientX = event.clientX;
-      context.pointerClientY = event.clientY;
+  const toggleOpen = (e: Event) => {
+    const orb = (e.currentTarget as HTMLElement).closest(".theme-orb");
+    if (!orb) {
+      return;
     }
-    state.setTheme(next, context);
+    const isOpen = orb.classList.contains("theme-orb--open");
+    if (isOpen) {
+      orb.classList.remove("theme-orb--open");
+    } else {
+      orb.classList.add("theme-orb--open");
+      const close = (ev: MouseEvent) => {
+        if (!orb.contains(ev.target as Node)) {
+          orb.classList.remove("theme-orb--open");
+          document.removeEventListener("click", close);
+        }
+      };
+      requestAnimationFrame(() => document.addEventListener("click", close));
+    }
+  };
+
+  const pick = (opt: ThemeOption, e: Event) => {
+    const orb = (e.currentTarget as HTMLElement).closest(".theme-orb");
+    orb?.classList.remove("theme-orb--open");
+    if (opt.id !== state.theme) {
+      const context: ThemeTransitionContext = { element: orb ?? undefined };
+      state.setTheme(opt.id, context);
+    }
   };
 
   return html`
-    <div class="theme-toggle" style="--theme-index: ${index};">
-      <div class="theme-toggle__track" role="group" aria-label="主题">
-        <span class="theme-toggle__indicator"></span>
-        <button
-          class="theme-toggle__button ${state.theme === "system" ? "active" : ""}"
-          @click=${applyTheme("system")}
-          aria-pressed=${state.theme === "system"}
-          aria-label="系统主题"
-          title="系统"
-        >
-          ${renderMonitorIcon()}
-        </button>
-        <button
-          class="theme-toggle__button ${state.theme === "light" ? "active" : ""}"
-          @click=${applyTheme("light")}
-          aria-pressed=${state.theme === "light"}
-          aria-label="浅色主题"
-          title="浅色"
-        >
-          ${renderSunIcon()}
-        </button>
-        <button
-          class="theme-toggle__button ${state.theme === "dark" ? "active" : ""}"
-          @click=${applyTheme("dark")}
-          aria-pressed=${state.theme === "dark"}
-          aria-label="深色主题"
-          title="深色"
-        >
-          ${renderMoonIcon()}
-        </button>
+    <div class="theme-orb" aria-label="Theme">
+      <button
+        class="theme-orb__trigger"
+        title="Theme"
+        @click=${toggleOpen}
+      >${currentThemeIcon(state.theme)}</button>
+      <div class="theme-orb__menu">
+        ${THEME_OPTIONS.map(
+          (opt) => html`
+            <button
+              class="theme-orb__option ${opt.id === state.theme ? "theme-orb__option--active" : ""}"
+              title=${opt.label}
+              @click=${(e: Event) => pick(opt, e)}
+            >${opt.icon}</button>`,
+        )}
       </div>
     </div>
   `;
 }
 
-export function renderTopbarModelSwitcher(state: AppViewState) {
-  const disabled = !state.connected || state.modelSwitcherLoading || state.modelSwitcherSaving;
-  const hasOptions = state.modelSwitcherOptions.length > 0;
-  const selected = state.modelSwitcherSelected;
-  const hint = state.modelSwitcherSaving
-    ? "应用中..."
-    : state.modelSwitcherLoading
-      ? "加载中..."
-      : state.modelSwitcherError
-        ? state.modelSwitcherError
-        : state.modelSwitcherStatus
-          ? state.modelSwitcherStatus
-          : state.modelSwitcherCurrent
-            ? `当前：${state.modelSwitcherCurrent}`
-            : "未设置";
-  const hintClass = state.modelSwitcherError ? "topbar-model__hint is-error" : "topbar-model__hint";
+/* ── Sidebar Theme Selector ── */
 
-  const configPath = pathForTab("config", state.basePath);
+type ThemePreview = {
+  id: ThemeMode;
+  label: string;
+  bg: string;
+  sidebar: string;
+  accent: string;
+  glow: string;
+};
 
-  return html`
-    <div class="topbar-model" title="快速切换默认模型">
-      <span class="topbar-model__label">模型</span>
-      <select
-        class="topbar-model__select"
-        .value=${selected}
-        ?disabled=${disabled || !hasOptions}
-        @change=${(event: Event) => {
-          const next = (event.target as HTMLSelectElement).value;
-          void applyModelSwitcherSelection(state, next);
-        }}
-      >
-        ${
-          hasOptions
-            ? state.modelSwitcherOptions.map(
-                (entry) => html`<option value=${entry.id}>${entry.label}</option>`,
-              )
-            : html`
-                <option value="">暂无可用模型</option>
-              `
-        }
-      </select>
-      <button
-        class="btn btn--sm"
-        ?disabled=${!state.connected}
-        @click=${() => state.setTab("config")}
-      >
-        模型中心
-      </button>
-      <a class="topbar-model__link" href=${configPath} @click=${(event: MouseEvent) => {
-        if (
-          event.defaultPrevented ||
-          event.button !== 0 ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.shiftKey ||
-          event.altKey
-        ) {
-          return;
-        }
-        event.preventDefault();
-        state.setTab("config");
-      }}>配置</a>
-      <span class=${hintClass}>${hint}</span>
-      ${
-        state.modelSwitcherCompatMode
-          ? html`
-              <span class="topbar-model__compat" title="旧网关兼容模式">兼容</span>
-            `
-          : nothing
+const SIDEBAR_THEMES: ThemePreview[] = [
+  {
+    id: "dark",
+    label: "Claw",
+    bg: "#040810",
+    sidebar: "#06090f",
+    accent: "#ca3a29",
+    glow: "#00d4aa",
+  },
+  {
+    id: "light",
+    label: "Light",
+    bg: "#f5f2eb",
+    sidebar: "#ddd7cc",
+    accent: "#c73526",
+    glow: "#1a9e7e",
+  },
+  {
+    id: "openknot",
+    label: "Knot",
+    bg: "#000000",
+    sidebar: "#080808",
+    accent: "#a78bfa",
+    glow: "#c4b5fd",
+  },
+  {
+    id: "fieldmanual",
+    label: "Field",
+    bg: "#0e0e0e",
+    sidebar: "#121212",
+    accent: "#ca3a29",
+    glow: "#61d6ff",
+  },
+  {
+    id: "clawdash",
+    label: "Chrome",
+    bg: "#050507",
+    sidebar: "#08080c",
+    accent: "#ca3a29",
+    glow: "#c0c8d4",
+  },
+];
+
+function themeSwatchPick(state: AppViewState, theme: ThemePreview, e: Event) {
+  if (theme.id !== state.theme) {
+    const el = e.currentTarget as HTMLElement;
+    state.setTheme(theme.id, { element: el });
+  }
+}
+
+export function renderSidebarThemeSelector(state: AppViewState) {
+  const isCollapsed = state.settings.navCollapsed;
+  const current = SIDEBAR_THEMES.find((tp) => tp.id === state.theme) ?? SIDEBAR_THEMES[0];
+
+  if (isCollapsed) {
+    const toggleOpen = (e: Event) => {
+      const selector = (e.currentTarget as HTMLElement).closest(".theme-selector");
+      if (!selector) {
+        return;
       }
+      const isOpen = selector.classList.contains("theme-selector--open");
+      if (isOpen) {
+        selector.classList.remove("theme-selector--open");
+      } else {
+        selector.classList.add("theme-selector--open");
+        const close = (ev: MouseEvent) => {
+          if (!selector.contains(ev.target as Node)) {
+            selector.classList.remove("theme-selector--open");
+            document.removeEventListener("click", close);
+          }
+        };
+        requestAnimationFrame(() => document.addEventListener("click", close));
+      }
+    };
+
+    return html`
+      <div class="theme-selector theme-selector--collapsed">
+        <button
+          class="theme-swatch theme-swatch--current"
+          title="${t("common.theme")}: ${current.label}"
+          style="--sw-bg:${current.bg};--sw-sidebar:${current.sidebar};--sw-accent:${current.accent};--sw-glow:${current.glow}"
+          @click=${toggleOpen}
+        ></button>
+        <div class="theme-selector__popover">
+          ${SIDEBAR_THEMES.map(
+            (tp) => html`
+              <button
+                class="theme-swatch ${tp.id === state.theme ? "theme-swatch--active" : ""}"
+                title=${tp.label}
+                style="--sw-bg:${tp.bg};--sw-sidebar:${tp.sidebar};--sw-accent:${tp.accent};--sw-glow:${tp.glow}"
+                @click=${(e: Event) => {
+                  themeSwatchPick(state, tp, e);
+                  const sel = (e.currentTarget as HTMLElement).closest(".theme-selector");
+                  sel?.classList.remove("theme-selector--open");
+                }}
+              ></button>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
+
+  return html`
+    <div class="theme-selector">
+      <div class="theme-selector__swatches">
+        ${SIDEBAR_THEMES.map(
+          (tp) => html`
+            <button
+              class="theme-swatch ${tp.id === state.theme ? "theme-swatch--active" : ""}"
+              title=${tp.label}
+              aria-label="${t("common.theme")}: ${tp.label}"
+              aria-pressed=${tp.id === state.theme}
+              style="--sw-bg:${tp.bg};--sw-sidebar:${tp.sidebar};--sw-accent:${tp.accent};--sw-glow:${tp.glow}"
+              @click=${(e: Event) => themeSwatchPick(state, tp, e)}
+            ></button>
+          `,
+        )}
+      </div>
+      <span class="theme-selector__current">${current.label}</span>
     </div>
-  `;
-}
-
-function renderSunIcon() {
-  return html`
-    <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="4"></circle>
-      <path d="M12 2v2"></path>
-      <path d="M12 20v2"></path>
-      <path d="m4.93 4.93 1.41 1.41"></path>
-      <path d="m17.66 17.66 1.41 1.41"></path>
-      <path d="M2 12h2"></path>
-      <path d="M20 12h2"></path>
-      <path d="m6.34 17.66-1.41 1.41"></path>
-      <path d="m19.07 4.93-1.41 1.41"></path>
-    </svg>
-  `;
-}
-
-function renderMoonIcon() {
-  return html`
-    <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
-      ></path>
-    </svg>
-  `;
-}
-
-function renderMonitorIcon() {
-  return html`
-    <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <rect width="20" height="14" x="2" y="3" rx="2"></rect>
-      <line x1="8" x2="16" y1="21" y2="21"></line>
-      <line x1="12" x2="12" y1="17" y2="21"></line>
-    </svg>
   `;
 }

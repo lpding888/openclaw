@@ -668,6 +668,16 @@ export type SkillStatusReport = {
 export type StatusSummary = Record<string, unknown>;
 
 export type HealthSnapshot = Record<string, unknown>;
+export type HealthSummary = {
+  ok: boolean;
+  agents?: unknown[] | null;
+  sessions?: {
+    count?: number | null;
+  } | null;
+  defaultAgentId?: string | null;
+  durationMs?: number | null;
+  [key: string]: unknown;
+};
 
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 

@@ -1,45 +1,6 @@
 import { LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import type { EventLogEntry } from "./app-events.ts";
-import type { AppViewState } from "./app-view-state.ts";
-import type { DevicePairingList } from "./controllers/devices.ts";
-import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
-import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
-import type { ModelSwitcherOption } from "./controllers/model-switcher.ts";
-import type { SkillMessage } from "./controllers/skills.ts";
-import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
-import type { Tab } from "./navigation.ts";
-import type { ResolvedTheme, ThemeMode } from "./theme.ts";
-import type {
-  AgentIdentityResult,
-  AgentsFilesListResult,
-  AgentsListResult,
-  ChatFeedbackDraft,
-  ChatFeedbackItem,
-  ChatTimelineEvent,
-  ConfigSnapshot,
-  ConfigUiHints,
-  CostUsageSummary,
-  CronJob,
-  CronRunLogEntry,
-  CronStatus,
-  HealthSnapshot,
-  LogEntry,
-  LogLevel,
-  PresenceEntry,
-  ChannelsStatusSnapshot,
-  SessionsUsageResult,
-  SessionUsageTimeSeries,
-  SessionsListResult,
-  SkillStatusReport,
-  StatusSummary,
-  NostrProfile,
-  NodeSnapshot,
-  ChatTimelineRunSummary,
-  ChatTimelineFilterState,
-} from "./types.ts";
-import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
-import type { SessionLogEntry, SessionLogRole } from "./views/usage.ts";
+import { i18n, I18nController, isSupportedLocale } from "../i18n/index.ts";
 import {
   handleChannelConfigReload as handleChannelConfigReloadInternal,
   handleChannelConfigSave as handleChannelConfigSaveInternal,
@@ -61,16 +22,6 @@ import {
 import { DEFAULT_CRON_FORM, DEFAULT_LOG_LEVEL_FILTERS } from "./app-defaults.ts";
 import type { EventLogEntry } from "./app-events.ts";
 import { connectGateway as connectGatewayInternal } from "./app-gateway.ts";
-import {
-  acceptPendingGatewayUrl as acceptPendingGatewayUrlInternal,
-  handleCloseSidebar as handleCloseSidebarInternal,
-  handleExecApprovalDecision as handleExecApprovalDecisionInternal,
-  handleOpenSidebar as handleOpenSidebarInternal,
-  handleSetSidebarTab as handleSetSidebarTabInternal,
-  handleSplitRatioChange as handleSplitRatioChangeInternal,
-  rejectPendingGatewayUrl as rejectPendingGatewayUrlInternal,
-  type ExecApprovalDecision,
-} from "./app-interactions.ts";
 import {
   handleConnected,
   handleDisconnected,
@@ -95,8 +46,9 @@ import {
 } from "./app-settings.ts";
 import {
   resetToolStream as resetToolStreamInternal,
-  type CompactionStatus,
   type ToolStreamEntry,
+  type CompactionStatus,
+  type FallbackStatus,
 } from "./app-tool-stream.ts";
 import type { AppViewState } from "./app-view-state.ts";
 import { normalizeAssistantIdentity } from "./assistant-identity.ts";
@@ -108,7 +60,7 @@ import type { SkillMessage } from "./controllers/skills.ts";
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
-import type { ResolvedTheme, ThemeMode } from "./theme.ts";
+import { VALID_THEMES, type ResolvedTheme, type ThemeMode } from "./theme.ts";
 import type {
   AgentsListResult,
   AgentsFilesListResult,
@@ -118,9 +70,10 @@ import type {
   CronJob,
   CronRunLogEntry,
   CronStatus,
-  HealthSnapshot,
+  HealthSummary,
   LogEntry,
   LogLevel,
+  ModelCatalogEntry,
   PresenceEntry,
   ChannelsStatusSnapshot,
   SessionsListResult,
@@ -129,17 +82,37 @@ import type {
   NostrProfile,
 } from "./types.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
-import { generateUUID } from "./uuid.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 
 declare global {
   interface Window {
-    __CLAWDBOT_CONTROL_UI_BASE_PATH__?: string;
     __OPENCLAW_CONTROL_UI_BASE_PATH__?: string;
   }
 }
 
 const bootAssistantIdentity = normalizeAssistantIdentity({});
+
+function exportChatMarkdown(messages: unknown[], assistantName: string): void {
+  const history = Array.isArray(messages) ? messages : [];
+  if (history.length === 0) {
+    return;
+  }
+  const lines: string[] = [`# Chat with ${assistantName}`, ""];
+  for (const msg of history) {
+    const m = msg as Record<string, unknown>;
+    const role = m.role === "user" ? "You" : m.role === "assistant" ? assistantName : "Tool";
+    const content = typeof m.content === "string" ? m.content : "";
+    const ts = typeof m.timestamp === "number" ? new Date(m.timestamp).toISOString() : "";
+    lines.push(`## ${role}${ts ? ` (${ts})` : ""}`, "", content, "");
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chat-${assistantName}-${Date.now()}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function resolveOnboardingMode(): boolean {
   if (!window.location.search) {
@@ -157,7 +130,6 @@ function resolveOnboardingMode(): boolean {
 @customElement("openclaw-app")
 export class OpenClawApp extends LitElement {
   private i18nController = new I18nController(this);
-  clientInstanceId = generateUUID();
   @state() settings: UiSettings = loadSettings();
   constructor() {
     super();
@@ -169,11 +141,11 @@ export class OpenClawApp extends LitElement {
   @state() tab: Tab = "chat";
   @state() onboarding = resolveOnboardingMode();
   @state() connected = false;
-  @state() theme: ThemeMode = this.settings.theme ?? "system";
+  @state() theme: ThemeMode = this.settings.theme ?? "dark";
   @state() themeResolved: ResolvedTheme = "dark";
+  @state() themeOrder: ThemeMode[] = this.buildThemeOrder(this.theme);
   @state() hello: GatewayHelloOk | null = null;
   @state() lastError: string | null = null;
-  @state() lastErrorCode: string | null = null;
   @state() eventLog: EventLogEntry[] = [];
   private eventLogBuffer: EventLogEntry[] = [];
   private toolStreamSyncTimer: number | null = null;
@@ -182,11 +154,6 @@ export class OpenClawApp extends LitElement {
   @state() assistantName = bootAssistantIdentity.name;
   @state() assistantAvatar = bootAssistantIdentity.avatar;
   @state() assistantAgentId = bootAssistantIdentity.agentId ?? null;
-
-  @state() commandCenterOpen = false;
-  @state() commandCenterQuery = "";
-  @state() commandCenterSelectedIndex = 0;
-  @state() commandCenterNotice: string | null = null;
 
   @state() sessionKey = this.settings.sessionKey;
   @state() chatLoading = false;
@@ -203,37 +170,18 @@ export class OpenClawApp extends LitElement {
   @state() chatThinkingLevel: string | null = null;
   @state() chatQueue: ChatQueueItem[] = [];
   @state() chatAttachments: ChatAttachment[] = [];
-  @state() chatTimelineEvents: ChatTimelineEvent[] = [];
-  @state() chatTimelineLoading = false;
-  @state() chatTimelineError: string | null = null;
-  @state() chatTimelineServerSupported = true;
-  @state() chatTimelineRuns: ChatTimelineRunSummary[] = [];
-  @state() chatTimelineRunsLoading = false;
-  @state() chatTimelineRunsError: string | null = null;
-  @state() chatTimelineRunsServerSupported = true;
-  @state() chatFeedbackItems: ChatFeedbackItem[] = [];
-  @state() chatFeedbackLoading = false;
-  @state() chatFeedbackError: string | null = null;
-  @state() chatFeedbackServerSupported = true;
-  @state() chatFeedbackDrafts: Record<string, ChatFeedbackDraft> = {};
-  @state() chatFeedbackSubmitting: Record<string, boolean> = {};
-  @state() chatFeedbackSubmitErrors: Record<string, string | null> = {};
   @state() chatManualRefreshInFlight = false;
-  @state() chatNewMessagesBelow = false;
+
+  onSlashAction?: (action: string) => void;
+
   // Sidebar state for tool output viewing
-  @state() sidebarOpen = true;
-  @state() sidebarTab: "timeline" | "tool" | "insights" = this.settings.chatObservabilityPin;
+  @state() sidebarOpen = false;
   @state() sidebarContent: string | null = null;
   @state() sidebarError: string | null = null;
   @state() splitRatio = this.settings.splitRatio;
-  @state() chatTimelineFollow = true;
-  @state() chatTimelineFilters: ChatTimelineFilterState = {
-    runId: "",
-    streams: {},
-  };
 
   @state() nodesLoading = false;
-  @state() nodes: NodeSnapshot[] = [];
+  @state() nodes: Array<Record<string, unknown>> = [];
   @state() devicesLoading = false;
   @state() devicesError: string | null = null;
   @state() devicesList: DevicePairingList | null = null;
@@ -248,6 +196,7 @@ export class OpenClawApp extends LitElement {
   @state() execApprovalQueue: ExecApprovalRequest[] = [];
   @state() execApprovalBusy = false;
   @state() execApprovalError: string | null = null;
+  @state() pendingGatewayUrl: string | null = null;
 
   @state() configLoading = false;
   @state() configRaw = "{\n}\n";
@@ -270,23 +219,6 @@ export class OpenClawApp extends LitElement {
   @state() configSearchQuery = "";
   @state() configActiveSection: string | null = null;
   @state() configActiveSubsection: string | null = null;
-  @state() modelSwitcherLoading = false;
-  @state() modelSwitcherSaving = false;
-  @state() modelSwitcherCurrent: string | null = null;
-  @state() modelSwitcherSelected = "";
-  @state() modelSwitcherOptions: ModelSwitcherOption[] = [];
-  @state() modelSwitcherError: string | null = null;
-  @state() modelSwitcherStatus: string | null = null;
-  @state() modelSwitcherCompatMode = false;
-  @state() modelSwitcherConfigHash: string | null = null;
-  @state() modelSwitcherFallbacks: string[] = [];
-  @state() modelCenterPrimary = "";
-  @state() modelCenterFallbacksText = "";
-  @state() modelCenterAllowCustom = false;
-  @state() modelCenterSaving = false;
-  @state() modelCenterError: string | null = null;
-  @state() modelCenterStatus: string | null = null;
-  @state() modelCenterQuery = "";
 
   @state() channelsLoading = false;
   @state() channelsSnapshot: ChannelsStatusSnapshot | null = null;
@@ -332,40 +264,67 @@ export class OpenClawApp extends LitElement {
   @state() sessionsFilterLimit = "120";
   @state() sessionsIncludeGlobal = true;
   @state() sessionsIncludeUnknown = false;
+  @state() sessionsSearchQuery = "";
+  @state() sessionsSortColumn: "key" | "kind" | "updated" | "tokens" = "updated";
+  @state() sessionsSortDir: "asc" | "desc" = "desc";
+  @state() sessionsPage = 0;
+  @state() sessionsPageSize = 10;
+  @state() sessionsActionsOpenKey: string | null = null;
 
   @state() usageLoading = false;
-  @state() usageResult: SessionsUsageResult | null = null;
-  @state() usageCostSummary: CostUsageSummary | null = null;
+  @state() usageResult: import("./types.js").SessionsUsageResult | null = null;
+  @state() usageCostSummary: import("./types.js").CostUsageSummary | null = null;
   @state() usageError: string | null = null;
-  @state() usageStartDate = "";
-  @state() usageEndDate = "";
+  @state() usageStartDate = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  @state() usageEndDate = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
   @state() usageSelectedSessions: string[] = [];
   @state() usageSelectedDays: string[] = [];
   @state() usageSelectedHours: number[] = [];
   @state() usageChartMode: "tokens" | "cost" = "tokens";
-  @state() usageDailyChartMode: "total" | "by-type" = "total";
-  @state() usageTimeSeriesMode: "cumulative" | "per-turn" = "cumulative";
-  @state() usageTimeSeriesBreakdownMode: "total" | "by-type" = "total";
-  @state() usageTimeSeries: SessionUsageTimeSeries | null = null;
+  @state() usageDailyChartMode: "total" | "by-type" = "by-type";
+  @state() usageTimeSeriesMode: "cumulative" | "per-turn" = "per-turn";
+  @state() usageTimeSeriesBreakdownMode: "total" | "by-type" = "by-type";
+  @state() usageTimeSeries: import("./types.js").SessionUsageTimeSeries | null = null;
   @state() usageTimeSeriesLoading = false;
-  @state() usageSessionLogs: SessionLogEntry[] | null = null;
+  @state() usageTimeSeriesCursorStart: number | null = null;
+  @state() usageTimeSeriesCursorEnd: number | null = null;
+  @state() usageSessionLogs: import("./views/usage.js").SessionLogEntry[] | null = null;
   @state() usageSessionLogsLoading = false;
   @state() usageSessionLogsExpanded = false;
+  // Applied query (used to filter the already-loaded sessions list client-side).
   @state() usageQuery = "";
+  // Draft query text (updates immediately as the user types; applied via debounce or "Search").
   @state() usageQueryDraft = "";
-  @state() usageQueryDebounceTimer: number | null = null;
-  @state() usageSessionSort: "tokens" | "cost" | "recent" | "messages" | "errors" = "tokens";
-  @state() usageSessionSortDir: "asc" | "desc" = "desc";
+  @state() usageSessionSort: "tokens" | "cost" | "recent" | "messages" | "errors" = "recent";
+  @state() usageSessionSortDir: "desc" | "asc" = "desc";
   @state() usageRecentSessions: string[] = [];
   @state() usageTimeZone: "local" | "utc" = "local";
   @state() usageContextExpanded = false;
   @state() usageHeaderPinned = false;
   @state() usageSessionsTab: "all" | "recent" = "all";
-  @state() usageVisibleColumns: string[] = [];
-  @state() usageLogFilterRoles: SessionLogRole[] = [];
+  @state() usageVisibleColumns: string[] = [
+    "channel",
+    "agent",
+    "provider",
+    "model",
+    "messages",
+    "tools",
+    "errors",
+    "duration",
+  ];
+  @state() usageLogFilterRoles: import("./views/usage.js").SessionLogRole[] = [];
   @state() usageLogFilterTools: string[] = [];
   @state() usageLogFilterHasTools = false;
   @state() usageLogFilterQuery = "";
+
+  // Non-reactive (don’t trigger renders just for timer bookkeeping).
+  usageQueryDebounceTimer: number | null = null;
 
   @state() cronLoading = false;
   @state() cronJobs: CronJob[] = [];
@@ -378,19 +337,39 @@ export class OpenClawApp extends LitElement {
 
   @state() updateAvailable: import("./types.js").UpdateAvailable | null = null;
 
+  // Overview dashboard state
+  @state() attentionItems: import("./types.js").AttentionItem[] = [];
+  @state() paletteOpen = false;
+  @state() paletteQuery = "";
+  @state() paletteActiveIndex = 0;
+  @state() streamMode = (() => {
+    try {
+      const stored = localStorage.getItem("openclaw:stream-mode");
+      // Default to true (redacted) unless explicitly disabled
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  })();
+  @state() overviewLogLines: string[] = [];
+  @state() overviewLogCursor = 0;
+
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
   @state() skillsError: string | null = null;
   @state() skillsFilter = "";
   @state() skillEdits: Record<string, string> = {};
-  @state() skillEnvEdits: Record<string, Record<string, string>> = {};
   @state() skillsBusyKey: string | null = null;
   @state() skillMessages: Record<string, SkillMessage> = {};
 
+  @state() healthLoading = false;
+  @state() healthResult: HealthSummary | null = null;
+  @state() healthError: string | null = null;
+
   @state() debugLoading = false;
   @state() debugStatus: StatusSummary | null = null;
-  @state() debugHealth: HealthSnapshot | null = null;
-  @state() debugModels: unknown[] = [];
+  @state() debugHealth: HealthSummary | null = null;
+  @state() debugModels: ModelCatalogEntry[] = [];
   @state() debugHeartbeat: unknown = null;
   @state() debugCallMethod = "";
   @state() debugCallParams = "{}";
@@ -412,33 +391,24 @@ export class OpenClawApp extends LitElement {
   @state() logsLimit = 500;
   @state() logsMaxBytes = 250_000;
   @state() logsAtBottom = true;
-  refreshSessionsAfterChat = new Set<string>();
 
   client: GatewayBrowserClient | null = null;
   private chatScrollFrame: number | null = null;
   private chatScrollTimeout: number | null = null;
   private chatHasAutoScrolled = false;
   private chatUserNearBottom = true;
+  @state() chatNewMessagesBelow = false;
   private nodesPollInterval: number | null = null;
   private logsPollInterval: number | null = null;
   private debugPollInterval: number | null = null;
   private logsScrollFrame: number | null = null;
   private toolStreamById = new Map<string, ToolStreamEntry>();
   private toolStreamOrder: string[] = [];
+  refreshSessionsAfterChat = new Set<string>();
   basePath = "";
   private popStateHandler = () =>
     onPopStateInternal(this as unknown as Parameters<typeof onPopStateInternal>[0]);
-  private themeMedia: MediaQueryList | null = null;
-  private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
-  private commandCenterKeyHandler = (e: KeyboardEvent) => this.handleCommandCenterKey(e);
-
-  private call<TArgs extends unknown[], TResult, THost>(
-    fn: (host: THost, ...args: TArgs) => TResult,
-    ...args: TArgs
-  ): TResult {
-    return fn(this as unknown as THost, ...args);
-  }
 
   createRenderRoot() {
     return this;
@@ -446,13 +416,20 @@ export class OpenClawApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    try {
-      handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
-      window.addEventListener("keydown", this.commandCenterKeyHandler, { capture: true });
-    } catch (err) {
-      console.error("[control-ui] startup failed:", err);
-      this.lastError = err instanceof Error ? err.message : String(err);
-    }
+    this.onSlashAction = (action: string) => {
+      switch (action) {
+        case "toggle-focus":
+          this.applySettings({
+            ...this.settings,
+            chatFocusMode: !this.settings.chatFocusMode,
+          });
+          break;
+        case "export":
+          exportChatMarkdown(this.chatMessages, this.assistantName);
+          break;
+      }
+    };
+    handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
   }
 
   protected firstUpdated() {
@@ -460,71 +437,30 @@ export class OpenClawApp extends LitElement {
   }
 
   disconnectedCallback() {
-    window.removeEventListener("keydown", this.commandCenterKeyHandler, { capture: true });
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }
 
   protected updated(changed: Map<PropertyKey, unknown>) {
     handleUpdated(this as unknown as Parameters<typeof handleUpdated>[0], changed);
-    if (changed.has("commandCenterOpen") && this.commandCenterOpen) {
-      // Ensure the search input gets focus even when opened from deep inside other inputs.
-      void this.updateComplete.then(() => {
-        const el = document.getElementById("command-center-search") as HTMLInputElement | null;
-        if (!el) {
-          return;
-        }
-        el.focus();
-        el.select();
-      });
-    }
-  }
-
-  private handleCommandCenterKey(e: KeyboardEvent) {
-    const key = (e.key || "").toLowerCase();
-    const isK = key === "k";
-    const isEsc = key === "escape";
-    const wantsPalette = isK && (e.metaKey || e.ctrlKey) && !e.altKey;
-
-    if (!wantsPalette && !(this.commandCenterOpen && isEsc)) {
-      return;
-    }
-
-    // Avoid double-handling keys when the overlay itself is doing list navigation.
-    // This handler is only for open/close toggles.
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (wantsPalette) {
-      this.commandCenterOpen = !this.commandCenterOpen;
-      if (this.commandCenterOpen) {
-        this.commandCenterSelectedIndex = 0;
-      } else {
-        this.commandCenterQuery = "";
-        this.commandCenterSelectedIndex = 0;
-        this.commandCenterNotice = null;
-      }
-      return;
-    }
-
-    if (this.commandCenterOpen && isEsc) {
-      this.commandCenterOpen = false;
-      this.commandCenterQuery = "";
-      this.commandCenterSelectedIndex = 0;
-      this.commandCenterNotice = null;
-    }
   }
 
   connect() {
-    this.call(connectGatewayInternal);
+    connectGatewayInternal(this as unknown as Parameters<typeof connectGatewayInternal>[0]);
   }
 
   handleChatScroll(event: Event) {
-    this.call(handleChatScrollInternal, event);
+    handleChatScrollInternal(
+      this as unknown as Parameters<typeof handleChatScrollInternal>[0],
+      event,
+    );
   }
 
   handleLogsScroll(event: Event) {
-    this.call(handleLogsScrollInternal, event);
+    handleLogsScrollInternal(
+      this as unknown as Parameters<typeof handleLogsScrollInternal>[0],
+      event,
+    );
   }
 
   exportLogs(lines: string[], label: string) {
@@ -532,7 +468,7 @@ export class OpenClawApp extends LitElement {
   }
 
   resetToolStream() {
-    this.call(resetToolStreamInternal);
+    resetToolStreamInternal(this as unknown as Parameters<typeof resetToolStreamInternal>[0]);
   }
 
   resetChatScroll() {
@@ -549,131 +485,173 @@ export class OpenClawApp extends LitElement {
   }
 
   async loadAssistantIdentity() {
-    await this.call(loadAssistantIdentityInternal);
+    await loadAssistantIdentityInternal(this);
   }
 
   applySettings(next: UiSettings) {
-    this.call(applySettingsInternal, next);
+    applySettingsInternal(this as unknown as Parameters<typeof applySettingsInternal>[0], next);
   }
 
   setTab(next: Tab) {
-    this.call(setTabInternal, next);
+    setTabInternal(this as unknown as Parameters<typeof setTabInternal>[0], next);
   }
 
   setTheme(next: ThemeMode, context?: Parameters<typeof setThemeInternal>[2]) {
-    this.call(setThemeInternal, next, context);
+    setThemeInternal(this as unknown as Parameters<typeof setThemeInternal>[0], next, context);
+    this.themeOrder = this.buildThemeOrder(next);
+  }
+
+  buildThemeOrder(active: ThemeMode): ThemeMode[] {
+    const all = [...VALID_THEMES];
+    const rest = all.filter((id) => id !== active);
+    return [active, ...rest];
   }
 
   async loadOverview() {
-    await this.call(loadOverviewInternal);
+    await loadOverviewInternal(this as unknown as Parameters<typeof loadOverviewInternal>[0]);
   }
 
   async loadCron() {
-    await this.call(loadCronInternal);
+    await loadCronInternal(this as unknown as Parameters<typeof loadCronInternal>[0]);
   }
 
   async handleAbortChat() {
-    await this.call(handleAbortChatInternal);
+    await handleAbortChatInternal(this as unknown as Parameters<typeof handleAbortChatInternal>[0]);
   }
 
   removeQueuedMessage(id: string) {
-    this.call(removeQueuedMessageInternal, id);
+    removeQueuedMessageInternal(
+      this as unknown as Parameters<typeof removeQueuedMessageInternal>[0],
+      id,
+    );
   }
 
   async handleSendChat(
     messageOverride?: string,
     opts?: Parameters<typeof handleSendChatInternal>[2],
   ) {
-    await this.call(handleSendChatInternal, messageOverride, opts);
+    await handleSendChatInternal(
+      this as unknown as Parameters<typeof handleSendChatInternal>[0],
+      messageOverride,
+      opts,
+    );
   }
 
   async handleWhatsAppStart(force: boolean) {
-    await this.call(handleWhatsAppStartInternal, force);
+    await handleWhatsAppStartInternal(this, force);
   }
 
   async handleWhatsAppWait() {
-    await this.call(handleWhatsAppWaitInternal);
+    await handleWhatsAppWaitInternal(this);
   }
 
   async handleWhatsAppLogout() {
-    await this.call(handleWhatsAppLogoutInternal);
+    await handleWhatsAppLogoutInternal(this);
   }
 
   async handleChannelConfigSave() {
-    await this.call(handleChannelConfigSaveInternal);
+    await handleChannelConfigSaveInternal(this);
   }
 
   async handleChannelConfigReload() {
-    await this.call(handleChannelConfigReloadInternal);
+    await handleChannelConfigReloadInternal(this);
   }
 
   handleNostrProfileEdit(accountId: string, profile: NostrProfile | null) {
-    this.call(handleNostrProfileEditInternal, accountId, profile);
+    handleNostrProfileEditInternal(this, accountId, profile);
   }
 
   handleNostrProfileCancel() {
-    this.call(handleNostrProfileCancelInternal);
+    handleNostrProfileCancelInternal(this);
   }
 
   handleNostrProfileFieldChange(field: keyof NostrProfile, value: string) {
-    this.call(handleNostrProfileFieldChangeInternal, field, value);
+    handleNostrProfileFieldChangeInternal(this, field, value);
   }
 
   async handleNostrProfileSave() {
-    await this.call(handleNostrProfileSaveInternal);
+    await handleNostrProfileSaveInternal(this);
   }
 
   async handleNostrProfileImport() {
-    await this.call(handleNostrProfileImportInternal);
+    await handleNostrProfileImportInternal(this);
   }
 
   handleNostrProfileToggleAdvanced() {
-    this.call(handleNostrProfileToggleAdvancedInternal);
+    handleNostrProfileToggleAdvancedInternal(this);
   }
 
-  async handleExecApprovalDecision(decision: ExecApprovalDecision) {
-    await this.call(handleExecApprovalDecisionInternal, decision);
-  }
-
-  handleOpenSidebar(content: string) {
-    this.call(handleOpenSidebarInternal, content);
-  }
-
-  handleCloseSidebar() {
-    this.call(handleCloseSidebarInternal);
-  }
-
-  handleSetSidebarTab(tab: "timeline" | "tool" | "insights") {
-    this.call(handleSetSidebarTabInternal, tab);
-  }
-
-  handleSplitRatioChange(ratio: number) {
-    this.call(handleSplitRatioChangeInternal, ratio);
-  }
-
-  acceptPendingGatewayUrl() {
-    this.call(acceptPendingGatewayUrlInternal);
-  }
-
-  rejectPendingGatewayUrl() {
-    this.call(rejectPendingGatewayUrlInternal);
+  async handleExecApprovalDecision(decision: "allow-once" | "allow-always" | "deny") {
+    const active = this.execApprovalQueue[0];
+    if (!active || !this.client || this.execApprovalBusy) {
+      return;
+    }
+    this.execApprovalBusy = true;
+    this.execApprovalError = null;
+    try {
+      await this.client.request("exec.approval.resolve", {
+        id: active.id,
+        decision,
+      });
+      this.execApprovalQueue = this.execApprovalQueue.filter((entry) => entry.id !== active.id);
+    } catch (err) {
+      this.execApprovalError = `Exec approval failed: ${String(err)}`;
+    } finally {
+      this.execApprovalBusy = false;
+    }
   }
 
   handleGatewayUrlConfirm() {
-    this.call(acceptPendingGatewayUrlInternal);
+    const nextGatewayUrl = this.pendingGatewayUrl;
+    if (!nextGatewayUrl) {
+      return;
+    }
+    this.pendingGatewayUrl = null;
+    applySettingsInternal(this as unknown as Parameters<typeof applySettingsInternal>[0], {
+      ...this.settings,
+      gatewayUrl: nextGatewayUrl,
+    });
+    this.connect();
   }
 
   handleGatewayUrlCancel() {
-    this.call(rejectPendingGatewayUrlInternal);
+    this.pendingGatewayUrl = null;
+  }
+
+  // Sidebar handlers for tool output viewing
+  handleOpenSidebar(content: string) {
+    if (this.sidebarCloseTimer != null) {
+      window.clearTimeout(this.sidebarCloseTimer);
+      this.sidebarCloseTimer = null;
+    }
+    this.sidebarContent = content;
+    this.sidebarError = null;
+    this.sidebarOpen = true;
+  }
+
+  handleCloseSidebar() {
+    this.sidebarOpen = false;
+    // Clear content after transition
+    if (this.sidebarCloseTimer != null) {
+      window.clearTimeout(this.sidebarCloseTimer);
+    }
+    this.sidebarCloseTimer = window.setTimeout(() => {
+      if (this.sidebarOpen) {
+        return;
+      }
+      this.sidebarContent = null;
+      this.sidebarError = null;
+      this.sidebarCloseTimer = null;
+    }, 200);
+  }
+
+  handleSplitRatioChange(ratio: number) {
+    const newRatio = Math.max(0.4, Math.min(0.7, ratio));
+    this.splitRatio = newRatio;
+    this.applySettings({ ...this.settings, splitRatio: newRatio });
   }
 
   render() {
     return renderApp(this as unknown as AppViewState);
   }
-}
-
-export class ClawdbotApp extends OpenClawApp {}
-
-if (!customElements.get("clawdbot-app")) {
-  customElements.define("clawdbot-app", ClawdbotApp);
 }
