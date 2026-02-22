@@ -1,16 +1,41 @@
-export type ThemeMode = "system" | "light" | "dark";
-export type ResolvedTheme = "light" | "dark";
+export type ConcreteTheme = "dark" | "light" | "openknot" | "fieldmanual" | "clawdash";
+export type ThemeMode = ConcreteTheme | "system";
+export type ResolvedTheme = ConcreteTheme;
 
-export function getSystemTheme(): ResolvedTheme {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return "dark";
+export const VALID_THEMES = new Set<ThemeMode>([
+  "dark",
+  "light",
+  "openknot",
+  "fieldmanual",
+  "clawdash",
+  "system",
+]);
+
+const LEGACY_MAP: Record<string, ThemeMode> = {
+  defaultTheme: "dark",
+  docsTheme: "light",
+  lightTheme: "openknot",
+  landingTheme: "openknot",
+  newTheme: "openknot",
+};
+
+export function prefersLightScheme(): boolean {
+  if (typeof globalThis.matchMedia !== "function") {
+    return false;
   }
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return globalThis.matchMedia("(prefers-color-scheme: light)").matches;
 }
 
-export function resolveTheme(mode: ThemeMode): ResolvedTheme {
+export function resolveSystemTheme(): ResolvedTheme {
+  return prefersLightScheme() ? "light" : "dark";
+}
+
+export function resolveTheme(mode: string): ResolvedTheme {
   if (mode === "system") {
-    return getSystemTheme();
+    return resolveSystemTheme();
   }
-  return mode;
+  if (VALID_THEMES.has(mode as ThemeMode)) {
+    return mode as ResolvedTheme;
+  }
+  return (LEGACY_MAP[mode] as ResolvedTheme) ?? "dark";
 }
