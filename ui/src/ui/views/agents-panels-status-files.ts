@@ -233,7 +233,7 @@ export function renderAgentChannels(params: {
                     const status = summary.total
                       ? `${summary.connected}/${summary.total} connected`
                       : "no accounts";
-                    const config = summary.configured
+                    const configLabel = summary.configured
                       ? `${summary.configured} configured`
                       : "not configured";
                     const enabled = summary.total ? `${summary.enabled} enabled` : "disabled";
@@ -246,8 +246,23 @@ export function renderAgentChannels(params: {
                         </div>
                         <div class="list-meta">
                           <div>${status}</div>
-                          <div>${config}</div>
+                          <div>${configLabel}</div>
                           <div>${enabled}</div>
+                          ${
+                            summary.configured === 0
+                              ? html`
+                                  <div>
+                                    <a
+                                      href="https://docs.openclaw.ai/channels"
+                                      target="_blank"
+                                      rel="noopener"
+                                      style="color: var(--accent); font-size: 12px"
+                                      >Setup guide</a
+                                    >
+                                  </div>
+                                `
+                              : nothing
+                          }
                           ${
                             extras.length > 0
                               ? extras.map(
@@ -275,6 +290,7 @@ export function renderAgentCron(params: {
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  onRunNow?: (jobId: string) => void;
 }) {
   const jobs = params.jobs.filter((job) => job.agentId === params.agentId);
   return html`
@@ -344,6 +360,16 @@ export function renderAgentCron(params: {
                       <div class="list-meta">
                         <div class="mono">${formatCronState(job)}</div>
                         <div class="muted">${formatCronPayload(job)}</div>
+                        ${
+                          params.onRunNow
+                            ? html`<button
+                                class="btn btn--sm"
+                                style="margin-top: 6px;"
+                                ?disabled=${!job.enabled}
+                                @click=${() => params.onRunNow?.(job.id)}
+                              >Run Now</button>`
+                            : nothing
+                        }
                       </div>
                     </div>
                   `,
