@@ -10,8 +10,6 @@ import {
 import { observeTopbar, scheduleChatScroll, scheduleLogsScroll } from "./app-scroll.ts";
 import {
   applySettingsFromUrl,
-  attachThemeListener,
-  detachThemeListener,
   inferBasePath,
   syncTabWithLocation,
   syncThemeWithSettings,
@@ -46,7 +44,6 @@ export function handleConnected(host: LifecycleHost) {
   applySettingsFromUrl(host as unknown as Parameters<typeof applySettingsFromUrl>[0]);
   syncTabWithLocation(host as unknown as Parameters<typeof syncTabWithLocation>[0], true);
   syncThemeWithSettings(host as unknown as Parameters<typeof syncThemeWithSettings>[0]);
-  attachThemeListener(host as unknown as Parameters<typeof attachThemeListener>[0]);
   window.addEventListener("popstate", host.popStateHandler);
   applySettingsFromUrl(host as unknown as Parameters<typeof applySettingsFromUrl>[0]);
   connectGateway(host as unknown as Parameters<typeof connectGateway>[0]);
@@ -71,7 +68,6 @@ export function handleDisconnected(host: LifecycleHost) {
   host.client?.stop();
   host.client = null;
   host.connected = false;
-  detachThemeListener(host as unknown as Parameters<typeof detachThemeListener>[0]);
   host.topbarObserver?.disconnect();
   host.topbarObserver = null;
 }

@@ -80,6 +80,34 @@ export const pt_BR: TranslationMap = {
       cron: "Cron",
       cronNext: "Próximo despertar {time}",
     },
+    cards: {
+      cost: "Custo",
+      skills: "Habilidades",
+      recentSessions: "Sessões recentes",
+      jobsCount: "{count} tarefas",
+      failedCount: "{count} falhas",
+      blockedCount: "{count} bloqueadas",
+      activeCount: "{count} ativas",
+      tokenMessageHint: "{tokens} tokens · {messages} msgs",
+    },
+    attention: {
+      title: "Precisa de atenção",
+      gatewayErrorTitle: "Erro do gateway",
+      missingScopeTitle: "Escopo operator.read ausente",
+      missingScopeDescription:
+        "Esta conexão não tem o escopo operator.read. Alguns recursos podem ficar indisponíveis.",
+      missingDepsTitle: "Habilidades com dependências ausentes",
+      moreCount: " +{count} a mais",
+      blockedSkillsTitle: "{count} habilidades bloqueadas",
+      failedCronTitle: "{count} tarefas cron com falha",
+      overdueJobsTitle: "{count} tarefas atrasadas",
+    },
+    eventLog: {
+      title: "Eventos recentes",
+    },
+    logTail: {
+      title: "Cauda de logs",
+    },
     notes: {
       title: "Notas",
       subtitle: "Lembretes rápidos para configurações de controle remoto.",

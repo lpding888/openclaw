@@ -81,6 +81,34 @@ export const en: TranslationMap = {
       cron: "Cron",
       cronNext: "Next wake {time}",
     },
+    cards: {
+      cost: "Cost",
+      skills: "Skills",
+      recentSessions: "Recent Sessions",
+      jobsCount: "{count} jobs",
+      failedCount: "{count} failed",
+      blockedCount: "{count} blocked",
+      activeCount: "{count} active",
+      tokenMessageHint: "{tokens} tokens · {messages} msgs",
+    },
+    attention: {
+      title: "Needs Attention",
+      gatewayErrorTitle: "Gateway Error",
+      missingScopeTitle: "Missing operator.read scope",
+      missingScopeDescription:
+        "This connection does not have the operator.read scope. Some features may be unavailable.",
+      missingDepsTitle: "Skills with missing dependencies",
+      moreCount: " +{count} more",
+      blockedSkillsTitle: "{count} blocked skills",
+      failedCronTitle: "{count} failed cron jobs",
+      overdueJobsTitle: "{count} overdue jobs",
+    },
+    eventLog: {
+      title: "Recent Events",
+    },
+    logTail: {
+      title: "Log Tail",
+    },
     notes: {
       title: "Notes",
       subtitle: "Quick reminders for remote control setups.",

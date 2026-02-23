@@ -80,6 +80,33 @@ export const zh_TW: TranslationMap = {
       cron: "定時任務",
       cronNext: "下次喚醒 {time}",
     },
+    cards: {
+      cost: "成本",
+      skills: "技能",
+      recentSessions: "最近會話",
+      jobsCount: "{count} 個任務",
+      failedCount: "{count} 個失敗",
+      blockedCount: "{count} 個被阻止",
+      activeCount: "{count} 個已啟用",
+      tokenMessageHint: "{tokens} tokens · {messages} 條訊息",
+    },
+    attention: {
+      title: "需要關注",
+      gatewayErrorTitle: "閘道錯誤",
+      missingScopeTitle: "缺少 operator.read 權限",
+      missingScopeDescription: "目前連線缺少 operator.read 權限，部分功能可能不可用。",
+      missingDepsTitle: "技能缺少相依套件",
+      moreCount: " +{count} 項",
+      blockedSkillsTitle: "{count} 個技能被阻止",
+      failedCronTitle: "{count} 個定時任務失敗",
+      overdueJobsTitle: "{count} 個逾期任務",
+    },
+    eventLog: {
+      title: "最近事件",
+    },
+    logTail: {
+      title: "日誌尾部",
+    },
     notes: {
       title: "備註",
       subtitle: "遠程控制設置的快速提醒。",

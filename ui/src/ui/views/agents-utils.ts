@@ -138,6 +138,30 @@ export function normalizeAgentLabel(agent: {
   return agent.name?.trim() || agent.identity?.name?.trim() || agent.id;
 }
 
+const AVATAR_URL_RE = /^(https?:\/\/|data:image\/|\/)/i;
+
+export function resolveAgentAvatarUrl(
+  agent: { identity?: { avatar?: string; avatarUrl?: string } },
+  agentIdentity?: AgentIdentityResult | null,
+): string | null {
+  const url =
+    agentIdentity?.avatar?.trim() ??
+    agent.identity?.avatarUrl?.trim() ??
+    agent.identity?.avatar?.trim();
+  if (!url) {
+    return null;
+  }
+  if (AVATAR_URL_RE.test(url)) {
+    return url;
+  }
+  return null;
+}
+
+export function agentLogoUrl(basePath: string): string {
+  const base = basePath?.trim() ? basePath.replace(/\/$/, "") : "";
+  return base ? `${base}/favicon.svg` : "/favicon.svg";
+}
+
 function isLikelyEmoji(value: string) {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -187,6 +211,14 @@ export function resolveAgentEmoji(
 
 export function agentBadgeText(agentId: string, defaultId: string | null) {
   return defaultId && agentId === defaultId ? "default" : null;
+}
+
+export function agentAvatarHue(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  return ((hash % 360) + 360) % 360;
 }
 
 export function formatBytes(bytes?: number) {
