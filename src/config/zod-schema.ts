@@ -1,17 +1,38 @@
 import { z } from "zod";
-import { OpenClawRootSchema } from "./zod-schema.root.js";
+import { ToolsSchema } from "./zod-schema.agent-runtime.js";
+import { AgentsSchema, AudioSchema, BindingsSchema, BroadcastSchema } from "./zod-schema.agents.js";
+import { ApprovalsSchema } from "./zod-schema.approvals.js";
+import { HexColorSchema, ModelsConfigSchema } from "./zod-schema.core.js";
+import { HookMappingSchema, HooksGmailSchema, InternalHooksSchema } from "./zod-schema.hooks.js";
+import { InstallRecordShape } from "./zod-schema.installs.js";
+import { ChannelsSchema } from "./zod-schema.providers.js";
+import { sensitive } from "./zod-schema.sensitive.js";
+import {
+  CommandsSchema,
+  MessagesSchema,
+  SessionSchema,
+  SessionSendPolicySchema,
+} from "./zod-schema.session.js";
 
-export const OpenClawSchema = OpenClawRootSchema.superRefine((cfg, ctx) => {
-  const agents = cfg.agents?.list ?? [];
-  if (agents.length === 0) {
-    return;
-  }
-  const agentIds = new Set(agents.map((agent) => agent.id));
+const BrowserSnapshotDefaultsSchema = z
+  .object({
+    mode: z.literal("efficient").optional(),
+  })
+  .strict()
+  .optional();
 
-  const broadcast = cfg.broadcast;
-  if (!broadcast) {
-    return;
-  }
+const NodeHostSchema = z
+  .object({
+    browserProxy: z
+      .object({
+        enabled: z.boolean().optional(),
+        allowProfiles: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .optional();
 
 const MemoryQmdPathSchema = z
   .object({
@@ -658,18 +679,29 @@ export const OpenClawSchema = z
     if (agents.length === 0) {
       return;
     }
-    if (!Array.isArray(ids)) {
-      continue;
+    const agentIds = new Set(agents.map((agent) => agent.id));
+
+    const broadcast = cfg.broadcast;
+    if (!broadcast) {
+      return;
     }
-    for (let idx = 0; idx < ids.length; idx += 1) {
-      const agentId = ids[idx];
-      if (!agentIds.has(agentId)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["broadcast", peerId, idx],
-          message: `Unknown agent id "${agentId}" (not in agents.list).`,
-        });
+
+    for (const [peerId, ids] of Object.entries(broadcast)) {
+      if (peerId === "strategy") {
+        continue;
+      }
+      if (!Array.isArray(ids)) {
+        continue;
+      }
+      for (let idx = 0; idx < ids.length; idx += 1) {
+        const agentId = ids[idx];
+        if (!agentIds.has(agentId)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["broadcast", peerId, idx],
+            message: `Unknown agent id "${agentId}" (not in agents.list).`,
+          });
+        }
       }
     }
-  }
-});
+  });

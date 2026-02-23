@@ -757,13 +757,13 @@ class ConfigBuilderApp extends LitElement {
       <header class="cb-topbar ${this.topbarScrolled ? "cb-topbar--scrolled" : ""}"
         <div class="cb-topbar__brand">
           <div class="cb-topbar__logo">OC</div>
-          <span class="cb-topbar__title">Config Builder</span>
+          <span class="cb-topbar__title">配置构建器</span>
         </div>
 
         <nav class="cb-topbar__nav" role="tablist">
-          ${modeButton("landing", "Home")}
-          ${modeButton("explorer", "Explorer")}
-          ${modeButton("wizard", "Wizard")}
+          ${modeButton("landing", "首页")}
+          ${modeButton("explorer", "全量浏览")}
+          ${modeButton("wizard", "引导设置")}
         </nav>
 
         <div class="cb-topbar__actions">
@@ -781,16 +781,16 @@ class ConfigBuilderApp extends LitElement {
             }}
           >
             ${iconSearch}
-            <span>Search fields…</span>
+            <span>搜索字段…</span>
             <kbd>⌘K</kbd>
           </button>
 
-          <button class="cb-theme-toggle" @click=${() => this.toggleTheme()} title="Toggle theme">
+          <button class="cb-theme-toggle" @click=${() => this.toggleTheme()} title="切换主题">
             ${this.theme === "dark" ? iconSun : iconMoon}
           </button>
 
           <a class="btn btn--sm" href="https://docs.openclaw.ai/configuration" target="_blank" rel="noreferrer">
-            ${iconExternalLink} Docs
+            ${iconExternalLink} 文档
           </a>
         </div>
       </header>
@@ -801,52 +801,52 @@ class ConfigBuilderApp extends LitElement {
     return html`
       <div class="cb-landing">
         <div class="cb-landing__hero">
-          <h1 class="cb-landing__heading">Config Builder</h1>
+          <h1 class="cb-landing__heading">配置构建器</h1>
           <p class="cb-landing__sub">
-            Build your <code style="font-family:var(--mono);font-size:0.9em">openclaw.json</code> visually.
-            Guided wizard or full schema explorer — your config never leaves your browser.
+            用可视化方式编辑 <code style="font-family:var(--mono);font-size:0.9em">openclaw.json</code>。
+            可选择引导设置或全量字段浏览，配置数据始终只在你的浏览器本地处理。
           </p>
         </div>
 
         <div class="cb-landing__cards">
           <div class="cb-landing__card cb-landing__card--primary" @click=${() => this.navigateMode("wizard")}>
             <div class="cb-landing__card-icon">${iconSparkles}</div>
-            <div class="cb-landing__card-title">Guided Setup</div>
-            <div class="cb-landing__card-meta">${WIZARD_STEPS.length} steps · ~5 min</div>
+            <div class="cb-landing__card-title">引导配置</div>
+            <div class="cb-landing__card-meta">${WIZARD_STEPS.length} 步 · 约 5 分钟</div>
             <div class="cb-landing__card-desc">
-              Walk through the most important settings step by step. Perfect for first-time setup.
+              按步骤完成关键配置，适合首次搭建。
             </div>
             <div class="cb-landing__card-cta">
-              <button class="btn primary">Start Wizard</button>
+              <button class="btn primary">开始引导</button>
             </div>
           </div>
 
           <div class="cb-landing__card" @click=${() => this.navigateMode("explorer")}>
             <div class="cb-landing__card-icon">${iconGrid}</div>
-            <div class="cb-landing__card-title">Full Explorer</div>
-            <div class="cb-landing__card-meta">${snapshot.sectionCount} sections · ${snapshot.fieldCount} fields</div>
+            <div class="cb-landing__card-title">全量浏览</div>
+            <div class="cb-landing__card-meta">${snapshot.sectionCount} 个分组 · ${snapshot.fieldCount} 个字段</div>
             <div class="cb-landing__card-desc">
-              Browse every schema-backed field with search, filtering, and real-time validation.
+              浏览所有配置字段，支持搜索、筛选与实时校验。
             </div>
             <div class="cb-landing__card-cta">
-              <button class="btn">Open Explorer</button>
+              <button class="btn">打开全量浏览</button>
             </div>
           </div>
         </div>
 
         <div class="cb-landing__import">
-          or <a @click=${() => this.openImportDialog()}>import an existing config</a>
+          或 <a @click=${() => this.openImportDialog()}>导入已有配置</a>
         </div>
 
         <div class="cb-landing__features">
-          <span class="cb-landing__feature">${iconCheck} Real-time validation</span>
-          <span class="cb-landing__feature">${iconCode} JSON5 output</span>
-          <span class="cb-landing__feature">${iconShield} Schema-backed</span>
-          <span class="cb-landing__feature">${iconFile} LocalStorage draft</span>
+          <span class="cb-landing__feature">${iconCheck} 实时校验</span>
+          <span class="cb-landing__feature">${iconCode} JSON5 输出</span>
+          <span class="cb-landing__feature">${iconShield} 结构化校验驱动</span>
+          <span class="cb-landing__feature">${iconFile} 本地草稿存储</span>
         </div>
 
         <div class="cb-landing__footer">
-          All processing happens client-side. Your config data never leaves your browser.
+          所有处理都在客户端完成，配置数据不会离开你的浏览器。
         </div>
       </div>
     `;
@@ -856,9 +856,9 @@ class ConfigBuilderApp extends LitElement {
     return html`
       <aside class="cb-sidebar">
         <div class="cb-sidebar__header">
-          <span class="cb-sidebar__title">Sections</span>
+          <span class="cb-sidebar__title">分组</span>
           <span class="pill pill--sm ${this.validation.valid ? "pill--ok" : "pill--danger"}">
-            ${this.validation.valid ? "valid" : `${this.totalErrorCount()} errors`}
+            ${this.validation.valid ? "已通过" : `${this.totalErrorCount()} 个错误`}
           </span>
         </div>
 
@@ -867,7 +867,7 @@ class ConfigBuilderApp extends LitElement {
           <input
             class="cb-sidebar__search-input"
             type="text"
-            placeholder="Filter sections…"
+            placeholder="筛选分组…"
             .value=${this.searchQuery}
             @input=${(e: Event) => this.setSearchQuery((e.target as HTMLInputElement).value)}
           />
@@ -882,7 +882,7 @@ class ConfigBuilderApp extends LitElement {
             @click=${() => this.setSection(null)}
           >
             <span class="cb-sidebar__nav-icon">${iconGrid}</span>
-            <span class="cb-sidebar__nav-label">All</span>
+            <span class="cb-sidebar__nav-label">全部</span>
             <span class="cb-sidebar__nav-count">${snapshot.fieldCount}</span>
           </button>
 
@@ -908,8 +908,8 @@ class ConfigBuilderApp extends LitElement {
         </nav>
 
         <div class="cb-sidebar__footer">
-          Draft auto-saved to localStorage.<br />
-          Validation updates in real time.
+          草稿已自动保存到 localStorage。<br />
+          校验结果会实时更新。
         </div>
       </aside>
     `;
@@ -927,7 +927,7 @@ class ConfigBuilderApp extends LitElement {
         <div class="cb-field__header">
           <span class="cb-field__label">${field.label}</span>
           <div class="cb-field__badges">
-            ${field.sensitive ? html`<span class="cb-field__badge cb-field__badge--sensitive">🔒 sensitive</span>` : nothing}
+            ${field.sensitive ? html`<span class="cb-field__badge cb-field__badge--sensitive">🔒 敏感</span>` : nothing}
             <span class="cb-field__badge">${field.kind}</span>
           </div>
         </div>
@@ -952,9 +952,9 @@ class ConfigBuilderApp extends LitElement {
 
         <div class="cb-field__actions">
           ${context === "wizard"
-            ? html`<button class="btn btn--sm" @click=${() => this.navigateMode("explorer")}>Open in Explorer</button>`
+            ? html`<button class="btn btn--sm" @click=${() => this.navigateMode("explorer")}>在全量浏览中打开</button>`
             : nothing}
-          <button class="btn btn--sm cb-field__clear-btn" @click=${() => this.clearField(field.path)}>Clear</button>
+          <button class="btn btn--sm cb-field__clear-btn" @click=${() => this.clearField(field.path)}>清空</button>
         </div>
       </div>
     `;
@@ -1010,17 +1010,17 @@ class ConfigBuilderApp extends LitElement {
           <div class="cb-actions__left">
             <span class="cb-actions__status">
               ${this.selectedSectionId
-                ? `${visibleSections[0]?.label ?? "Section"}`
+                ? (visibleSections[0]?.label ?? "分组")
                 : this.searchQuery
-                  ? `Search: "${this.searchQuery}"`
-                  : "All sections"}
+                  ? `搜索："${this.searchQuery}"`
+                  : "全部分组"}
             </span>
           </div>
           <div class="cb-actions__right">
             <span class="pill pill--sm mono">v${snapshot.version}</span>
             ${this.totalErrorCount() > 0
-              ? html`<span class="pill pill--sm pill--danger">${this.totalErrorCount()} errors</span>`
-              : html`<span class="pill pill--sm pill--ok">valid</span>`}
+              ? html`<span class="pill pill--sm pill--danger">${this.totalErrorCount()} 个错误</span>`
+              : html`<span class="pill pill--sm pill--ok">已通过</span>`}
           </div>
         </div>
 
@@ -1029,8 +1029,8 @@ class ConfigBuilderApp extends LitElement {
             ? html`
                 <div class="cb-empty">
                   <div class="cb-empty__icon">${iconSearch}</div>
-                  <div class="cb-empty__text">No matching sections or fields</div>
-                  <div class="cb-empty__sub">Try a different search term</div>
+                  <div class="cb-empty__text">没有匹配的分组或字段</div>
+                  <div class="cb-empty__sub">试试其他搜索关键词</div>
                 </div>
               `
             : html`
@@ -1087,19 +1087,19 @@ class ConfigBuilderApp extends LitElement {
       return html`
         <div class="cb-wizard__complete">
           <div class="cb-wizard__complete-icon">${iconCheck}</div>
-          <div class="cb-wizard__complete-title">Your config is ready!</div>
+          <div class="cb-wizard__complete-title">配置已就绪！</div>
           <div class="cb-wizard__complete-sub">
-            ${setCount} field${setCount === 1 ? "" : "s"} configured across ${WIZARD_STEPS.length} steps
+            已在 ${WIZARD_STEPS.length} 个步骤中配置 ${setCount} 个字段
           </div>
           <div class="cb-wizard__complete-actions">
             <button class="btn primary" @click=${() => {
               const preview = formatConfigJson5(this.config);
               downloadJson5File(preview.text);
             }}>
-              ${iconDownload} Download JSON5
+              ${iconDownload} 下载 JSON5
             </button>
             <button class="btn" @click=${() => this.navigateMode("explorer")}>
-              ${iconGrid} Open in Explorer
+              ${iconGrid} 打开全量浏览
             </button>
           </div>
         </div>
@@ -1133,7 +1133,7 @@ class ConfigBuilderApp extends LitElement {
               ?disabled=${this.wizardStepIndex === 0}
               @click=${() => this.setWizardStep(this.wizardStepIndex - 1)}
             >
-              ${iconChevronLeft} Back
+              ${iconChevronLeft} 上一步
             </button>
           </div>
           <div class="cb-wizard__actions-right">
@@ -1148,7 +1148,7 @@ class ConfigBuilderApp extends LitElement {
                 this.setWizardStep(this.wizardStepIndex + 1);
               }}
             >
-              Skip this step
+              跳过此步
             </button>
             <button
               class="btn btn--sm primary"
@@ -1161,7 +1161,7 @@ class ConfigBuilderApp extends LitElement {
                 this.setWizardStep(this.wizardStepIndex + 1);
               }}
             >
-              ${isLast ? html`${iconSparkles} Finish & Review` : "Continue →"}
+              ${isLast ? html`${iconSparkles} 完成并预览` : "继续 →"}
             </button>
           </div>
         </div>
@@ -1176,14 +1176,14 @@ class ConfigBuilderApp extends LitElement {
           <div class="cb-actions__left">
             <span class="cb-actions__status">
               ${this.wizardComplete
-                ? "Setup complete"
-                : `Step ${this.wizardStepIndex + 1} of ${WIZARD_STEPS.length}`}
+                ? "配置完成"
+                : `第 ${this.wizardStepIndex + 1} / ${WIZARD_STEPS.length} 步`}
             </span>
           </div>
           <div class="cb-actions__right">
             ${this.totalErrorCount() > 0
-              ? html`<span class="pill pill--sm pill--danger">${this.totalErrorCount()} errors</span>`
-              : html`<span class="pill pill--sm pill--ok">valid</span>`}
+              ? html`<span class="pill pill--sm pill--danger">${this.totalErrorCount()} 个错误</span>`
+              : html`<span class="pill pill--sm pill--ok">已通过</span>`}
           </div>
         </div>
 
@@ -1218,12 +1218,12 @@ class ConfigBuilderApp extends LitElement {
           <div class="cb-preview__title-group">
             <span class="cb-preview__file-icon">${iconFile}</span>
             <span class="cb-preview__title">openclaw.json</span>
-            <span class="cb-preview__meta">${preview.lineCount} lines</span>
+            <span class="cb-preview__meta">${preview.lineCount} 行</span>
           </div>
           <button
             class="cb-preview__toggle"
             @click=${() => this.togglePreview()}
-            title="${collapsed ? "Show preview" : "Hide preview"}"
+            title="${collapsed ? "显示预览" : "隐藏预览"}"
           >
             ${iconPanelRight}
           </button>
@@ -1233,7 +1233,7 @@ class ConfigBuilderApp extends LitElement {
           ? html`
               <div class="cb-preview__warning">
                 ${iconShield}
-                ${sensitivePaths.length} sensitive value${sensitivePaths.length === 1 ? "" : "s"} in output
+                输出中包含 ${sensitivePaths.length} 个敏感值
               </div>
             `
           : nothing}
@@ -1243,14 +1243,14 @@ class ConfigBuilderApp extends LitElement {
         <div class="cb-preview__footer">
           <button class="btn btn--sm" @click=${() => this.copyPreview(preview.text)}>
             ${this.copyState === "copied" ? iconCheck : iconCopy}
-            ${this.copyState === "copied" ? "Copied!" : this.copyState === "failed" ? "Failed" : "Copy"}
+            ${this.copyState === "copied" ? "已复制" : this.copyState === "failed" ? "失败" : "复制"}
           </button>
           <button class="btn btn--sm" @click=${() => downloadJson5File(preview.text)}>
-            ${iconDownload} Download
+            ${iconDownload} 下载
           </button>
           <span class="cb-preview__spacer"></span>
           <button class="btn btn--sm danger" @click=${() => this.resetAllFields()}>
-            ${iconTrash} Reset
+            ${iconTrash} 重置
           </button>
         </div>
       </aside>
@@ -1275,7 +1275,7 @@ class ConfigBuilderApp extends LitElement {
             <input
               class="cb-palette__input"
               type="text"
-              placeholder="Search fields…"
+              placeholder="搜索字段…"
               .value=${this.commandPaletteQuery}
               @input=${(e: Event) => {
                 this.commandPaletteQuery = (e.target as HTMLInputElement).value;
@@ -1308,7 +1308,7 @@ class ConfigBuilderApp extends LitElement {
           </div>
           <div class="cb-palette__results">
             ${results.length === 0
-              ? html`<div class="cb-palette__empty">No fields match your search</div>`
+              ? html`<div class="cb-palette__empty">没有匹配你的搜索的字段</div>`
               : results.map((field, i) => {
                   const val = getFieldValue(this.config, field.path);
                   return html`
@@ -1339,7 +1339,7 @@ class ConfigBuilderApp extends LitElement {
 
   override render() {
     if (this.state.status === "loading") {
-      return html`<div class="cb-screen" style="display:grid;place-items:center;"><div class="card">Loading config builder…</div></div>`;
+      return html`<div class="cb-screen" style="display:grid;place-items:center;"><div class="card">正在加载配置构建器…</div></div>`;
     }
 
     if (this.state.status === "error") {

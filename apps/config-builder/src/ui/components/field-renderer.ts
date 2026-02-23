@@ -79,7 +79,7 @@ function parseScalar(kind: FieldKind, raw: string): unknown {
   if (kind === "number") {
     const parsed = Number(raw);
     if (Number.isNaN(parsed)) {
-      throw new Error("Enter a valid number.");
+      throw new Error("请输入有效数字。");
     }
     return parsed;
   }
@@ -87,7 +87,7 @@ function parseScalar(kind: FieldKind, raw: string): unknown {
   if (kind === "integer") {
     const parsed = Number(raw);
     if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
-      throw new Error("Enter a valid integer.");
+      throw new Error("请输入有效整数。");
     }
     return Math.trunc(parsed);
   }
@@ -99,7 +99,7 @@ function parseScalar(kind: FieldKind, raw: string): unknown {
     if (raw === "false") {
       return false;
     }
-    throw new Error("Use true or false.");
+    throw new Error("请使用 true 或 false。");
   }
 
   return raw;
@@ -234,7 +234,7 @@ function renderJsonControl(params: {
 
   return html`
     <label class="cfg-field">
-      <span class="cfg-field__help">Edit as JSON (${kind})</span>
+      <span class="cfg-field__help">以 JSON 编辑（${kind}）</span>
       <textarea
         class="cfg-textarea"
         rows="4"
@@ -249,7 +249,7 @@ function renderJsonControl(params: {
           try {
             onSet(JSON.parse(raw));
           } catch {
-            onValidationError?.("Invalid JSON value.");
+            onValidationError?.("JSON 值不合法。");
             target.value = jsonValue(value ?? fallback);
           }
         }}
@@ -265,7 +265,7 @@ function renderScalarControl(params: ScalarControlParams): TemplateResult {
   if (kind === "boolean") {
     return html`
       <label class="cfg-toggle-row builder-toggle-row">
-        <span class="cfg-field__help">Toggle value</span>
+        <span class="cfg-field__help">切换值</span>
         <div class="cfg-toggle">
           <input
             type="checkbox"
@@ -302,7 +302,7 @@ function renderScalarControl(params: ScalarControlParams): TemplateResult {
                   class="cfg-segmented__btn ${selected ? "" : "active"}"
                   @click=${onClear}
                 >
-                  unset
+                  未设置
                 </button>
               `
             : nothing}
@@ -327,7 +327,7 @@ function renderScalarControl(params: ScalarControlParams): TemplateResult {
           onSet(next);
         }}
       >
-        ${onClear ? html`<option value="">(unset)</option>` : nothing}
+        ${onClear ? html`<option value="">（未设置）</option>` : nothing}
         ${enumValues.map((entry) => html`<option value=${entry}>${entry}</option>`) }
       </select>
     `;
@@ -374,9 +374,9 @@ function renderScalarControl(params: ScalarControlParams): TemplateResult {
   }
 
   return html`
-    <div class="cb-typeahead ${compact ? "cb-typeahead--compact" : ""}">
-      ${input}
-      <div class="cb-typeahead__menu" role="listbox" aria-label="Suggestions">
+      <div class="cb-typeahead ${compact ? "cb-typeahead--compact" : ""}">
+        ${input}
+        <div class="cb-typeahead__menu" role="listbox" aria-label="建议">
         ${filteredSuggestions.map((entry) => html`
           <button
             type="button"
@@ -411,19 +411,19 @@ function renderArrayNodeControl(params: {
   return html`
     <div class="cfg-array">
       <div class="cfg-array__header">
-        <span class="cfg-array__label">Items</span>
-        <span class="cfg-array__count">${list.length} item${list.length === 1 ? "" : "s"}</span>
+        <span class="cfg-array__label">列表项</span>
+        <span class="cfg-array__count">${list.length} 项</span>
         <button
           type="button"
           class="cfg-array__add"
           @click=${() => onSet([...list, defaultValueForNode(itemNode)])}
         >
-          Add
+          添加
         </button>
       </div>
 
       ${list.length === 0
-        ? html`<div class="cfg-array__empty">No items yet.</div>`
+        ? html`<div class="cfg-array__empty">暂无条目。</div>`
         : html`
             <div class="cfg-array__items">
               ${list.map((item, index) =>
@@ -434,7 +434,7 @@ function renderArrayNodeControl(params: {
                       <button
                         type="button"
                         class="cfg-array__item-remove"
-                        title="Remove item"
+                        title="删除条目"
                         @click=${() => {
                           const next = [...list];
                           next.splice(index, 1);
@@ -525,7 +525,7 @@ function renderObjectNodeControl(params: {
         ? html`
             <div class="cfg-map">
               <div class="cfg-map__header">
-                <span class="cfg-map__label">Fields</span>
+                <span class="cfg-map__label">字段</span>
               </div>
               <div class="cfg-map__items">
                 ${fixedEntries.map(([key, childNode]) => {
@@ -552,7 +552,7 @@ function renderObjectNodeControl(params: {
                       <button
                         type="button"
                         class="cfg-map__item-remove"
-                        title="Clear field"
+                        title="清空字段"
                         ?disabled=${!hasValue}
                         @click=${() => clearChildValue(key)}
                       >
@@ -570,12 +570,12 @@ function renderObjectNodeControl(params: {
         ? html`
             <div class="cfg-map">
               <div class="cfg-map__header">
-                <span class="cfg-map__label">Entries</span>
-                <button type="button" class="cfg-map__add" @click=${addExtraEntry}>Add Entry</button>
+                <span class="cfg-map__label">键值项</span>
+                <button type="button" class="cfg-map__add" @click=${addExtraEntry}>添加键值</button>
               </div>
 
               ${extraEntries.length === 0
-                ? html`<div class="cfg-map__empty">No entries yet.</div>`
+                ? html`<div class="cfg-map__empty">暂无键值。</div>`
                 : html`
                     <div class="cfg-map__items">
                       ${extraEntries.map(([key, entryValue]) =>
@@ -614,7 +614,7 @@ function renderObjectNodeControl(params: {
                             <button
                               type="button"
                               class="cfg-map__item-remove"
-                              title="Remove entry"
+                              title="删除键值"
                               @click=${() => clearChildValue(key)}
                             >
                               ×
@@ -629,7 +629,7 @@ function renderObjectNodeControl(params: {
         : nothing}
 
       ${!hasFixed && !canEditExtras && !node.allowsUnknownProperties
-        ? html`<div class="cfg-field__help">No editable keys in this object schema.</div>`
+        ? html`<div class="cfg-field__help">该对象 schema 中没有可编辑键。</div>`
         : nothing}
     </div>
   `;
@@ -692,7 +692,7 @@ export function renderFieldEditor(params: FieldRendererParams): TemplateResult |
   const { field, value, onSet, onClear, onValidationError, suggestions } = params;
 
   if (!field.editable) {
-    return html`<div class="cfg-field__help">Read-only in this phase.</div>`;
+    return html`<div class="cfg-field__help">当前阶段为只读。</div>`;
   }
 
   if (
@@ -725,5 +725,5 @@ export function renderFieldEditor(params: FieldRendererParams): TemplateResult |
     });
   }
 
-  return html`<div class="cfg-field__help">Unsupported schema node.</div>`;
+  return html`<div class="cfg-field__help">暂不支持该 schema 节点。</div>`;
 }

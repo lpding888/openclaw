@@ -25,35 +25,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function deepMerge(
-  base: Record<string, unknown>,
-  incoming: Record<string, unknown>,
-): Record<string, unknown> {
-  const result = { ...base };
-  for (const [key, value] of Object.entries(incoming)) {
-    if (isRecord(value) && isRecord(result[key])) {
-      result[key] = deepMerge(result[key], value);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
-}
-
 function parseInput(raw: string): { config: ConfigDraft; error: string | null } {
   const trimmed = raw.trim();
   if (!trimmed) {
-    return { config: {}, error: "Input is empty." };
+    return { config: {}, error: "输入为空。" };
   }
   try {
-    const parsed = JSON5.parse(trimmed) as unknown;
+    const parsed = JSON5.parse(trimmed);
     if (!isRecord(parsed)) {
-      return { config: {}, error: "Parsed value is not an object." };
+      return { config: {}, error: "解析结果不是对象。" };
     }
     return { config: parsed, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { config: {}, error: `Parse error: ${message}` };
+    return { config: {}, error: `解析错误：${message}` };
   }
 }
 
@@ -105,11 +90,11 @@ export function renderImportDialog(
     const file = e.dataTransfer?.files?.[0];
     if (!file) {return;}
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.addEventListener("load", () => {
       if (typeof reader.result === "string") {
         handleFileContent(reader.result, mode);
       }
-    };
+    });
     reader.readAsText(file);
   };
 
@@ -117,11 +102,11 @@ export function renderImportDialog(
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) {return;}
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.addEventListener("load", () => {
       if (typeof reader.result === "string") {
         handleFileContent(reader.result, mode);
       }
-    };
+    });
     reader.readAsText(file);
   };
 
@@ -132,7 +117,7 @@ export function renderImportDialog(
       <div class="cb-import-dialog">
         <div class="cb-import-dialog__header">
           <div class="cb-import-dialog__title">
-            ${iconImport} Import Config
+            ${iconImport} 导入配置
           </div>
           <button class="cb-import-dialog__close" @click=${callbacks.onClose}>
             ${iconX}
@@ -144,13 +129,13 @@ export function renderImportDialog(
             class="cb-import-dialog__tab ${state.tab === "paste" ? "active" : ""}"
             @click=${() => callbacks.onStateChange({ ...state, tab: "paste", error: null })}
           >
-            Paste JSON5
+            粘贴 JSON5
           </button>
           <button
             class="cb-import-dialog__tab ${state.tab === "upload" ? "active" : ""}"
             @click=${() => callbacks.onStateChange({ ...state, tab: "upload", error: null })}
           >
-            Upload File
+            上传文件
           </button>
         </div>
 
@@ -160,7 +145,7 @@ export function renderImportDialog(
                 <textarea
                   class="cb-import-dialog__textarea"
                   rows="10"
-                  placeholder='Paste your openclaw.json or JSON5 content here…\n\n{\n  gateway: { port: 18789 },\n  agents: { ... }\n}'
+                  placeholder='在这里粘贴你的 openclaw.json 或 JSON5 内容…\n\n{\n  gateway: { port: 18789 },\n  agents: { ... }\n}'
                   .value=${state.pasteValue}
                   @input=${(e: Event) => {
                     callbacks.onStateChange({
@@ -187,12 +172,12 @@ export function renderImportDialog(
                 >
                   <div class="cb-import-dialog__drop-icon">${iconFile}</div>
                   <div class="cb-import-dialog__drop-text">
-                    Drop your config file here
+                    将配置文件拖到这里
                   </div>
                   <div class="cb-import-dialog__drop-sub">
-                    or
+                    或
                     <label class="cb-import-dialog__file-label">
-                      browse files
+                      选择文件
                       <input
                         type="file"
                         accept=".json,.json5,.jsonc"
@@ -219,14 +204,14 @@ export function renderImportDialog(
                         ?disabled=${!state.pasteValue.trim()}
                         @click=${() => handlePasteImport("merge")}
                       >
-                        Merge with draft
+                        合并到当前草稿
                       </button>
                       <button
                         class="btn btn--sm danger"
                         ?disabled=${!state.pasteValue.trim()}
                         @click=${() => handlePasteImport("replace")}
                       >
-                        Replace draft
+                        替换当前草稿
                       </button>
                     `
                   : html`
@@ -235,7 +220,7 @@ export function renderImportDialog(
                         ?disabled=${!state.pasteValue.trim()}
                         @click=${() => handlePasteImport("replace")}
                       >
-                        ${iconCheck} Import
+                        ${iconCheck} 导入
                       </button>
                     `}
               </div>

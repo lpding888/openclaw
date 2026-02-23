@@ -8,6 +8,8 @@ const repoRoot = path.resolve(here, "../..");
 export default defineConfig({
   resolve: {
     alias: {
+      "@openclaw/config/schema.ts": path.resolve(here, "src/shims/config-schema.ts"),
+      "@openclaw/config/zod-schema.ts": path.resolve(here, "src/shims/zod-schema.ts"),
       "@openclaw/config": path.resolve(repoRoot, "src/config"),
     },
   },

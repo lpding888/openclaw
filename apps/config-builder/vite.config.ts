@@ -28,6 +28,14 @@ export default defineConfig(() => {
     resolve: {
       alias: [
         {
+          find: "@openclaw/config/schema.ts",
+          replacement: path.resolve(here, "src/shims/config-schema.ts"),
+        },
+        {
+          find: "@openclaw/config/zod-schema.ts",
+          replacement: path.resolve(here, "src/shims/zod-schema.ts"),
+        },
+        {
           find: "@openclaw/config",
           replacement: path.resolve(repoRoot, "src/config"),
         },
