@@ -1,9 +1,9 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../../config/config.ts";
-import type { AnyAgentTool } from "../common.ts";
 import { loadConfig } from "../../../config/config.ts";
 import { resolveApiKeyForProvider } from "../../model-auth.ts";
 import { SHENGSUANYUN_BASE_URL } from "../../shengsuanyun-models.ts";
+import type { AnyAgentTool } from "../common.ts";
 import { readStringParam } from "../common.ts";
 
 export const APP_HEADERS: Record<string, string> = {

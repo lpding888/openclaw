@@ -129,6 +129,7 @@ import type {
   NostrProfile,
 } from "./types.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
+import { generateUUID } from "./uuid.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 
 declare global {
@@ -156,6 +157,7 @@ function resolveOnboardingMode(): boolean {
 @customElement("openclaw-app")
 export class OpenClawApp extends LitElement {
   private i18nController = new I18nController(this);
+  clientInstanceId = generateUUID();
   @state() settings: UiSettings = loadSettings();
   constructor() {
     super();
@@ -171,6 +173,7 @@ export class OpenClawApp extends LitElement {
   @state() themeResolved: ResolvedTheme = "dark";
   @state() hello: GatewayHelloOk | null = null;
   @state() lastError: string | null = null;
+  @state() lastErrorCode: string | null = null;
   @state() eventLog: EventLogEntry[] = [];
   private eventLogBuffer: EventLogEntry[] = [];
   private toolStreamSyncTimer: number | null = null;
@@ -180,9 +183,10 @@ export class OpenClawApp extends LitElement {
   @state() assistantAvatar = bootAssistantIdentity.avatar;
   @state() assistantAgentId = bootAssistantIdentity.agentId ?? null;
 
-  // Security: Pending gateway URL from URL params, requires user confirmation.
-  // See CVE: GHSA-g8p2-7wf7-98mq
-  @state() pendingGatewayUrl: string | null = null;
+  @state() commandCenterOpen = false;
+  @state() commandCenterQuery = "";
+  @state() commandCenterSelectedIndex = 0;
+  @state() commandCenterNotice: string | null = null;
 
   @state() sessionKey = this.settings.sessionKey;
   @state() chatLoading = false;
@@ -379,6 +383,7 @@ export class OpenClawApp extends LitElement {
   @state() skillsError: string | null = null;
   @state() skillsFilter = "";
   @state() skillEdits: Record<string, string> = {};
+  @state() skillEnvEdits: Record<string, Record<string, string>> = {};
   @state() skillsBusyKey: string | null = null;
   @state() skillMessages: Record<string, SkillMessage> = {};
 
@@ -426,6 +431,7 @@ export class OpenClawApp extends LitElement {
   private themeMedia: MediaQueryList | null = null;
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
+  private commandCenterKeyHandler = (e: KeyboardEvent) => this.handleCommandCenterKey(e);
 
   private call<TArgs extends unknown[], TResult, THost>(
     fn: (host: THost, ...args: TArgs) => TResult,
@@ -442,6 +448,7 @@ export class OpenClawApp extends LitElement {
     super.connectedCallback();
     try {
       handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
+      window.addEventListener("keydown", this.commandCenterKeyHandler, { capture: true });
     } catch (err) {
       console.error("[control-ui] startup failed:", err);
       this.lastError = err instanceof Error ? err.message : String(err);
@@ -453,12 +460,59 @@ export class OpenClawApp extends LitElement {
   }
 
   disconnectedCallback() {
+    window.removeEventListener("keydown", this.commandCenterKeyHandler, { capture: true });
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }
 
   protected updated(changed: Map<PropertyKey, unknown>) {
     handleUpdated(this as unknown as Parameters<typeof handleUpdated>[0], changed);
+    if (changed.has("commandCenterOpen") && this.commandCenterOpen) {
+      // Ensure the search input gets focus even when opened from deep inside other inputs.
+      void this.updateComplete.then(() => {
+        const el = document.getElementById("command-center-search") as HTMLInputElement | null;
+        if (!el) {
+          return;
+        }
+        el.focus();
+        el.select();
+      });
+    }
+  }
+
+  private handleCommandCenterKey(e: KeyboardEvent) {
+    const key = (e.key || "").toLowerCase();
+    const isK = key === "k";
+    const isEsc = key === "escape";
+    const wantsPalette = isK && (e.metaKey || e.ctrlKey) && !e.altKey;
+
+    if (!wantsPalette && !(this.commandCenterOpen && isEsc)) {
+      return;
+    }
+
+    // Avoid double-handling keys when the overlay itself is doing list navigation.
+    // This handler is only for open/close toggles.
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (wantsPalette) {
+      this.commandCenterOpen = !this.commandCenterOpen;
+      if (this.commandCenterOpen) {
+        this.commandCenterSelectedIndex = 0;
+      } else {
+        this.commandCenterQuery = "";
+        this.commandCenterSelectedIndex = 0;
+        this.commandCenterNotice = null;
+      }
+      return;
+    }
+
+    if (this.commandCenterOpen && isEsc) {
+      this.commandCenterOpen = false;
+      this.commandCenterQuery = "";
+      this.commandCenterSelectedIndex = 0;
+      this.commandCenterNotice = null;
+    }
   }
 
   connect() {

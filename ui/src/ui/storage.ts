@@ -1,6 +1,9 @@
-const KEY = "clawdbot.control.settings.v1";
-const DEVICE_AUTH_KEY = "clawdbot.device.auth.v1";
-const DEVICE_IDENTITY_KEY = "clawdbot-device-identity-v1";
+const KEY = "openclaw.control.settings.v1";
+const LEGACY_KEY = "clawdbot.control.settings.v1";
+const DEVICE_AUTH_KEY = "openclaw.device.auth.v1";
+const LEGACY_DEVICE_AUTH_KEY = "clawdbot.device.auth.v1";
+const DEVICE_IDENTITY_KEY = "openclaw-device-identity-v1";
+const LEGACY_DEVICE_IDENTITY_KEY = "clawdbot-device-identity-v1";
 const MAX_SETTINGS_JSON_CHARS = 200_000;
 
 import { isSupportedLocale } from "../i18n/index.ts";
@@ -82,8 +85,11 @@ function shouldResetUiStateFromUrl(): boolean {
 function resetUiStorage() {
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(LEGACY_KEY);
     localStorage.removeItem(DEVICE_AUTH_KEY);
+    localStorage.removeItem(LEGACY_DEVICE_AUTH_KEY);
     localStorage.removeItem(DEVICE_IDENTITY_KEY);
+    localStorage.removeItem(LEGACY_DEVICE_IDENTITY_KEY);
   } catch {
     // best-effort
   }
@@ -119,7 +125,7 @@ export function loadSettings(): UiSettings {
   }
 
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(LEGACY_KEY);
     if (!raw) {
       return defaults;
     }

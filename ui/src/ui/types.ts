@@ -297,6 +297,7 @@ export type ConfigSnapshot = {
 export type ConfigUiHint = {
   label?: string;
   help?: string;
+  tags?: string[];
   group?: string;
   order?: number;
   advanced?: boolean;
@@ -634,6 +635,7 @@ export type SkillStatusEntry = {
   baseDir: string;
   skillKey: string;
   primaryEnv?: string;
+  uiEnv?: Record<string, string>;
   emoji?: string;
   homepage?: string;
   bundled?: boolean;

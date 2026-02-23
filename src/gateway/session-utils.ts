@@ -8,16 +8,29 @@ import {
   resolveStorePath,
   type SessionEntry,
 } from "../config/sessions.js";
-import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
-import { listConfiguredAgentIds, listAgentsForGateway } from "./session-utils.agents.js";
+import { openVerifiedFileSync } from "../infra/safe-open-sync.js";
 import {
-  classifySessionKey,
-  deriveSessionTitle,
-  getSessionDefaults,
-  listSessionsFromStore,
-  parseGroupKey,
-  resolveSessionModelRef,
-} from "./session-utils.list.js";
+  normalizeAgentId,
+  normalizeMainKey,
+  parseAgentSessionKey,
+} from "../routing/session-key.js";
+import { isCronRunSessionKey } from "../sessions/session-key-utils.js";
+import {
+  AVATAR_MAX_BYTES,
+  isAvatarDataUrl,
+  isAvatarHttpUrl,
+  isPathWithinRoot,
+  isWorkspaceRelativeAvatarPath,
+  resolveAvatarMime,
+} from "../shared/avatar-policy.js";
+import { normalizeSessionDeliveryFields } from "../utils/delivery-context.js";
+import { readSessionTitleFieldsFromTranscript } from "./session-utils.fs.js";
+import type {
+  GatewayAgentRow,
+  GatewaySessionRow,
+  GatewaySessionsDefaults,
+  SessionsListResult,
+} from "./session-utils.types.js";
 
 export {
   archiveFileOnDisk,
@@ -50,6 +63,115 @@ export type {
   SessionsPreviewEntry,
   SessionsPreviewResult,
 } from "./session-utils.types.js";
+
+const DERIVED_TITLE_MAX_LEN = 60;
+
+function tryResolveExistingPath(value: string): string | null {
+  try {
+    return fs.realpathSync(value);
+  } catch {
+    return null;
+  }
+}
+
+function resolveIdentityAvatarUrl(
+  cfg: OpenClawConfig,
+  agentId: string,
+  avatar: string | undefined,
+): string | undefined {
+  if (!avatar) {
+    return undefined;
+  }
+  const trimmed = avatar.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (isAvatarDataUrl(trimmed) || isAvatarHttpUrl(trimmed)) {
+    return trimmed;
+  }
+  if (!isWorkspaceRelativeAvatarPath(trimmed)) {
+    return undefined;
+  }
+  const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
+  const workspaceRoot = tryResolveExistingPath(workspaceDir) ?? path.resolve(workspaceDir);
+  const resolvedCandidate = path.resolve(workspaceRoot, trimmed);
+  if (!isPathWithinRoot(workspaceRoot, resolvedCandidate)) {
+    return undefined;
+  }
+  try {
+    const resolvedReal = fs.realpathSync(resolvedCandidate);
+    if (!isPathWithinRoot(workspaceRoot, resolvedReal)) {
+      return undefined;
+    }
+    const opened = openVerifiedFileSync({
+      filePath: resolvedReal,
+      resolvedPath: resolvedReal,
+      maxBytes: AVATAR_MAX_BYTES,
+    });
+    if (!opened.ok) {
+      return undefined;
+    }
+    try {
+      const buffer = fs.readFileSync(opened.fd);
+      const mime = resolveAvatarMime(resolvedCandidate);
+      return `data:${mime};base64,${buffer.toString("base64")}`;
+    } finally {
+      fs.closeSync(opened.fd);
+    }
+  } catch {
+    return undefined;
+  }
+}
+
+function formatSessionIdPrefix(sessionId: string, updatedAt?: number | null): string {
+  const prefix = sessionId.slice(0, 8);
+  if (updatedAt && updatedAt > 0) {
+    const d = new Date(updatedAt);
+    const date = d.toISOString().slice(0, 10);
+    return `${prefix} (${date})`;
+  }
+  return prefix;
+}
+
+function truncateTitle(text: string, maxLen: number): string {
+  if (text.length <= maxLen) {
+    return text;
+  }
+  const cut = text.slice(0, maxLen - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  if (lastSpace > maxLen * 0.6) {
+    return cut.slice(0, lastSpace) + "…";
+  }
+  return cut + "…";
+}
+
+export function deriveSessionTitle(
+  entry: SessionEntry | undefined,
+  firstUserMessage?: string | null,
+): string | undefined {
+  if (!entry) {
+    return undefined;
+  }
+
+  if (entry.displayName?.trim()) {
+    return entry.displayName.trim();
+  }
+
+  if (entry.subject?.trim()) {
+    return entry.subject.trim();
+  }
+
+  if (firstUserMessage?.trim()) {
+    const normalized = firstUserMessage.replace(/\s+/g, " ").trim();
+    return truncateTitle(normalized, DERIVED_TITLE_MAX_LEN);
+  }
+
+  if (entry.sessionId) {
+    return formatSessionIdPrefix(entry.sessionId, entry.updatedAt);
+  }
+
+  return undefined;
+}
 
 export function loadSessionEntry(sessionKey: string) {
   const cfg = loadConfig();
@@ -160,7 +282,7 @@ export function resolveSessionStoreKey(params: {
   cfg: OpenClawConfig;
   sessionKey: string;
 }): string {
-  const raw = params.sessionKey.trim();
+  const raw = (params.sessionKey ?? "").trim();
   if (!raw) {
     return raw;
   }
@@ -343,4 +465,261 @@ export function loadCombinedSessionStoreForGateway(cfg: OpenClawConfig): {
   const storePath =
     typeof storeConfig === "string" && storeConfig.trim() ? storeConfig.trim() : "(multiple)";
   return { storePath, store: combined };
+}
+
+export function getSessionDefaults(cfg: OpenClawConfig): GatewaySessionsDefaults {
+  const resolved = resolveConfiguredModelRef({
+    cfg,
+    defaultProvider: DEFAULT_PROVIDER,
+    defaultModel: DEFAULT_MODEL,
+  });
+  const contextTokens =
+    cfg.agents?.defaults?.contextTokens ??
+    lookupContextTokens(resolved.model) ??
+    DEFAULT_CONTEXT_TOKENS;
+  return {
+    modelProvider: resolved.provider ?? null,
+    model: resolved.model ?? null,
+    contextTokens: contextTokens ?? null,
+  };
+}
+
+export function resolveSessionModelRef(
+  cfg: OpenClawConfig,
+  entry?:
+    | SessionEntry
+    | Pick<SessionEntry, "model" | "modelProvider" | "modelOverride" | "providerOverride">,
+  agentId?: string,
+): { provider: string; model: string } {
+  const resolved = agentId
+    ? resolveDefaultModelForAgent({ cfg, agentId })
+    : resolveConfiguredModelRef({
+        cfg,
+        defaultProvider: DEFAULT_PROVIDER,
+        defaultModel: DEFAULT_MODEL,
+      });
+
+  // Prefer the last runtime model recorded on the session entry.
+  // This is the actual model used by the latest run and must win over defaults.
+  let provider = resolved.provider;
+  let model = resolved.model;
+  const runtimeModel = entry?.model?.trim();
+  const runtimeProvider = entry?.modelProvider?.trim();
+  if (runtimeModel) {
+    if (runtimeProvider) {
+      // Provider is explicitly recorded — use it directly. Re-parsing the
+      // model string through parseModelRef would incorrectly split OpenRouter
+      // vendor-prefixed model names (e.g. model="anthropic/claude-haiku-4.5"
+      // with provider="openrouter") into { provider: "anthropic" }, discarding
+      // the stored OpenRouter provider and causing direct API calls to a
+      // provider the user has no credentials for.
+      return { provider: runtimeProvider, model: runtimeModel };
+    }
+    const parsedRuntime = parseModelRef(runtimeModel, provider || DEFAULT_PROVIDER);
+    if (parsedRuntime) {
+      provider = parsedRuntime.provider;
+      model = parsedRuntime.model;
+    } else {
+      model = runtimeModel;
+    }
+    return { provider, model };
+  }
+
+  // Fall back to explicit per-session override (set at spawn/model-patch time),
+  // then finally to configured defaults.
+  const storedModelOverride = entry?.modelOverride?.trim();
+  if (storedModelOverride) {
+    const overrideProvider = entry?.providerOverride?.trim() || provider || DEFAULT_PROVIDER;
+    const parsedOverride = parseModelRef(storedModelOverride, overrideProvider);
+    if (parsedOverride) {
+      provider = parsedOverride.provider;
+      model = parsedOverride.model;
+    } else {
+      provider = overrideProvider;
+      model = storedModelOverride;
+    }
+  }
+  return { provider, model };
+}
+
+export function listSessionsFromStore(params: {
+  cfg: OpenClawConfig;
+  storePath: string;
+  store: Record<string, SessionEntry>;
+  opts: import("./protocol/index.js").SessionsListParams;
+}): SessionsListResult {
+  const { cfg, storePath, store, opts } = params;
+  const now = Date.now();
+
+  const includeGlobal = opts.includeGlobal === true;
+  const includeUnknown = opts.includeUnknown === true;
+  const includeDerivedTitles = opts.includeDerivedTitles === true;
+  const includeLastMessage = opts.includeLastMessage === true;
+  const spawnedBy = typeof opts.spawnedBy === "string" ? opts.spawnedBy : "";
+  const label = typeof opts.label === "string" ? opts.label.trim() : "";
+  const agentId = typeof opts.agentId === "string" ? normalizeAgentId(opts.agentId) : "";
+  const search = typeof opts.search === "string" ? opts.search.trim().toLowerCase() : "";
+  const activeMinutes =
+    typeof opts.activeMinutes === "number" && Number.isFinite(opts.activeMinutes)
+      ? Math.max(1, Math.floor(opts.activeMinutes))
+      : undefined;
+
+  let sessions = Object.entries(store)
+    .filter(([key]) => {
+      if (isCronRunSessionKey(key)) {
+        return false;
+      }
+      if (!includeGlobal && key === "global") {
+        return false;
+      }
+      if (!includeUnknown && key === "unknown") {
+        return false;
+      }
+      if (agentId) {
+        if (key === "global" || key === "unknown") {
+          return false;
+        }
+        const parsed = parseAgentSessionKey(key);
+        if (!parsed) {
+          return false;
+        }
+        return normalizeAgentId(parsed.agentId) === agentId;
+      }
+      return true;
+    })
+    .filter(([key, entry]) => {
+      if (!spawnedBy) {
+        return true;
+      }
+      if (key === "unknown" || key === "global") {
+        return false;
+      }
+      return entry?.spawnedBy === spawnedBy;
+    })
+    .filter(([, entry]) => {
+      if (!label) {
+        return true;
+      }
+      return entry?.label === label;
+    })
+    .map(([key, entry]) => {
+      const updatedAt = entry?.updatedAt ?? null;
+      const total = resolveFreshSessionTotalTokens(entry);
+      const totalTokensFresh =
+        typeof entry?.totalTokens === "number" ? entry?.totalTokensFresh !== false : false;
+      const parsed = parseGroupKey(key);
+      const channel = entry?.channel ?? parsed?.channel;
+      const subject = entry?.subject;
+      const groupChannel = entry?.groupChannel;
+      const space = entry?.space;
+      const id = parsed?.id;
+      const origin = entry?.origin;
+      const originLabel = origin?.label;
+      const displayName =
+        entry?.displayName ??
+        (channel
+          ? buildGroupDisplayName({
+              provider: channel,
+              subject,
+              groupChannel,
+              space,
+              id,
+              key,
+            })
+          : undefined) ??
+        entry?.label ??
+        originLabel;
+      const deliveryFields = normalizeSessionDeliveryFields(entry);
+      const parsedAgent = parseAgentSessionKey(key);
+      const sessionAgentId = normalizeAgentId(parsedAgent?.agentId ?? resolveDefaultAgentId(cfg));
+      const resolvedModel = resolveSessionModelRef(cfg, entry, sessionAgentId);
+      const modelProvider = resolvedModel.provider ?? DEFAULT_PROVIDER;
+      const model = resolvedModel.model ?? DEFAULT_MODEL;
+      return {
+        key,
+        entry,
+        kind: classifySessionKey(key, entry),
+        label: entry?.label,
+        displayName,
+        channel,
+        subject,
+        groupChannel,
+        space,
+        chatType: entry?.chatType,
+        origin,
+        updatedAt,
+        sessionId: entry?.sessionId,
+        systemSent: entry?.systemSent,
+        abortedLastRun: entry?.abortedLastRun,
+        thinkingLevel: entry?.thinkingLevel,
+        verboseLevel: entry?.verboseLevel,
+        reasoningLevel: entry?.reasoningLevel,
+        elevatedLevel: entry?.elevatedLevel,
+        sendPolicy: entry?.sendPolicy,
+        inputTokens: entry?.inputTokens,
+        outputTokens: entry?.outputTokens,
+        totalTokens: total,
+        totalTokensFresh,
+        responseUsage: entry?.responseUsage,
+        modelProvider,
+        model,
+        contextTokens: entry?.contextTokens,
+        deliveryContext: deliveryFields.deliveryContext,
+        lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
+        lastTo: deliveryFields.lastTo ?? entry?.lastTo,
+        lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,
+      };
+    })
+    .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+
+  if (search) {
+    sessions = sessions.filter((s) => {
+      const fields = [s.displayName, s.label, s.subject, s.sessionId, s.key];
+      return fields.some((f) => typeof f === "string" && f.toLowerCase().includes(search));
+    });
+  }
+
+  if (activeMinutes !== undefined) {
+    const cutoff = now - activeMinutes * 60_000;
+    sessions = sessions.filter((s) => (s.updatedAt ?? 0) >= cutoff);
+  }
+
+  if (typeof opts.limit === "number" && Number.isFinite(opts.limit)) {
+    const limit = Math.max(1, Math.floor(opts.limit));
+    sessions = sessions.slice(0, limit);
+  }
+
+  const finalSessions: GatewaySessionRow[] = sessions.map((s) => {
+    const { entry, ...rest } = s;
+    let derivedTitle: string | undefined;
+    let lastMessagePreview: string | undefined;
+    if (entry?.sessionId) {
+      if (includeDerivedTitles || includeLastMessage) {
+        const parsed = parseAgentSessionKey(s.key);
+        const agentId =
+          parsed && parsed.agentId ? normalizeAgentId(parsed.agentId) : resolveDefaultAgentId(cfg);
+        const fields = readSessionTitleFieldsFromTranscript(
+          entry.sessionId,
+          storePath,
+          entry.sessionFile,
+          agentId,
+        );
+        if (includeDerivedTitles) {
+          derivedTitle = deriveSessionTitle(entry, fields.firstUserMessage);
+        }
+        if (includeLastMessage && fields.lastMessagePreview) {
+          lastMessagePreview = fields.lastMessagePreview;
+        }
+      }
+    }
+    return { ...rest, derivedTitle, lastMessagePreview } satisfies GatewaySessionRow;
+  });
+
+  return {
+    ts: now,
+    path: storePath,
+    count: finalSessions.length,
+    defaults: getSessionDefaults(cfg),
+    sessions: finalSessions,
+  };
 }

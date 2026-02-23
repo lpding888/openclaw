@@ -15,7 +15,9 @@ import {
   refreshActiveTab,
   setLastActiveSessionKey,
 } from "./app-settings.ts";
-import { handleAgentEvent, resetToolStream } from "./app-tool-stream.ts";
+import { handleAgentEvent, resetToolStream, type AgentEventPayload } from "./app-tool-stream.ts";
+import type { OpenClawApp } from "./app.ts";
+import { shouldReloadHistoryForFinalEvent } from "./chat-event-reload.ts";
 import { loadAgents } from "./controllers/agents.ts";
 import { loadAssistantIdentity } from "./controllers/assistant-identity.ts";
 import {
@@ -35,6 +37,12 @@ import {
 } from "./controllers/exec-approval.ts";
 import { loadModelSwitcher } from "./controllers/model-switcher.ts";
 import { loadNodes } from "./controllers/nodes.ts";
+import { loadSessions } from "./controllers/sessions.ts";
+import {
+  resolveGatewayErrorDetailCode,
+  type GatewayEventFrame,
+  type GatewayHelloOk,
+} from "./gateway.ts";
 import { GatewayBrowserClient } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import type { UiSettings } from "./storage.ts";
@@ -49,10 +57,12 @@ import type {
 type GatewayHost = {
   settings: UiSettings;
   password: string;
+  clientInstanceId: string;
   client: GatewayBrowserClient | null;
   connected: boolean;
   hello: GatewayHelloOk | null;
   lastError: string | null;
+  lastErrorCode: string | null;
   onboarding?: boolean;
   eventLogBuffer: EventLogEntry[];
   eventLog: EventLogEntry[];
@@ -139,6 +149,7 @@ function applySessionDefaults(host: GatewayHost, defaults?: SessionDefaultsSnaps
 
 export function connectGateway(host: GatewayHost) {
   host.lastError = null;
+  host.lastErrorCode = null;
   host.hello = null;
   host.connected = false;
   host.execApprovalQueue = [];
@@ -151,12 +162,14 @@ export function connectGateway(host: GatewayHost) {
     password: host.password.trim() ? host.password : undefined,
     clientName: GATEWAY_CLIENT_NAMES.CONTROL_UI,
     mode: "webchat",
+    instanceId: host.clientInstanceId,
     onHello: (hello) => {
       if (host.client !== client) {
         return;
       }
       host.connected = true;
       host.lastError = null;
+      host.lastErrorCode = null;
       host.hello = hello;
       applySnapshot(host, hello);
       void loadAssistantIdentity(host as unknown as ClawdbotApp);
@@ -166,14 +179,24 @@ export function connectGateway(host: GatewayHost) {
       void loadModelSwitcher(host as unknown as Parameters<typeof loadModelSwitcher>[0]);
       void refreshActiveTab(host as unknown as Parameters<typeof refreshActiveTab>[0]);
     },
-    onClose: ({ code, reason }) => {
+    onClose: ({ code, reason, error }) => {
       if (host.client !== client) {
         return;
       }
       host.connected = false;
       // Code 1012 = Service Restart (expected during config saves, don't show as error)
+      host.lastErrorCode =
+        resolveGatewayErrorDetailCode(error) ??
+        (typeof error?.code === "string" ? error.code : null);
       if (code !== 1012) {
+        if (error?.message) {
+          host.lastError = error.message;
+          return;
+        }
         host.lastError = `disconnected (${code}): ${reason || "no reason"}`;
+      } else {
+        host.lastError = null;
+        host.lastErrorCode = null;
       }
     },
     onEvent: (evt) => {
@@ -187,6 +210,7 @@ export function connectGateway(host: GatewayHost) {
         return;
       }
       host.lastError = `event gap detected (expected seq ${expected}, got ${received}); refresh recommended`;
+      host.lastErrorCode = null;
     },
   });
   host.client = client;
@@ -204,6 +228,42 @@ export function handleGatewayEvent(host: GatewayHost, evt: GatewayEventFrame) {
     handleGatewayEventUnsafe(host, evt);
   } catch (err) {
     console.error("[gateway] handleGatewayEvent error:", evt.event, err);
+  }
+}
+
+function handleTerminalChatEvent(
+  host: GatewayHost,
+  payload: ChatEventPayload | undefined,
+  state: ReturnType<typeof handleChatEvent>,
+) {
+  if (state !== "final" && state !== "error" && state !== "aborted") {
+    return;
+  }
+  resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
+  void flushChatQueueForEvent(host as unknown as Parameters<typeof flushChatQueueForEvent>[0]);
+  const runId = payload?.runId;
+  if (!runId || !host.refreshSessionsAfterChat.has(runId)) {
+    return;
+  }
+  host.refreshSessionsAfterChat.delete(runId);
+  if (state === "final") {
+    void loadSessions(host as unknown as OpenClawApp, {
+      activeMinutes: CHAT_SESSIONS_ACTIVE_MINUTES,
+    });
+  }
+}
+
+function handleChatGatewayEvent(host: GatewayHost, payload: ChatEventPayload | undefined) {
+  if (payload?.sessionKey) {
+    setLastActiveSessionKey(
+      host as unknown as Parameters<typeof setLastActiveSessionKey>[0],
+      payload.sessionKey,
+    );
+  }
+  const state = handleChatEvent(host as unknown as OpenClawApp, payload);
+  handleTerminalChatEvent(host, payload, state);
+  if (state === "final" && shouldReloadHistoryForFinalEvent(payload)) {
+    void loadChatHistory(host as unknown as OpenClawApp);
   }
 }
 
@@ -239,21 +299,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   }
 
   if (evt.event === "chat") {
-    const payload = evt.payload as ChatEventPayload | undefined;
-    if (payload?.sessionKey) {
-      setLastActiveSessionKey(
-        host as unknown as Parameters<typeof setLastActiveSessionKey>[0],
-        payload.sessionKey,
-      );
-    }
-    const state = handleChatEvent(host as unknown as ClawdbotApp, payload);
-    if (state === "final" || state === "error" || state === "aborted") {
-      resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
-      void flushChatQueueForEvent(host as unknown as Parameters<typeof flushChatQueueForEvent>[0]);
-    }
-    if (state === "final") {
-      void loadChatHistory(host as unknown as ClawdbotApp);
-    }
+    handleChatGatewayEvent(host, evt.payload as ChatEventPayload | undefined);
     return;
   }
 

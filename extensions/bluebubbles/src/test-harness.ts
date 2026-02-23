@@ -1,14 +1,29 @@
 import { afterEach, beforeEach, vi } from "vitest";
 
-type BlueBubblesProbeMock = {
-  (): boolean | null;
-  mockReset: () => unknown;
+export const BLUE_BUBBLES_PRIVATE_API_STATUS = {
+  enabled: true,
+  disabled: false,
+  unknown: null,
+} as const;
+
+type BlueBubblesPrivateApiStatusMock = {
   mockReturnValue: (value: boolean | null) => unknown;
+  mockReturnValueOnce: (value: boolean | null) => unknown;
 };
 
-type BlueBubblesProbeMockModule = {
-  getCachedBlueBubblesPrivateApiStatus: BlueBubblesProbeMock;
-};
+export function mockBlueBubblesPrivateApiStatus(
+  mock: Pick<BlueBubblesPrivateApiStatusMock, "mockReturnValue">,
+  value: boolean | null,
+) {
+  mock.mockReturnValue(value);
+}
+
+export function mockBlueBubblesPrivateApiStatusOnce(
+  mock: Pick<BlueBubblesPrivateApiStatusMock, "mockReturnValueOnce">,
+  value: boolean | null,
+) {
+  mock.mockReturnValueOnce(value);
+}
 
 export function resolveBlueBubblesAccountFromConfig(params: {
   cfg?: { channels?: { bluebubbles?: Record<string, unknown> } };
@@ -29,9 +44,17 @@ export function createBlueBubblesAccountsMockModule() {
   };
 }
 
+type BlueBubblesProbeMockModule = {
+  getCachedBlueBubblesPrivateApiStatus: Mock<() => boolean | null>;
+  isBlueBubblesPrivateApiStatusEnabled: Mock<(status: boolean | null) => boolean>;
+};
+
 export function createBlueBubblesProbeMockModule(): BlueBubblesProbeMockModule {
   return {
-    getCachedBlueBubblesPrivateApiStatus: vi.fn().mockReturnValue(null) as BlueBubblesProbeMock,
+    getCachedBlueBubblesPrivateApiStatus: vi
+      .fn()
+      .mockReturnValue(BLUE_BUBBLES_PRIVATE_API_STATUS.unknown),
+    isBlueBubblesPrivateApiStatusEnabled: vi.fn((status: boolean | null) => status === true),
   };
 }
 
@@ -46,7 +69,7 @@ export function installBlueBubblesFetchTestHooks(params: {
     vi.stubGlobal("fetch", params.mockFetch);
     params.mockFetch.mockReset();
     params.privateApiStatusMock.mockReset();
-    params.privateApiStatusMock.mockReturnValue(null);
+    params.privateApiStatusMock.mockReturnValue(BLUE_BUBBLES_PRIVATE_API_STATUS.unknown);
   });
 
   afterEach(() => {

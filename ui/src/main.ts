@@ -30,7 +30,7 @@ function showFatalOverlay(message: string) {
     node.style.zIndex = "2147483647";
     document.body?.appendChild(node);
   }
-  node.textContent = `Control UI 启动失败\n\n${message}\n\n` + "请把这段截图发给维护者。";
+  node.textContent = `Control UI 启动失败\n\n${message}\n\n请把这段截图发给维护者。`;
 }
 
 if (typeof window !== "undefined") {
