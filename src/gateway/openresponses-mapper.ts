@@ -1,3 +1,7 @@
+import {
+  buildAgentMessageFromConversationEntries,
+  type ConversationEntry,
+} from "./agent-prompt.js";
 import type {
   ContentPart,
   ItemParam,
@@ -5,10 +9,6 @@ import type {
   ResponseResource,
   Usage,
 } from "./open-responses.schema.js";
-import {
-  buildAgentMessageFromConversationEntries,
-  type ConversationEntry,
-} from "./agent-prompt.js";
 
 function extractTextContent(content: string | ContentPart[]): string {
   if (typeof content === "string") {

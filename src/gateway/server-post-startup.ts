@@ -1,8 +1,8 @@
 import type { loadConfig } from "../config/config.js";
-import type { PluginServicesHandle } from "../plugins/services.js";
-import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { scheduleGatewayUpdateCheck } from "../infra/update-startup.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
+import type { PluginServicesHandle } from "../plugins/services.js";
+import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { createGatewayConfigReloaderRuntime } from "./server-config-reloader-runtime.js";
 import { logGatewayStartup } from "./server-startup-log.js";
 import { startGatewaySidecars } from "./server-startup.js";

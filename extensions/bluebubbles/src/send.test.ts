@@ -1,7 +1,6 @@
 import type { PluginRuntime } from "openclaw/plugin-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "./test-mocks.js";
-import type { BlueBubblesSendTarget } from "./types.js";
 import { getCachedBlueBubblesPrivateApiStatus } from "./probe.js";
 import { clearBlueBubblesRuntime, setBlueBubblesRuntime } from "./runtime.js";
 import { sendMessageBlueBubbles, resolveChatGuidForTarget } from "./send.js";
@@ -10,6 +9,7 @@ import {
   installBlueBubblesFetchTestHooks,
   mockBlueBubblesPrivateApiStatusOnce,
 } from "./test-harness.js";
+import type { BlueBubblesSendTarget } from "./types.js";
 import type { BlueBubblesSendTarget } from "./types.js";
 
 const mockFetch = vi.fn();
@@ -43,6 +43,23 @@ function mockSendResponse(body: unknown) {
     ok: true,
     text: () => Promise.resolve(JSON.stringify(body)),
   });
+}
+
+function mockNewChatSendResponse(guid: string) {
+  mockFetch
+    .mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: [] }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            data: { guid },
+          }),
+        ),
+    });
 }
 
 describe("send", () => {
@@ -454,20 +471,7 @@ describe("send", () => {
     });
 
     it("strips markdown when creating a new chat", async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ data: [] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          text: () =>
-            Promise.resolve(
-              JSON.stringify({
-                data: { guid: "new-msg-stripped" },
-              }),
-            ),
-        });
+      mockNewChatSendResponse("new-msg-stripped");
 
       const result = await sendMessageBlueBubbles("+15550009999", "**Welcome** to the _chat_!", {
         serverUrl: "http://localhost:1234",
@@ -484,20 +488,7 @@ describe("send", () => {
     });
 
     it("creates a new chat when handle target is missing", async () => {
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ data: [] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          text: () =>
-            Promise.resolve(
-              JSON.stringify({
-                data: { guid: "new-msg-guid" },
-              }),
-            ),
-        });
+      mockNewChatSendResponse("new-msg-guid");
 
       const result = await sendMessageBlueBubbles("+15550009999", "Hello new chat", {
         serverUrl: "http://localhost:1234",

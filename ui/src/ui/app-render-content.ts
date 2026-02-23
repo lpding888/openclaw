@@ -1,11 +1,10 @@
 import { nothing, type TemplateResult } from "lit";
-import type { AppViewState } from "./app-view-state.ts";
-import type { Tab } from "./navigation.ts";
 import { renderAgentsTab } from "./app-render-tab-agents.ts";
 import { renderChatTab } from "./app-render-tab-chat.ts";
 import { renderConfigTab } from "./app-render-tab-config.ts";
 import { renderNodesTab } from "./app-render-tab-nodes.ts";
 import { renderUsageTab } from "./app-render-usage-tab.ts";
+import type { AppViewState } from "./app-view-state.ts";
 import { loadChannels } from "./controllers/channels.ts";
 import {
   applyGatewayAuthProfile,
@@ -31,6 +30,7 @@ import {
   updateSkillEdit,
   updateSkillEnabled,
 } from "./controllers/skills.ts";
+import type { Tab } from "./navigation.ts";
 import { renderChannels } from "./views/channels.ts";
 import { renderCron } from "./views/cron.ts";
 import { renderDebug } from "./views/debug.ts";

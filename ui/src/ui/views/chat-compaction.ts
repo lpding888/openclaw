@@ -1,6 +1,6 @@
 import { html, nothing } from "lit";
-import type { CompactionIndicatorStatus } from "./chat.ts";
 import { icons } from "../icons.ts";
+import type { CompactionIndicatorStatus } from "./chat.ts";
 
 const COMPACTION_TOAST_DURATION_MS = 5000;
 

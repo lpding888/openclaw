@@ -1,12 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ReplyPayload } from "../auto-reply/types.js";
-import type { ChannelHeartbeatDeps } from "../channels/plugins/types.js";
-import type { OpenClawConfig } from "../config/config.js";
-import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
-import type { GatewaySessionsDefaults } from "../gateway/session-utils.types.js";
-import type { RuntimeEnv } from "../runtime.js";
-import type { OutboundSendDeps } from "./outbound/deliver.js";
 import {
   resolveAgentConfig,
   resolveAgentWorkspaceDir,
@@ -26,7 +19,10 @@ import {
   resolveHeartbeatPrompt as resolveHeartbeatPromptText,
   stripHeartbeatToken,
 } from "../auto-reply/heartbeat.js";
+import type { ReplyPayload } from "../auto-reply/types.js";
+import type { ChannelHeartbeatDeps } from "../channels/plugins/types.js";
 import { parseDurationMs } from "../cli/parse-duration.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   canonicalizeMainSessionAlias,
   loadSessionStore,
@@ -34,7 +30,11 @@ import {
   resolveAgentMainSessionKey,
   resolveStorePath,
 } from "../config/sessions.js";
+import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
+import type { GatewaySessionsDefaults } from "../gateway/session-utils.types.js";
 import { normalizeAgentId, toAgentStoreSessionKey } from "../routing/session-key.js";
+import type { RuntimeEnv } from "../runtime.js";
+import type { OutboundSendDeps } from "./outbound/deliver.js";
 
 export type HeartbeatDeps = OutboundSendDeps &
   ChannelHeartbeatDeps & {

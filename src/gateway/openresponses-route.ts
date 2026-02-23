@@ -1,7 +1,6 @@
 import type { ClientToolDefinition } from "../agents/pi-embedded-runner/run/params.js";
 import type { ImageContent } from "../commands/agent/types.js";
 import type { GatewayHttpResponsesConfig } from "../config/types.gateway.js";
-import type { CreateResponseBody } from "./open-responses.schema.js";
 import {
   DEFAULT_INPUT_FILE_MAX_BYTES,
   DEFAULT_INPUT_FILE_MAX_CHARS,
@@ -20,6 +19,7 @@ import {
   type InputImageLimits,
   type InputImageSource,
 } from "../media/input-files.js";
+import type { CreateResponseBody } from "./open-responses.schema.js";
 
 const DEFAULT_BODY_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_URL_PARTS = 8;

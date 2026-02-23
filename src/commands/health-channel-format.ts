@@ -1,5 +1,5 @@
-import type { ChannelAccountHealthSummary, HealthSummary } from "./health.js";
 import { getChannelPlugin } from "../channels/plugins/index.js";
+import type { ChannelAccountHealthSummary, HealthSummary } from "./health.js";
 
 export const formatDurationParts = (ms: number): string => {
   if (!Number.isFinite(ms)) {

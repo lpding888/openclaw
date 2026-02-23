@@ -1,10 +1,10 @@
 import { html } from "lit";
-import type { NodeSnapshot } from "../types.ts";
-import type { NodesProps } from "./nodes.types.ts";
 import { nodeLabel } from "../node-snapshot.ts";
+import type { NodeSnapshot } from "../types.ts";
 import { renderBindingsSection } from "./nodes.bindings.ts";
 import { renderDevicesSection } from "./nodes.devices.ts";
 import { renderExecApprovalsSection } from "./nodes.exec-approvals.ts";
+import type { NodesProps } from "./nodes.types.ts";
 
 export type { NodesProps } from "./nodes.types.ts";
 

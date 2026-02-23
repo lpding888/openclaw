@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
+import { icons } from "../icons.ts";
 import type { ChatAttachment } from "../ui-types.ts";
 import type { ChatProps } from "./chat.ts";
-import { icons } from "../icons.ts";
 
 function generateAttachmentId(): string {
   return `att-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

@@ -1,6 +1,5 @@
 import { html, nothing } from "lit";
 import type { ExecApprovalsAllowlistEntry } from "../controllers/exec-approvals.ts";
-import type { NodesProps } from "./nodes.types.ts";
 import { clampText, formatAgo } from "../format.ts";
 import {
   EXEC_APPROVALS_DEFAULT_SCOPE,
@@ -9,6 +8,7 @@ import {
   type ExecAsk,
   type ExecSecurity,
 } from "./nodes.exec-approvals.state.ts";
+import type { NodesProps } from "./nodes.types.ts";
 
 const SECURITY_OPTIONS: Array<{ value: ExecSecurity; label: string }> = [
   { value: "deny", label: "拒绝" },

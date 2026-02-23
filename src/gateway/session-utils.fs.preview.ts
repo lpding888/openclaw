@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import type { SessionPreviewItem } from "./session-utils.types.js";
 import { extractToolCallNames, hasToolCall } from "../utils/transcript-tools.js";
 import { stripEnvelope } from "./chat-sanitize.js";
+import type { SessionPreviewItem } from "./session-utils.types.js";
 
 const PREVIEW_READ_SIZES = [64 * 1024, 256 * 1024, 1024 * 1024];
 const PREVIEW_MAX_LINES = 200;

@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
+import { nodeLabel, nodeSupportsCommand } from "../node-snapshot.ts";
 import type { NodeSnapshot } from "../types.ts";
 import type { NodesProps } from "./nodes.types.ts";
-import { nodeLabel, nodeSupportsCommand } from "../node-snapshot.ts";
 
 type BindingAgent = {
   id: string;

@@ -1,7 +1,7 @@
-import type { Model } from "@mariozechner/pi-ai";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import type { Model } from "@mariozechner/pi-ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const loadConfig = vi.fn().mockReturnValue({});

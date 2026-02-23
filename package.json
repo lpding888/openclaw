@@ -1,6 +1,6 @@
 {
   "name": "@lpding888/openclaw",
-  "version": "2026.2.22-2",
+  "version": "2026.2.23",
   "description": "Multi-channel AI gateway with extensible messaging integrations",
   "keywords": [],
   "homepage": "https://github.com/openclaw/openclaw#readme",
@@ -93,7 +93,6 @@
     "lint:docs:fix": "pnpm dlx markdownlint-cli2 --fix",
     "lint:fix": "oxlint --type-aware --fix && pnpm format",
     "lint:swift": "swiftlint lint --config .swiftlint.yml && (cd apps/ios && swiftlint lint --config .swiftlint.yml)",
-    "localization:validate": "node scripts/localization/validate-openclaw-zh.mjs",
     "mac:open": "open dist/OpenClaw.app",
     "mac:package": "bash scripts/package-mac-app.sh",
     "mac:restart": "bash scripts/restart-mac.sh",
@@ -136,12 +135,7 @@
     "tui:dev": "OPENCLAW_PROFILE=dev CLAWDBOT_PROFILE=dev node scripts/run-node.mjs --dev tui",
     "ui:build": "node scripts/ui.js build",
     "ui:dev": "node scripts/ui.js dev",
-    "ui:install": "node scripts/ui.js install",
-    "zh:apply": "node localization/openclaw-zh/engine/index.mjs apply",
-    "zh:restore": "node localization/openclaw-zh/engine/index.mjs restore",
-    "zh:status": "node localization/openclaw-zh/engine/index.mjs status",
-    "zh:sync": "node scripts/localization/sync-openclaw-zh.mjs",
-    "zh:verify": "node localization/openclaw-zh/engine/index.mjs verify"
+    "ui:install": "node scripts/ui.js install"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "0.14.1",

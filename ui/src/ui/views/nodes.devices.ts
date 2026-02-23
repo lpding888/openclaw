@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
 import type { DeviceTokenSummary, PairedDevice, PendingDevice } from "../controllers/devices.ts";
-import type { NodesProps } from "./nodes.types.ts";
 import { formatList, formatRelativeTimestamp } from "../format.ts";
+import type { NodesProps } from "./nodes.types.ts";
 
 export function renderDevicesSection(props: NodesProps) {
   const list = props.devicesList ?? { pending: [], paired: [] };

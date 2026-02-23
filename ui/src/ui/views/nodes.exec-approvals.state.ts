@@ -2,9 +2,9 @@ import type {
   ExecApprovalsAllowlistEntry,
   ExecApprovalsFile,
 } from "../controllers/exec-approvals.ts";
+import { nodeLabel, nodeSupportsCommand } from "../node-snapshot.ts";
 import type { NodeSnapshot } from "../types.ts";
 import type { NodesProps } from "./nodes.types.ts";
-import { nodeLabel, nodeSupportsCommand } from "../node-snapshot.ts";
 
 export type ExecSecurity = "deny" | "allowlist" | "full";
 export type ExecAsk = "off" | "on-miss" | "always";

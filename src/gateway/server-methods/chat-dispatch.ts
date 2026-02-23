@@ -1,10 +1,10 @@
-import type { GatewayRequestContext } from "./types.js";
 import { abortChatRunsForSessionKey, type ChatAbortOps } from "../chat-abort.js";
 import {
   collectSessionAbortPartials,
   persistAbortedPartials,
   type AbortOrigin,
 } from "./chat-session.js";
+import type { GatewayRequestContext } from "./types.js";
 
 export function createChatAbortOps(context: GatewayRequestContext): ChatAbortOps {
   return {

@@ -1,17 +1,16 @@
-import type { WebSocket } from "ws";
 import os from "node:os";
-import type { DeviceAuthToken } from "../../../infra/device-pairing.js";
-import type { createSubsystemLogger } from "../../../logging/subsystem.js";
-import type { GatewayRequestContext } from "../../server-methods/types.js";
-import type { GatewayWsClient } from "../ws-types.js";
+import type { WebSocket } from "ws";
 import { loadConfig } from "../../../config/config.js";
+import type { DeviceAuthToken } from "../../../infra/device-pairing.js";
 import { updatePairedNodeMetadata } from "../../../infra/node-pairing.js";
 import { recordRemoteNodeInfo, refreshRemoteNodeBins } from "../../../infra/skills-remote.js";
 import { upsertPresence } from "../../../infra/system-presence.js";
 import { loadVoiceWakeConfig } from "../../../infra/voicewake.js";
+import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { GATEWAY_CLIENT_IDS } from "../../protocol/client-info.js";
 import { type ConnectParams, PROTOCOL_VERSION } from "../../protocol/index.js";
 import { MAX_BUFFERED_BYTES, MAX_PAYLOAD_BYTES, TICK_INTERVAL_MS } from "../../server-constants.js";
+import type { GatewayRequestContext } from "../../server-methods/types.js";
 import { formatError } from "../../server-utils.js";
 import { formatForLog, logWs } from "../../ws-log.js";
 import {
@@ -21,6 +20,7 @@ import {
   incrementPresenceVersion,
   refreshGatewayHealthSnapshot,
 } from "../health-state.js";
+import type { GatewayWsClient } from "../ws-types.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 

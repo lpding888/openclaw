@@ -1,4 +1,9 @@
 import { html, nothing } from "lit";
+import {
+  CHAT_FEEDBACK_DEFAULT_DRAFT,
+  CHAT_FEEDBACK_TAGS,
+  buildCorrectionPrompt,
+} from "../controllers/chat-observability.ts";
 import type {
   ChatFeedbackDraft,
   ChatFeedbackItem,
@@ -7,11 +12,6 @@ import type {
 } from "../types.ts";
 import type { MessageGroup } from "../types/chat-types.ts";
 import type { ChatProps } from "./chat.ts";
-import {
-  CHAT_FEEDBACK_DEFAULT_DRAFT,
-  CHAT_FEEDBACK_TAGS,
-  buildCorrectionPrompt,
-} from "../controllers/chat-observability.ts";
 
 function resolveMessageTimestamp(message: unknown): number | null {
   const m = message as Record<string, unknown>;

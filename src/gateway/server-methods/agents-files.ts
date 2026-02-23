@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { OpenClawConfig } from "../../config/config.js";
 import { listAgentIds } from "../../agents/agent-scope.js";
 import {
   DEFAULT_AGENTS_FILENAME,
@@ -14,6 +13,7 @@ import {
   DEFAULT_USER_FILENAME,
 } from "../../agents/workspace.js";
 import { movePathToTrash } from "../../browser/trash.js";
+import type { OpenClawConfig } from "../../config/config.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 
 const BOOTSTRAP_FILE_NAMES = [

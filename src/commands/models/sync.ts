@@ -1,8 +1,6 @@
-import { getModel, type Model } from "@mariozechner/pi-ai";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ModelApi, ModelDefinitionConfig } from "../../config/types.models.js";
-import type { RuntimeEnv } from "../../runtime.js";
+import { getModel, type Model } from "@mariozechner/pi-ai";
 import { resolveOpenClawAgentDir } from "../../agents/agent-paths.js";
 import { ensureOpenClawModelsJson } from "../../agents/models-config.js";
 import {
@@ -13,6 +11,8 @@ import {
 } from "../../agents/openrouter-catalog.js";
 import { withProgressTotals } from "../../cli/progress.js";
 import { loadConfig } from "../../config/config.js";
+import type { ModelApi, ModelDefinitionConfig } from "../../config/types.models.js";
+import type { RuntimeEnv } from "../../runtime.js";
 
 const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_OPENROUTER_API_KEY_REF = "OPENROUTER_API_KEY";

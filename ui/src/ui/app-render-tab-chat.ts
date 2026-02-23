@@ -1,7 +1,7 @@
 import type { TemplateResult } from "lit";
+import { refreshChatAvatar } from "./app-chat.ts";
 import type { RenderMainContentOptions } from "./app-render-content.ts";
 import type { AppViewState } from "./app-view-state.ts";
-import { refreshChatAvatar } from "./app-chat.ts";
 import {
   CHAT_FEEDBACK_DEFAULT_DRAFT,
   loadChatFeedbackList,

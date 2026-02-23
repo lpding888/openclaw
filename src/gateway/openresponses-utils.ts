@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { StreamingEvent } from "./open-responses.schema.js";
 import { resolveSessionKey } from "./http-utils.js";
+import type { StreamingEvent } from "./open-responses.schema.js";
 
 export function writeSseEvent(res: ServerResponse, event: StreamingEvent) {
   res.write(`event: ${event.type}\n`);

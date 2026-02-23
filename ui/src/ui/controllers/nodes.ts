@@ -1,6 +1,6 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
-import type { NodeSnapshot } from "../types.ts";
 import { normalizeNodeSnapshots } from "../node-snapshot.ts";
+import type { NodeSnapshot } from "../types.ts";
 
 export type NodesState = {
   client: GatewayBrowserClient | null;

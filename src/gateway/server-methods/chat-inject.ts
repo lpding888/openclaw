@@ -1,4 +1,3 @@
-import type { GatewayRequestHandler } from "./types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import {
   ErrorCodes,
@@ -8,6 +7,7 @@ import {
 } from "../protocol/index.js";
 import { loadSessionEntry } from "../session-utils.js";
 import { appendAssistantTranscriptMessage } from "./chat-session.js";
+import type { GatewayRequestHandler } from "./types.js";
 
 export const handleChatInject: GatewayRequestHandler = async ({ params, respond, context }) => {
   if (!validateChatInjectParams(params)) {

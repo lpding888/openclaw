@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { SessionScope } from "../config/sessions.js";
-import type { GatewayAgentRow } from "./session-utils.types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { type OpenClawConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
+import type { SessionScope } from "../config/sessions.js";
 import { normalizeAgentId, normalizeMainKey } from "../routing/session-key.js";
+import type { GatewayAgentRow } from "./session-utils.types.js";
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 

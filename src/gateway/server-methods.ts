@@ -23,6 +23,7 @@ import { sessionsHandlers } from "./server-methods/sessions.js";
 import { skillsHandlers } from "./server-methods/skills.js";
 import { systemHandlers } from "./server-methods/system.js";
 import { talkHandlers } from "./server-methods/talk.js";
+import { toolsCatalogHandlers } from "./server-methods/tools-catalog.js";
 import { ttsHandlers } from "./server-methods/tts.js";
 import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-methods/types.js";
 import { updateHandlers } from "./server-methods/update.js";
@@ -31,77 +32,7 @@ import { voicewakeHandlers } from "./server-methods/voicewake.js";
 import { webHandlers } from "./server-methods/web.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
 
-const ADMIN_SCOPE = "operator.admin";
-const READ_SCOPE = "operator.read";
-const WRITE_SCOPE = "operator.write";
-const APPROVALS_SCOPE = "operator.approvals";
-const PAIRING_SCOPE = "operator.pairing";
-
-const APPROVAL_METHODS = new Set([
-  "exec.approval.request",
-  "exec.approval.waitDecision",
-  "exec.approval.resolve",
-]);
-const NODE_ROLE_METHODS = new Set(["node.invoke.result", "node.event", "skills.bins"]);
-const PAIRING_METHODS = new Set([
-  "node.pair.request",
-  "node.pair.list",
-  "node.pair.approve",
-  "node.pair.reject",
-  "node.pair.verify",
-  "device.pair.list",
-  "device.pair.approve",
-  "device.pair.reject",
-  "device.token.rotate",
-  "device.token.revoke",
-  "node.rename",
-]);
-const ADMIN_METHOD_PREFIXES = ["exec.approvals."];
-const READ_METHODS = new Set([
-  "health",
-  "logs.tail",
-  "channels.status",
-  "status",
-  "usage.status",
-  "usage.cost",
-  "tts.status",
-  "tts.providers",
-  "models.list",
-  "models.default.get",
-  "agents.list",
-  "agent.identity.get",
-  "skills.status",
-  "voicewake.get",
-  "sessions.list",
-  "sessions.preview",
-  "cron.list",
-  "cron.status",
-  "cron.runs",
-  "system-presence",
-  "last-heartbeat",
-  "node.list",
-  "node.describe",
-  "chat.history",
-  "config.get",
-  "talk.config",
-]);
-const WRITE_METHODS = new Set([
-  "send",
-  "agent",
-  "agent.wait",
-  "wake",
-  "talk.mode",
-  "tts.enable",
-  "tts.disable",
-  "tts.convert",
-  "tts.setProvider",
-  "voicewake.set",
-  "node.invoke",
-  "chat.send",
-  "chat.abort",
-  "browser.request",
-]);
-
+const CONTROL_PLANE_WRITE_METHODS = new Set(["config.apply", "config.patch", "update.run"]);
 function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["client"]) {
   if (!client?.connect) {
     return null;
@@ -128,53 +59,7 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
   if (!scopeAuth.allowed) {
     return errorShape(ErrorCodes.INVALID_REQUEST, `missing scope: ${scopeAuth.missingScope}`);
   }
-  if (PAIRING_METHODS.has(method) && !scopes.includes(PAIRING_SCOPE)) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.pairing");
-  }
-  if (READ_METHODS.has(method) && !(scopes.includes(READ_SCOPE) || scopes.includes(WRITE_SCOPE))) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.read");
-  }
-  if (WRITE_METHODS.has(method) && !scopes.includes(WRITE_SCOPE)) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.write");
-  }
-  if (APPROVAL_METHODS.has(method)) {
-    return null;
-  }
-  if (PAIRING_METHODS.has(method)) {
-    return null;
-  }
-  if (READ_METHODS.has(method)) {
-    return null;
-  }
-  if (WRITE_METHODS.has(method)) {
-    return null;
-  }
-  if (ADMIN_METHOD_PREFIXES.some((prefix) => method.startsWith(prefix))) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.admin");
-  }
-  if (
-    method.startsWith("config.") ||
-    method.startsWith("wizard.") ||
-    method.startsWith("update.") ||
-    method === "gateway.restart" ||
-    method === "channels.logout" ||
-    method === "agents.create" ||
-    method === "agents.update" ||
-    method === "agents.delete" ||
-    method === "skills.install" ||
-    method === "skills.update" ||
-    method === "cron.add" ||
-    method === "cron.update" ||
-    method === "cron.remove" ||
-    method === "cron.run" ||
-    method === "sessions.patch" ||
-    method === "sessions.reset" ||
-    method === "sessions.delete" ||
-    method === "sessions.compact"
-  ) {
-    return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.admin");
-  }
-  return errorShape(ErrorCodes.INVALID_REQUEST, "missing scope: operator.admin");
+  return null;
 }
 
 export const coreGatewayHandlers: GatewayRequestHandlers = {
@@ -192,6 +77,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...configHandlers,
   ...wizardHandlers,
   ...talkHandlers,
+  ...toolsCatalogHandlers,
   ...ttsHandlers,
   ...skillsHandlers,
   ...sessionsHandlers,

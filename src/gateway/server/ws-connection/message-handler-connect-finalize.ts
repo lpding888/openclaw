@@ -1,8 +1,4 @@
 import type { WebSocket } from "ws";
-import type { createSubsystemLogger } from "../../../logging/subsystem.js";
-import type { GatewayAuthResult } from "../../auth.js";
-import type { GatewayRequestContext } from "../../server-methods/types.js";
-import type { GatewayWsClient } from "../ws-types.js";
 import { loadConfig } from "../../../config/config.js";
 import {
   deriveDeviceIdFromPublicKey,
@@ -17,10 +13,14 @@ import {
   updatePairedDeviceMetadata,
   verifyDeviceToken,
 } from "../../../infra/device-pairing.js";
+import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN, type AuthRateLimiter } from "../../auth-rate-limit.js";
+import type { GatewayAuthResult } from "../../auth.js";
 import { buildDeviceAuthPayload } from "../../device-auth.js";
 import { resolveNodeCommandAllowlist } from "../../node-command-policy.js";
 import { type ConnectParams, ErrorCodes, errorShape } from "../../protocol/index.js";
+import type { GatewayRequestContext } from "../../server-methods/types.js";
+import type { GatewayWsClient } from "../ws-types.js";
 import { completeConnectedSession } from "./message-handler-connect-session.ts";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;

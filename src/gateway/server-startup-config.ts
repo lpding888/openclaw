@@ -1,6 +1,4 @@
 import path from "node:path";
-import type { RuntimeEnv } from "../runtime.js";
-import type { ControlUiRootState } from "./control-ui.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import {
   isNixMode,
@@ -15,6 +13,8 @@ import {
   resolveControlUiRootOverrideSync,
   resolveControlUiRootSync,
 } from "../infra/control-ui-assets.js";
+import type { RuntimeEnv } from "../runtime.js";
+import type { ControlUiRootState } from "./control-ui.js";
 
 type StartupLogger = {
   info: (message: string) => void;

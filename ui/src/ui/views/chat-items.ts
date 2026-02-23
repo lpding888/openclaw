@@ -1,6 +1,6 @@
+import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
 import type { ChatItem, MessageGroup } from "../types/chat-types.ts";
 import type { ChatProps } from "./chat.ts";
-import { normalizeMessage, normalizeRoleForGrouping } from "../chat/message-normalizer.ts";
 
 const CHAT_HISTORY_RENDER_LIMIT = 200;
 

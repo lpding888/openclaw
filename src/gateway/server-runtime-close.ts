@@ -1,6 +1,6 @@
-import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import { stopDiagnosticHeartbeat } from "../logging/diagnostic.js";
 import { runGlobalGatewayStopSafely } from "../plugins/hook-runner-global.js";
+import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import { createGatewayCloseHandler } from "./server-close.js";
 
 export function createGatewayServerRuntime(params: {

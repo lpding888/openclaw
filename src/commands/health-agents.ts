@@ -1,12 +1,12 @@
-import type { OpenClawConfig } from "../config/config.js";
-import type { HealthSummary } from "./health.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import type { OpenClawConfig } from "../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import {
   type HeartbeatSummary,
   resolveHeartbeatSummaryForAgent,
 } from "../infra/heartbeat-runner.js";
 import { normalizeAgentId } from "../routing/session-key.js";
+import type { HealthSummary } from "./health.js";
 
 export const resolveHeartbeatSummary = (cfg: OpenClawConfig, agentId: string): HeartbeatSummary =>
   resolveHeartbeatSummaryForAgent(cfg, agentId);

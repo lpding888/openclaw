@@ -39,6 +39,11 @@ import {
   SkillsInstallParamsSchema,
   SkillsStatusParamsSchema,
   SkillsUpdateParamsSchema,
+  ToolCatalogEntrySchema,
+  ToolCatalogGroupSchema,
+  ToolCatalogProfileSchema,
+  ToolsCatalogParamsSchema,
+  ToolsCatalogResultSchema,
 } from "./agents-models-skills.js";
 import {
   ChannelsLogoutParamsSchema,
@@ -234,6 +239,11 @@ export const ProtocolSchemas: Record<string, TSchema> = {
   ModelsListParams: ModelsListParamsSchema,
   ModelsListResult: ModelsListResultSchema,
   SkillsStatusParams: SkillsStatusParamsSchema,
+  ToolsCatalogParams: ToolsCatalogParamsSchema,
+  ToolCatalogProfile: ToolCatalogProfileSchema,
+  ToolCatalogEntry: ToolCatalogEntrySchema,
+  ToolCatalogGroup: ToolCatalogGroupSchema,
+  ToolsCatalogResult: ToolsCatalogResultSchema,
   SkillsBinsParams: SkillsBinsParamsSchema,
   SkillsBinsResult: SkillsBinsResultSchema,
   SkillsInstallParams: SkillsInstallParamsSchema,

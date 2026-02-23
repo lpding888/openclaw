@@ -1,11 +1,11 @@
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
-import type { WizardPrompter } from "../wizard/prompts.js";
-import type { AuthChoiceGroup, AuthChoiceOption } from "./auth-choice-options.js";
-import type { AuthChoice } from "./onboard-types.js";
 import { listProfilesForProvider } from "../agents/auth-profiles.js";
 import { resolveEnvApiKey } from "../agents/model-auth.js";
+import type { WizardPrompter } from "../wizard/prompts.js";
+import type { AuthChoiceGroup, AuthChoiceOption } from "./auth-choice-options.js";
 import { buildAuthChoiceGroups } from "./auth-choice-options.js";
 import { resolvePreferredProviderForAuthChoice } from "./auth-choice.preferred-provider.js";
+import type { AuthChoice } from "./onboard-types.js";
 
 const BACK_VALUE = "__back";
 

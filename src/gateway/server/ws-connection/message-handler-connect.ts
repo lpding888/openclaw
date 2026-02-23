@@ -1,14 +1,12 @@
 import type { IncomingMessage } from "node:http";
 import type { WebSocket } from "ws";
-import type { createSubsystemLogger } from "../../../logging/subsystem.js";
-import type { GatewayAuthResult, ResolvedGatewayAuth } from "../../auth.js";
-import type { GatewayRequestContext } from "../../server-methods/types.js";
-import type { GatewayWsClient } from "../ws-types.js";
 import { loadConfig } from "../../../config/config.js";
+import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import {
   AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET,
   type AuthRateLimiter,
 } from "../../auth-rate-limit.js";
+import type { GatewayAuthResult, ResolvedGatewayAuth } from "../../auth.js";
 import { authorizeGatewayConnect } from "../../auth.js";
 import { checkBrowserOrigin } from "../../origin-check.js";
 import { GATEWAY_CLIENT_IDS } from "../../protocol/client-info.js";
@@ -21,7 +19,9 @@ import {
   validateConnectParams,
   validateRequestFrame,
 } from "../../protocol/index.js";
+import type { GatewayRequestContext } from "../../server-methods/types.js";
 import { truncateCloseReason } from "../close-reason.js";
+import type { GatewayWsClient } from "../ws-types.js";
 import { formatGatewayAuthFailureMessage, type AuthProvidedKind } from "./auth-messages.js";
 import { finalizeConnectHandshake } from "./message-handler-connect-finalize.ts";
 

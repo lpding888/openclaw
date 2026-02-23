@@ -10,6 +10,7 @@ import {
 } from "../channels/registry.js";
 import { isRecord } from "../utils.js";
 import { hasAnyWhatsAppAuth } from "../web/accounts.js";
+import type { OpenClawConfig } from "./config.js";
 import { ensurePluginAllowlisted } from "./plugins-allowlist.js";
 
 type PluginEnableChange = {
@@ -30,7 +31,6 @@ const CHANNEL_PLUGIN_IDS = Array.from(
 );
 
 const PROVIDER_PLUGIN_IDS: Array<{ pluginId: string; providerId: string }> = [
-  { pluginId: "google-antigravity-auth", providerId: "google-antigravity" },
   { pluginId: "google-gemini-cli-auth", providerId: "google-gemini-cli" },
   { pluginId: "qwen-portal-auth", providerId: "qwen-portal" },
   { pluginId: "copilot-proxy", providerId: "copilot-proxy" },
@@ -282,7 +282,11 @@ function isProviderConfigured(cfg: OpenClawConfig, providerId: string): boolean 
       if (!isRecord(profile)) {
         continue;
       }
-      const provider = normalizeProviderId(String(profile.provider ?? ""));
+      const providerValue = profile.provider;
+      if (typeof providerValue !== "string") {
+        continue;
+      }
+      const provider = normalizeProviderId(providerValue);
       if (provider === normalized) {
         return true;
       }

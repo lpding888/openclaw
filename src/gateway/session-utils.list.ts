@@ -1,10 +1,3 @@
-import type { OpenClawConfig } from "../config/config.js";
-import type { SessionsListParams } from "./protocol/index.js";
-import type {
-  GatewaySessionRow,
-  GatewaySessionsDefaults,
-  SessionsListResult,
-} from "./session-utils.types.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { lookupContextTokens } from "../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
@@ -12,6 +5,7 @@ import {
   resolveConfiguredModelRef,
   resolveDefaultModelForAgent,
 } from "../agents/model-selection.js";
+import type { OpenClawConfig } from "../config/config.js";
 import {
   buildGroupDisplayName,
   resolveFreshSessionTotalTokens,
@@ -20,7 +14,13 @@ import {
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import { isCronRunSessionKey } from "../sessions/session-key-utils.js";
 import { normalizeSessionDeliveryFields } from "../utils/delivery-context.js";
+import type { SessionsListParams } from "./protocol/index.js";
 import { readSessionTitleFieldsFromTranscript } from "./session-utils.fs.js";
+import type {
+  GatewaySessionRow,
+  GatewaySessionsDefaults,
+  SessionsListResult,
+} from "./session-utils.types.js";
 
 const DERIVED_TITLE_MAX_LEN = 60;
 

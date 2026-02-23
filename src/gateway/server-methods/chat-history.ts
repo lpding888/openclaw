@@ -1,4 +1,3 @@
-import type { GatewayRequestHandler } from "./types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveThinkingDefault } from "../../agents/model-selection.js";
 import { stripEnvelopeFromMessages } from "../chat-sanitize.js";
@@ -15,6 +14,7 @@ import {
   readSessionMessages,
   resolveSessionModelRef,
 } from "../session-utils.js";
+import type { GatewayRequestHandler } from "./types.js";
 
 export const handleChatHistory: GatewayRequestHandler = async ({ params, respond, context }) => {
   if (!validateChatHistoryParams(params)) {

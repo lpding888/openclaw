@@ -1,5 +1,5 @@
-import type { NodeRegistry } from "./node-registry.js";
 import { primeRemoteSkillsCache, setSkillsRemoteRegistry } from "../infra/skills-remote.js";
+import type { NodeRegistry } from "./node-registry.js";
 import { startGatewayDiscovery } from "./server-discovery-runtime.js";
 
 type DiscoveryOptions = Parameters<typeof startGatewayDiscovery>[0];

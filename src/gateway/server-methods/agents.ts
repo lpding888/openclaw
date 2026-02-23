@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 import { resolveAgentDir, resolveAgentWorkspaceDir } from "../../agents/agent-scope.js";
 import {
   DEFAULT_IDENTITY_FILENAME,
@@ -39,6 +38,7 @@ import {
   sanitizeIdentityLine,
   statFile,
 } from "./agents-files.js";
+import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
 function resolveAgentWorkspaceFileOrRespondError(
   params: Record<string, unknown>,

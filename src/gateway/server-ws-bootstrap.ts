@@ -2,10 +2,10 @@ import type { WebSocketServer } from "ws";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
-import type { GatewayRequestContext, GatewayRequestHandlers } from "./server-methods/types.js";
-import type { GatewayWsClient } from "./server/ws-types.js";
 import { GATEWAY_EVENTS } from "./server-methods-list.js";
+import type { GatewayRequestContext, GatewayRequestHandlers } from "./server-methods/types.js";
 import { attachGatewayWsHandlers } from "./server-ws-runtime.js";
+import type { GatewayWsClient } from "./server/ws-types.js";
 
 export function attachGatewayWsBootstrap(params: {
   wss: WebSocketServer;

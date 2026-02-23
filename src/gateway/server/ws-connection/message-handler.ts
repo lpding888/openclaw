@@ -1,5 +1,25 @@
 import type { IncomingMessage } from "node:http";
+import os from "node:os";
 import type { WebSocket } from "ws";
+import { loadConfig } from "../../../config/config.js";
+import {
+  deriveDeviceIdFromPublicKey,
+  normalizeDevicePublicKeyBase64Url,
+  verifyDeviceSignature,
+} from "../../../infra/device-identity.js";
+import {
+  approveDevicePairing,
+  ensureDeviceToken,
+  getPairedDevice,
+  requestDevicePairing,
+  updatePairedDeviceMetadata,
+  verifyDeviceToken,
+} from "../../../infra/device-pairing.js";
+import { updatePairedNodeMetadata } from "../../../infra/node-pairing.js";
+import { recordRemoteNodeInfo, refreshRemoteNodeBins } from "../../../infra/skills-remote.js";
+import { upsertPresence } from "../../../infra/system-presence.js";
+import { loadVoiceWakeConfig } from "../../../infra/voicewake.js";
+import { rawDataToString } from "../../../infra/ws.js";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { roleScopesAllow } from "../../../shared/operator-scope-compat.js";
 import { isGatewayCliClient, isWebchatClient } from "../../../utils/message-channel.js";
@@ -32,6 +52,8 @@ import {
   type ErrorShape,
   errorShape,
   formatValidationErrors,
+  PROTOCOL_VERSION,
+  validateConnectParams,
   validateRequestFrame,
 } from "../../protocol/index.js";
 import { parseGatewayRole } from "../../role-policy.js";
@@ -790,35 +812,77 @@ export function attachGatewayWsMessageHandler(params: {
         clearHandshakeTimer();
         const nextClient: GatewayWsClient = {
           socket,
+          connect: connectParams,
           connId,
-          remoteAddr,
-          forwardedFor,
-          requestHost,
-          requestOrigin,
-          requestUserAgent,
-          canvasHostUrl,
-          connectNonce,
-          upgradeReq,
-          resolvedAuth,
-          rateLimiter,
-          trustedProxies,
-          isLocalClient,
-          reportedClientIp,
-          clientIp,
-          gatewayMethods,
-          events,
-          isWebchatConnect,
-          buildRequestContext,
-          send,
-          close,
-          clearHandshakeTimer,
-          setClient,
-          setHandshakeState,
-          setCloseCause,
-          logGateway,
-          logHealth,
-          logWsControl,
+          presenceKey,
+          clientIp: reportedClientIp,
+          canvasCapability,
+          canvasCapabilityExpiresAtMs,
+        };
+        setClient(nextClient);
+        setHandshakeState("connected");
+        if (role === "node") {
+          const context = buildRequestContext();
+          const nodeSession = context.nodeRegistry.register(nextClient, {
+            remoteIp: reportedClientIp,
+          });
+          const instanceIdRaw = connectParams.client.instanceId;
+          const instanceId = typeof instanceIdRaw === "string" ? instanceIdRaw.trim() : "";
+          const nodeIdsForPairing = new Set<string>([nodeSession.nodeId]);
+          if (instanceId) {
+            nodeIdsForPairing.add(instanceId);
+          }
+          for (const nodeId of nodeIdsForPairing) {
+            void updatePairedNodeMetadata(nodeId, {
+              lastConnectedAtMs: nodeSession.connectedAtMs,
+            }).catch((err) =>
+              logGateway.warn(`failed to record last connect for ${nodeId}: ${formatForLog(err)}`),
+            );
+          }
+          recordRemoteNodeInfo({
+            nodeId: nodeSession.nodeId,
+            displayName: nodeSession.displayName,
+            platform: nodeSession.platform,
+            deviceFamily: nodeSession.deviceFamily,
+            commands: nodeSession.commands,
+            remoteIp: nodeSession.remoteIp,
+          });
+          void refreshRemoteNodeBins({
+            nodeId: nodeSession.nodeId,
+            platform: nodeSession.platform,
+            deviceFamily: nodeSession.deviceFamily,
+            commands: nodeSession.commands,
+            cfg: loadConfig(),
+          }).catch((err) =>
+            logGateway.warn(
+              `remote bin probe failed for ${nodeSession.nodeId}: ${formatForLog(err)}`,
+            ),
+          );
+          void loadVoiceWakeConfig()
+            .then((cfg) => {
+              context.nodeRegistry.sendEvent(nodeSession.nodeId, "voicewake.changed", {
+                triggers: cfg.triggers,
+              });
+            })
+            .catch((err) =>
+              logGateway.warn(
+                `voicewake snapshot failed for ${nodeSession.nodeId}: ${formatForLog(err)}`,
+              ),
+            );
+        }
+
+        logWs("out", "hello-ok", {
+          connId,
+          methods: gatewayMethods.length,
+          events: events.length,
+          presence: snapshot.presence.length,
+          stateVersion: snapshot.stateVersion.presence,
         });
+
+        send({ type: "res", id: frame.id, ok: true, payload: helloOk });
+        void refreshGatewayHealthSnapshot({ probe: true }).catch((err) =>
+          logHealth.error(`post-connect health refresh failed: ${formatError(err)}`),
+        );
         return;
       }
 
@@ -876,8 +940,4 @@ export function attachGatewayWsMessageHandler(params: {
       }
     }
   });
-}
-
-function isWebchatClient(client: ConnectParams["client"] | undefined): boolean {
-  return client?.mode === "webchat" || client?.id === "webchat";
 }

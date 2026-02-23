@@ -1,10 +1,10 @@
-import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
-import type { ChatAbortControllerEntry } from "../chat-abort.js";
-import type { GatewayRequestContext } from "./types.js";
+import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding-agent";
 import { resolveSessionFilePath } from "../../config/sessions.js";
+import type { ChatAbortControllerEntry } from "../chat-abort.js";
 import { loadSessionEntry } from "../session-utils.js";
+import type { GatewayRequestContext } from "./types.js";
 
 type TranscriptAppendResult = {
   ok: boolean;

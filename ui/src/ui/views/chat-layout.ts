@@ -1,8 +1,5 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import type { ChatTimelineDensity, ChatTimelineFilterState } from "../types.ts";
-import type { MessageGroup } from "../types/chat-types.ts";
-import type { ChatProps } from "./chat.ts";
 import {
   renderMessageGroup,
   renderReadingIndicatorGroup,
@@ -14,9 +11,12 @@ import {
   selectActiveRunSummary,
 } from "../controllers/chat-observability.ts";
 import { icons } from "../icons.ts";
+import type { ChatTimelineDensity, ChatTimelineFilterState } from "../types.ts";
+import type { MessageGroup } from "../types/chat-types.ts";
 import { renderChatInsights } from "./chat-insights.ts";
 import { buildChatItems } from "./chat-items.ts";
 import { renderChatTimeline } from "./chat-timeline.ts";
+import type { ChatProps } from "./chat.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
 import "../components/resizable-divider.ts";
 

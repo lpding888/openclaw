@@ -1,12 +1,12 @@
 import { html, nothing } from "lit";
 import { ref } from "lit/directives/ref.js";
+import { detectRunAlerts } from "../controllers/chat-observability.ts";
 import type {
   ChatTimelineDensity,
   ChatTimelineEvent,
   ChatTimelineFilterState,
   ChatTimelineRunSummary,
 } from "../types.ts";
-import { detectRunAlerts } from "../controllers/chat-observability.ts";
 
 export type ChatTimelineProps = {
   events: ChatTimelineEvent[];
