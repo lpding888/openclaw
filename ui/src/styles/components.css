@@ -1770,11 +1770,7 @@
   width: min(860px, 100%);
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(
-    180deg,
-    rgba(24, 27, 34, 0.92),
-    rgba(18, 20, 26, 0.92)
-  );
+  background: linear-gradient(180deg, rgba(24, 27, 34, 0.92), rgba(18, 20, 26, 0.92));
   box-shadow: var(--shadow-xl);
   overflow: hidden;
   animation: scale-in 0.18s var(--ease-out);
@@ -1801,12 +1797,7 @@
   height: 10px;
   border-radius: 999px;
   background:
-    radial-gradient(
-      circle at 30% 30%,
-      #fff,
-      rgba(255, 255, 255, 0.2) 26%,
-      transparent 65%
-    ),
+    radial-gradient(circle at 30% 30%, #fff, rgba(255, 255, 255, 0.2) 26%, transparent 65%),
     radial-gradient(circle at 40% 40%, var(--accent), rgba(255, 92, 92, 0.3) 55%, transparent 70%);
   box-shadow: 0 0 0 6px rgba(255, 92, 92, 0.1);
 }
@@ -1873,7 +1864,7 @@
   height: 22px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
@@ -1969,9 +1960,9 @@
   font-size: 11px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.12);
-  color: rgba(255, 255, 255, 0.70);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* ===========================================

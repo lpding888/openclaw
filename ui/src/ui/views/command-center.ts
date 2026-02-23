@@ -1,7 +1,6 @@
 import { html, nothing } from "lit";
 import type { AppViewState } from "../app-view-state.ts";
 import { runUpdate } from "../controllers/config.ts";
-import { restartGateway } from "../controllers/gateway.ts";
 import type { IconName } from "../icons.ts";
 import { icons } from "../icons.ts";
 
@@ -77,7 +76,6 @@ function renderActionIcon(name: IconName) {
 
 function resolveActions(state: AppViewState): CommandAction[] {
   const connected = state.connected;
-  const canRestart = connected; // Gateway may still reject if commands.restart=false; that's ok.
   const canUpdate = connected && !state.updateRunning;
 
   return [
@@ -144,18 +142,6 @@ function resolveActions(state: AppViewState): CommandAction[] {
       run: () => state.setTab("logs"),
     },
     {
-      id: "gateway.restart",
-      title: "Restart gateway",
-      description: "In-place restart (SIGUSR1); dashboard reconnects automatically.",
-      icon: "refreshCw",
-      shortcut: "R R",
-      enabled: canRestart,
-      keywords: ["restart", "reload", "daemon"],
-      run: async () => {
-        await restartGateway(state, { reason: "command-center" });
-      },
-    },
-    {
       id: "gateway.update",
       title: "Run update",
       description: "Pull latest and restart gateway (update.run).",
@@ -174,7 +160,9 @@ function resolveActions(state: AppViewState): CommandAction[] {
       icon: "book",
       shortcut: "D Z",
       keywords: ["help", "中文", "文档"],
-      run: () => window.open("https://docs.openclaw.ai/zh-CN/index", "_blank", "noreferrer"),
+      run: () => {
+        window.open("https://docs.openclaw.ai/zh-CN/index", "_blank", "noreferrer");
+      },
     },
     {
       id: "help.clawhub",
@@ -183,7 +171,9 @@ function resolveActions(state: AppViewState): CommandAction[] {
       icon: "globe",
       shortcut: "M K",
       keywords: ["market", "registry", "skills"],
-      run: () => window.open("https://clawhub.com", "_blank", "noreferrer"),
+      run: () => {
+        window.open("https://clawhub.com", "_blank", "noreferrer");
+      },
     },
     {
       id: "copy.doctor",

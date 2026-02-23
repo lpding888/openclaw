@@ -22,7 +22,6 @@ import type {
   HealthSnapshot,
   LogEntry,
   LogLevel,
-  ModelChoice,
   NostrProfile,
   PresenceEntry,
   SessionsUsageResult,
@@ -56,9 +55,6 @@ export type AppViewState = {
   commandCenterQuery: string;
   commandCenterSelectedIndex: number;
   commandCenterNotice: string | null;
-  modelsLoading: boolean;
-  modelsError: string | null;
-  modelsList: ModelChoice[];
   sessionKey: string;
   chatLoading: boolean;
   chatSending: boolean;

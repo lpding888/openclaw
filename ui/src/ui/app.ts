@@ -73,7 +73,6 @@ import type {
   HealthSnapshot,
   LogEntry,
   LogLevel,
-  ModelChoice,
   PresenceEntry,
   ChannelsStatusSnapshot,
   SessionsListResult,
@@ -139,10 +138,6 @@ export class OpenClawApp extends LitElement {
   @state() commandCenterQuery = "";
   @state() commandCenterSelectedIndex = 0;
   @state() commandCenterNotice: string | null = null;
-
-  @state() modelsLoading = false;
-  @state() modelsError: string | null = null;
-  @state() modelsList: ModelChoice[] = [];
 
   @state() sessionKey = this.settings.sessionKey;
   @state() chatLoading = false;
